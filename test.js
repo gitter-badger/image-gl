@@ -112,12 +112,6 @@ function initBuffers() {
         squareVertexPositionBuffer.numItems = 4;
 }
 
-var zoom = -7.0;
-
-var transX = 0.0;
-var transY = 0.0;
-
-var rotation = 0.0;
 
 function drawScene() {
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -191,6 +185,19 @@ function panLeft() { transX -= 0.1; }
 function panRight(){ transX += 0.1; }
 function rotateLeft() { rotation -= 0.1; }
 function rotateRight() { rotation += 0.1; }
+	
+	
+var zoom = -7.0;
+var transX = 0.0;
+var transY = 0.0;
+var rotation = 0.0;
+	
+function reset() {
+	transY = 0.0;
+	transX = 0.0;
+	rotation = 0.0;
+	zoom = -7.0;
+}
 	
 function handleKeys() {
 	if(currentlyPressedKeys[33]) { // Page Up
