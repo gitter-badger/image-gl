@@ -1,10 +1,58 @@
 var gl;
+var m_maxZ = -1;
+var m_minZ = -20;
+var m_initZ = -7;
+var m_antiAliasingEnabled = false;
+
+// Original dimensions
+var oriW = 800;
+var oriH = 400;
+
+// Texture dimensions
+var texW = 1024;
+var texH = 1024;
+
+var zoom = m_initZ;
+var transX = 0.0;
+var transY = 0.0;
+var rotation = 0.0;
+
+var shaderProgram;
+
+var squareVertexPositionBuffer;
+
+var mvMatrix = mat4.create();
+var pMatrix = mat4.create();
+
+function logGLCall(functionName, args) {   
+   console.log("gl." + functionName + "(" + 
+      WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");   
+} 
+
 function initGL(canvas) {
 	try {
-	gl = canvas.getContext("experimental-webgl");
-			gl.viewportWidth = canvas.width;
+		gl = canvas.getContext("experimental-webgl", 
+				{antialias:m_antiAliasingEnabled});
+		if(gl == null){
+			gl = canvas.getContext("webgl", 
+				{antialias:m_antiAliasingEnabled});
+		}
+		
+		gl = WebGLDebugUtils.makeDebugContext(gl, undefined, logGLCall);
+		
+		gl.viewportWidth = canvas.width;
 		gl.viewportHeight = canvas.height;
+		
+		canvas.addEventListener('webglcontextlost', function(){
+		    // context is lost
+		}, false);
+		
+		canvas.addEventListener('webglcontextrestored', function(){
+		    // context is restored
+		}, false);
+
 	} catch (e) {
+		alert(e);
 	}
     if (!gl) {
 		alert("Could not initialise WebGL, sorry :-(");
@@ -49,8 +97,6 @@ function getShader(gl, id) {
 }
 
 
-var shaderProgram;
-
 function initShaders() {
 	var fragmentShader = getShader(gl, "shader-fs");
 	var vertexShader = getShader(gl, "shader-vs");
@@ -74,8 +120,6 @@ function initShaders() {
 }
 
 
-var mvMatrix = mat4.create();
-var pMatrix = mat4.create();
 
 function setMatrixUniforms() {
 	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
@@ -84,8 +128,6 @@ function setMatrixUniforms() {
 
 
 
-var triangleVertexPositionBuffer;
-var squareVertexPositionBuffer;
 
 function initBuffers() {
         triangleVertexPositionBuffer = gl.createBuffer();
@@ -164,18 +206,18 @@ function handleKeyDown(event){
 }
 	
 function zoomIn(){
-    if (zoom+1 >=  -1) {
-    	zoom = -1;
+    if (zoom+1 >=  m_maxZ) {
+    	zoom = m_maxZ;
     }else{
-    	zoom += 0.1;
+    	zoom += 0.01;
     }
 }
 
 function zoomOut(){
-    if (zoom <=  -20) {
-        zoom = -20;
+    if (zoom <=  m_minZ) {
+        zoom = m_minZ;
     }else{
-    	zoom -= 0.1;
+    	zoom -= 0.01;
 	}
 }
 
@@ -183,14 +225,9 @@ function panUp()   { transY += 0.1; }
 function panDown() { transY -= 0.1; }
 function panLeft() { transX -= 0.1; }
 function panRight(){ transX += 0.1; }
-function rotateLeft() { rotation -= 0.1; }
-function rotateRight() { rotation += 0.1; }
+function rotateLeft() { rotation -= 0.03; }
+function rotateRight() { rotation += 0.03; }
 	
-	
-var zoom = -7.0;
-var transX = 0.0;
-var transY = 0.0;
-var rotation = 0.0;
 	
 function reset() {
 	transY = 0.0;
