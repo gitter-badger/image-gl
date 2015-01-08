@@ -5,9 +5,7 @@ var m_animateSquare = 0;
 var m_maxZ = -0.1;
 var m_minZ = -20.0;
 var m_initZ = -3.0;
-var m_antiAliasingEnabled = false;
-
-var m_commandKeyPressed = false;
+var m_antiAliasingEnabled = true;
 
 // Original dimensions
 var oriW = 800;
@@ -81,7 +79,7 @@ function handleMouseMove(event) {
     var deltaX = newX - lastMouseX;
     var deltaY = newY - lastMouseY;
     
-    if(m_commandKeyPressed){
+    if(isCommandKeyDown()){
 
 	    if(deltaX > 0){
 	    	for(var i = 0; i < deltaX; i++){
@@ -124,8 +122,8 @@ function mvPopMatrix() {
 }
 
 function logGLCall(functionName, args) {   
-   console.log("gl." + functionName + "(" + 
-      WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");   
+   //console.log("gl." + functionName + "(" + 
+   //   WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");   
 } 
 
 function initGL(canvas) {
@@ -243,27 +241,29 @@ function initBuffers() {
 	squareVertexPositionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
 	vertices = [
-         1.0,  1.0,
-        -1.0,  1.0, 
+        -1.0,  1.0,
+         1.0,  1.0, 
          1.0, -1.0, 
         -1.0, -1.0, 
+        -1.0, 1.0
 	];
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 	squareVertexPositionBuffer.itemSize = 2;
-	squareVertexPositionBuffer.numItems = 4;
+	squareVertexPositionBuffer.numItems = 5;
 	
 	squareVertexTextureCoordBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexTextureCoordBuffer);
 	var textureCoords = [
-          0.0, 0.0,
           0.0, 1.0,
           1.0, 1.0,
           1.0, 0.0,
+          0.0, 0.0,
+          0.0, 1.0
     ];
    
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
     squareVertexTextureCoordBuffer.itemSize = 2;
-    squareVertexTextureCoordBuffer.numItems = 4;
+    squareVertexTextureCoordBuffer.numItems = 5;
 }
 
 
@@ -271,25 +271,28 @@ function drawScene() {
 	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-	mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+	mat4.perspective( 45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix );
 
-	mat4.identity(mvMatrix);
+	mat4.identity( mvMatrix );
+	
+	// Rot v2, althouht now Pan doesn't work properly';
+	mat4.rotate( mvMatrix, rotation,        [0, 0, 1] ); // Rotation around Z axis
 
-	mat4.translate(mvMatrix, [transX, transY, zoom]);
+	mat4.translate( mvMatrix, [transX, transY, zoom] );
 	
 	mvPushMatrix();
     mat4.rotate( mvMatrix, m_animateSquare, [0, 1, 0] ); // Animation rotate around y axis
-	mat4.rotate( mvMatrix, rotation,        [0,0,1]   ); // Rotation around Z axis
 
     gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexTextureCoordBuffer);
     gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, squareVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 	gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, mytexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
+
 	
 	setMatrixUniforms();
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
@@ -310,9 +313,10 @@ function animate() {
 function webGLStart() {
 	var canvas = document.getElementById("gl-canvas");
 	initGL(canvas);
+	initTextureFramebuffer();
 	initShaders();
 	initBuffers();
-	initTexture();
+	initTextures();
 
 	gl.clearColor(0.0, 0.0, 0.0, 1.0);
 	gl.enable(gl.DEPTH_TEST);
@@ -327,19 +331,38 @@ function webGLStart() {
 	tick();
 }
 
+var originalImage = {
+  "width": 5120,
+  "height": 2880,
+  "rows": 2,
+  "cols": 2
+};
+
 var mytexture;
-function initTexture() {
+
+function initTextures() {
 	try{
     	mytexture = gl.createTexture();
     	mytexture.image = new Image();
     	mytexture.image.onload = function() {    	
 			handleLoadedTexture(mytexture)
     	}
-    
-    	mytexture.image.src = "2.png";
+    	var img = document.createElement('img');
+    	
+    	var loaded = false, wait;
+    	
+    	var imgSrc = "2.png";
+    	
+    	mytexture.image.src = imgSrc;
    }catch(e){
    		alert(e);
    }
+}
+
+var rttFrameBuffer;
+var rttTexture;
+
+function initTextureFramebuffer(){
 }
 
 function handleLoadedTexture(texture) {
@@ -347,12 +370,11 @@ function handleLoadedTexture(texture) {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    
+  	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+  	gl.generateMipmap(gl.TEXTURE_2D);
     // Used for claming textures that are not power of 2
-    gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	
+    //gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	//gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
@@ -367,7 +389,7 @@ var currentlyPressedKeys = {};
 
 function mouseWheelHandler(e){
 	// cross-browser wheel delta
-	 if(m_commandKeyPressed){
+	 if(isCommandKeyDown()){
 		var e = window.event || e; // old IE support
 		var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 	
@@ -379,31 +401,25 @@ function mouseWheelHandler(e){
 }
 
 /// TODO: this is platform and browser specific. 
-function commandKey(){
+function commandKeyL(){
 	return 91; // command key in chrome & safari on mac. doesn't work in firefox
 }
 
+function commandKeyR(){
+	return 93; // right command key
+}
+
 function isCommandKeyDown(){
-	return currentlyPressedKeys[commandKey()];
+	return currentlyPressedKeys[commandKeyL()] || currentlyPressedKeys[commandKeyR()];
 }
 
 /// TODO: event seems to only be handled incorrectly for multiple keys up. 
 /// Example, holding command while rotation is applied then releasing rotate causes indefinite spin
 function handleKeyUp(event) {
-	var cmnd = commandKey();
-	
-	if( event.keyCode == cmnd ){
-		m_commandKeyPressed = false;
-	}
 	currentlyPressedKeys[event.keyCode] = false;
 }
 
 function handleKeyDown(event){
-	var cmnd = commandKey();
-
-	if( event.keyCode == cmnd ){
-		m_commandKeyPressed = true;
-	}
   	currentlyPressedKeys[event.keyCode] = true;
 }
 	
@@ -425,10 +441,19 @@ function zoomOut(){
 
 var panBase = 0.002;
 
-function panUp()   { transY += -zoom * panBase; }
-function panDown() { transY -= -zoom * panBase; }
-function panLeft() { transX -= -zoom * panBase; }
-function panRight(){ transX += -zoom * panBase; }
+function panUp()   { 
+	transY += -zoom * panBase;
+}
+function panDown() { 
+	transY -= -zoom * panBase; 
+}
+function panLeft() { 
+	transX -= -zoom * panBase; 
+}
+function panRight(){ 
+	transX += -zoom * panBase; 
+}
+
 function rotateLeft() { rotation -= 0.03; }
 function rotateRight() { rotation += 0.03; }
 	
