@@ -33,20 +33,42 @@ var pMatrix = mat4.create();
 
 
 var mouseDown = false;
+var mouseDownRight = false;
 var lastMouseX = null;
 var lastMouseY = null;
 
 var moonRotationMatrix = mat4.create();
 mat4.identity(moonRotationMatrix);
 
-function handleMouseDown(event) {
-    mouseDown = true;
-    lastMouseX = event.clientX;
-    lastMouseY = event.clientY;
+function handleMouseDown(e) {
+
+	if (!e.which && e.button) {
+		if (e.button & 1) e.which = 1      // Left
+    	else if (e.button & 4) e.which = 2 // Middle
+		else if (e.button & 2) e.which = 3 // Right
+	}
+	if(e.which == 1){
+    	mouseDown = true;
+    }
+    if(e.which == 3){
+    	mouseDownRight = true;
+    }
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
 }
 
-function handleMouseUp(event) {
-    mouseDown = false;
+function handleMouseUp(e) {
+		if (!e.which && e.button) {
+		if (e.button & 1) e.which = 1      // Left
+    	else if (e.button & 4) e.which = 2 // Middle
+		else if (e.button & 2) e.which = 3 // Right
+	}
+	if(e.which == 1){
+    	mouseDown = false;
+    }
+    if(e.which == 3){
+    	mouseDownRight = false;
+    }
 }
 
 function handleMouseMove(event) {
@@ -130,6 +152,10 @@ function initGL(canvas) {
 		
 		canvas.addEventListener('mousewheel', mouseWheelHandler, false);
 		canvas.addEventListener('DOMMouseScroll', mouseWheelHandler, false);
+		canvas.addEventListener('contextmenu', function(ev) {
+    		ev.preventDefault();
+    		return false;
+		}, false);
 
 	} catch (e) {
 		alert(e);
@@ -355,6 +381,10 @@ function mouseWheelHandler(e){
 /// TODO: this is platform and browser specific. 
 function commandKey(){
 	return 91; // command key in chrome & safari on mac. doesn't work in firefox
+}
+
+function isCommandKeyDown(){
+	return currentlyPressedKeys[commandKey()];
 }
 
 /// TODO: event seems to only be handled incorrectly for multiple keys up. 
