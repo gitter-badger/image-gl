@@ -2,7 +2,7 @@ var gl;
 
 var m_animateSquare = 0;
 
-var m_maxZ = -0.01;
+var m_maxZ = -0.1;
 var m_minZ = -20.0;
 var m_initZ = -3.0;
 var m_antiAliasingEnabled = false;
@@ -59,25 +59,28 @@ function handleMouseMove(event) {
     var deltaX = newX - lastMouseX;
     var deltaY = newY - lastMouseY;
     
-    if(deltaX > 0){
-    	for(var i = 0; i < deltaX; i++){
-    		panRight();
-    	}
-    }else{
-    	for(var i = 0; i < -deltaX; i++){
-    		panLeft();
-    	}
-    }
+    if(m_commandKeyPressed){
 
-    if(deltaY > 0){
-    	for(var i = 0; i < deltaY; i++){
-    		
-    		panDown();
-    	}
-    }else{
-    	for(var i = 0; i < -deltaY; i++){
-    		panUp();
-    	}
+	    if(deltaX > 0){
+	    	for(var i = 0; i < deltaX; i++){
+	    		panRight();
+	    	}
+	    }else{
+	    	for(var i = 0; i < -deltaX; i++){
+	    		panLeft();
+	    	}
+	    }
+	
+	    if(deltaY > 0){
+	    	for(var i = 0; i < deltaY; i++){
+	    		
+	    		panDown();
+	    	}
+	    }else{
+	    	for(var i = 0; i < -deltaY; i++){
+	    		panUp();
+	    	}
+	    }
     }
 
     lastMouseX = newX
@@ -343,8 +346,8 @@ function mouseWheelHandler(e){
 		var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 	
 		zoom += delta / 10.0;
-		if(zoom > -1){
-			zoom = -1;
+		if(zoom > m_maxZ){
+			zoom = m_maxZ;
 		}
 	}
 }
@@ -375,7 +378,7 @@ function handleKeyDown(event){
 }
 	
 function zoomIn(){
-    if (zoom+1 >=  m_maxZ) {
+    if (zoom >=  m_maxZ) {
     	zoom = m_maxZ;
     }else{
     	zoom += 0.01;
@@ -390,7 +393,7 @@ function zoomOut(){
 	}
 }
 
-var panBase = 0.0018;
+var panBase = 0.002;
 
 function panUp()   { transY += -zoom * panBase; }
 function panDown() { transY -= -zoom * panBase; }
