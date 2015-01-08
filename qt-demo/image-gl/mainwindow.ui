@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="1" column="0" colspan="2">
+     <widget class="QLabel" name="labelImageLoaded">
+      <property name="text">
+       <string>Image Loaded :</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QPushButton" name="pushButtonSplit">
+      <property name="text">
+       <string>Split</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QLabel" name="labelDimension">
+      <property name="text">
+       <string>Dimension of Tile</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="2">
+     <widget class="QTextEdit" name="textEditLog"/>
+    </item>
+    <item row="0" column="0">
+     <widget class="QPushButton" name="pushButtonLoadImage">
+      <property name="text">
+       <string>Load Image</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="1">
+     <widget class="QComboBox" name="comboBoxDimension">
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <item>
+       <property name="text">
+        <string>512</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>1024</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>2048</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>4096</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>8192</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections/>
+</ui>
