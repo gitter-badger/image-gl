@@ -19,6 +19,8 @@ public:
     bool loadImage(const QString &file);
     bool writeImage(QImage &img, QPoint pos, int row, int column);
 
+    int dimension();
+    bool writeJSON(QJsonDocument &doc);
 private slots:
     void on_pushButtonSplit_clicked();
 

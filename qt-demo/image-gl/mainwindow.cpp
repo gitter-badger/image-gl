@@ -6,6 +6,7 @@
 #include <QMessageBox>
 #include <QImageReader>
 #include <QImageWriter>
+#include <QJsonDocument>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -20,17 +21,17 @@ MainWindow::~MainWindow()
 }
 
 bool MainWindow::loadImage(const QString &file){
-    QFile device(file);
+    QFile device( file );
     bool ret = false;
-    if (!device.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this, QString("Problem loading file: 1"), QString("Could not load image selected."));
+    if ( !device.open( QIODevice::ReadOnly ) ) {
+        QMessageBox::critical( this, QString( "Problem loading file: 1" ), QString( "Could not load image selected." ));
         ret = false;
     } else {
-        QImageReader *reader = new QImageReader(&device);
-         reader->setDecideFormatFromContent(true);
-        if (reader->canRead()) {
-            if (!reader->read(&m_image)) {
-                QMessageBox::critical(this, QString("Problem loading file: 2"), QString("Could not load image selected."));
+        QImageReader *reader = new QImageReader( &device );
+        reader->setDecideFormatFromContent( true );
+        if ( reader->canRead() ) {
+            if ( !reader->read( &m_image ) ) {
+                QMessageBox::critical( this, QString( "Problem loading file: 2" ), QString("Could not load image selected." ));
             }else{
                 ret = true;
             }
@@ -40,90 +41,140 @@ bool MainWindow::loadImage(const QString &file){
     return ret;
 }
 
+int MainWindow::dimension(){
+    return ui->comboBoxDimension->currentText().toInt();
+}
+
 void MainWindow::on_pushButtonSplit_clicked()
 {
     if(m_image.isNull()){
-        QMessageBox::critical(this, QString("Split error: 1"), QString("Image is NULL"));
+        QMessageBox::critical( this, QString( "Split error: 1" ), QString( "Image is NULL" ));
         return;
     }
 
-    int dimension = ui->comboBoxDimension->currentText().toInt();
+    // width & height of tile
+    int dim = dimension();
 
+    /// Create tiles
 
-    // Create tiles
-    QSize size   = m_image.size();
-    int   width  = size.width();
-    int   height = size.height();
+    QSize origsize   = m_image.size();
 
-    int wstretch = width % dimension;
-    int hstretch = height % dimension;
+    int origwidth  = origsize.width();
+    int origheight = origsize.height();
 
-    width += wstretch;
-    height += hstretch;
+    // Amount to stretch by
+    int wstretch = dim - (origwidth % dim);
+    int hstretch = dim - (origheight % dim);
 
-    int cols = width / dimension;
-    int rows = height / dimension;
+    // Add Stretch dimensions
+    int stretchwidth = origwidth + wstretch;
+    int stretchheight = origheight + hstretch;
 
-    QImage input = m_image.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    int rows = stretchheight / dim;
+    int cols = stretchwidth  / dim;
 
-    QPoint offset = QPoint(0,0);
+    QImage input = m_image.scaled( stretchwidth, stretchheight, Qt::IgnoreAspectRatio, Qt::SmoothTransformation );
 
-    for(int row = 0; row < rows; row++){
-        for(int col = 0; col < cols; col++){
-            offset = QPoint(dimension * col, dimension * row);
-            QImage img = input.copy(offset.x(), offset.y(), dimension, dimension);
+    QPoint offset = QPoint( 0,0 );
+
+    bool ok = false;
+    for( int row = 0; row < rows; row++ ){
+        for( int col = 0; col < cols; col++ ){
+            offset = QPoint( dim * col, dim * row );
+            QImage img = input.copy( offset.x(), offset.y(), dim, dim );
 
             QString message;
-            bool ok = writeImage(img, offset, row, col);
+            ok = writeImage( img, offset, row, col );
             if(ok){
-                message = QString("%1 %2 %3 %4").arg(offset.x()).arg(offset.y()).arg(dimension).arg(dimension);
-                ui->textEditLog->append(message);
+                message = QString( "%1 %2 %3 %4" ).arg( offset.x() ).arg( offset.y() ).arg( dim ).arg( dim );
+                ui->textEditLog->append( message );
             }else{
-                message = QString("Problem writing file");
+                message = QString( "Problem writing file" );
             }
-            ui->textEditLog->append(message);
-            statusBar()->showMessage(message);
+            ui->textEditLog->append( message );
+            statusBar()->showMessage( message );
         }
     }
+    if(ok){
+        QVariantMap map;
+
+        map[ "stretchWidth"]  = stretchwidth;
+        map[ "stretchHeight"] = stretchheight;
+        map[ "width" ]        = origwidth;
+        map[ "height" ]       = origheight;
+        map[ "rows" ]         = rows;
+        map[ "cols" ]         = cols;
+        map[ "dimension" ]    = dim;
+
+        QJsonDocument jsondoc = QJsonDocument::fromVariant( map );
+        ok = writeJSON( jsondoc );
+        if(!ok){
+            QMessageBox::critical( this, QString( "Problem writing data file" ), QString( "Problem writing data file" ) );
+        }
+    }
+}
+
+bool MainWindow::writeJSON( QJsonDocument &doc ){
+    bool ok = false;
+    QFileInfo fileinfo (m_file );
+    QString filename = QString( "%1%2tile_data.js" ).
+            arg( fileinfo.absoluteDir().absolutePath() ).
+            arg( QDir::separator() );
+
+    QFile wdevice( filename );
+    if( !wdevice.open( QIODevice::WriteOnly ) ) {
+        QMessageBox::critical( this, QString( "Problem writing tile data file" ), QString( "Could not open file for writing") );
+        ok = false;
+    }else{
+        wdevice.write( "var tileImage = " );
+        qint64 length = wdevice.write( doc.toJson() );
+        wdevice.close();
+        ok = length > 0;
+    }
+    return ok;
 }
 
 bool MainWindow::writeImage(QImage &img, QPoint pos, int row, int column){
     bool ok = false;
     QString format = QString("jpg");
 
-    QFileInfo fileinfo(m_file);
+    int dim = dimension();
+
+    QFileInfo fileinfo( m_file );
     QString filename =
-            QString("%1%2%3%4.%5").
-            arg(fileinfo.absoluteDir().absolutePath()).
-            arg(QDir::separator()).
-            arg(row).
-            arg(column).
-            arg(format);
+            QString( "%1%2tile_%3%4_%5.%6" ).
+            arg( fileinfo.absoluteDir().absolutePath() ).
+            arg( QDir::separator() ).
+            arg( row ).
+            arg( column ).
+            arg( dim ).
+            arg( format );
 
 
     QFile wdevice(filename);
-    if (!wdevice.open(QIODevice::WriteOnly)) {
-        QMessageBox::critical(this, QString("Problem writing file: 1"), QString("Could not write file %1").arg(filename));
+    if ( !wdevice.open( QIODevice::WriteOnly ) ) {
+        QMessageBox::critical( this, QString( "Problem writing file: 1" ), QString( "Could not write file %1" ).arg( filename ) );
         ok = false;
     }else{
-        QImageWriter writer(&wdevice, format.toLatin1());
+        QImageWriter writer( &wdevice, format.toLatin1() );
 
-        writer.setCompression(0);
-        writer.setQuality(100);
-        ok = writer.write(img);
+        writer.setCompression( 0 );
+        writer.setQuality( 100 );
+        ok = writer.write( img );
         if(!ok){
-            QMessageBox::critical(this, QString("Problem writing file: 2"), QString("Could not write file %1").arg(filename));
+            QMessageBox::critical( this, QString( "Problem writing file: 2" ), QString( "Could not write file %1" ).arg( filename ) );
         }
+        wdevice.close();
     }
     return ok;
 }
 
 void MainWindow::on_pushButtonLoadImage_clicked()
 {
-    m_file = QFileDialog::getOpenFileName(this, QString("Select file to split"));
+    m_file = QFileDialog::getOpenFileName( this, QString( "Select file to split" ) );
 
-    if(QFile::exists(m_file)){
-        ui->labelImageLoaded->setText(QString("File Loaded: %1").arg(m_file));
-        loadImage(m_file);
+    if( QFile::exists( m_file ) ){
+        ui->labelImageLoaded->setText( QString("File Loaded: %1" ).arg( m_file ));
+        loadImage( m_file );
     }
 }

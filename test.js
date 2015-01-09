@@ -1,3 +1,13 @@
+//Util: Check for undefined
+function validateNoneOfTheArgsAreUndefined(functionName, args) {
+  for (var ii = 0; ii < args.length; ++ii) {
+    if (args[ii] === undefined) {
+      console.error("undefined passed to gl." + functionName + "(" +
+                     WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");
+    }
+  }
+} 
+
 var gl;
 
 var m_useMipMap = false;
@@ -21,13 +31,6 @@ var m_minZ = -20.0;
 var m_initZ = -2.5;
 var m_antiAliasingEnabled = true;
 
-// Original dimensions
-var oriW = 800;
-var oriH = 400;
-
-// Texture dimensions
-var texW = 1024;
-var texH = 1024;
 
 var zoom = m_initZ;
 var transX = 0.0;
@@ -44,8 +47,8 @@ var mvMatrixStack = [];
 var pMatrix = mat4.create();
 
 
-var mouseDown = false;
-var mouseDownRight = false;
+var mouseDownLeft = false;  // used for pan (hand drag)
+var mouseDownRight = false; // used for brightness/contrast adjustment
 var lastMouseX = null;
 var lastMouseY = null;
 
@@ -60,7 +63,7 @@ function handleMouseDown(e) {
 		else if (e.button & 2) e.which = 3 // Right
 	}
 	if(e.which == 1){
-    	mouseDown = true;
+    	mouseDownLeft = true;
     }
     if(e.which == 3){
     	mouseDownRight = true;
@@ -76,7 +79,7 @@ function handleMouseUp(e) {
 		else if (e.button & 2) e.which = 3 // Right
 	}
 	if(e.which == 1){
-    	mouseDown = false;
+    	mouseDownLeft = false;
     }
     if(e.which == 3){
     	mouseDownRight = false;
@@ -84,7 +87,7 @@ function handleMouseUp(e) {
 }
 
 function handleMouseMove(event) {
-    if (!mouseDown) {
+    if ( !mouseDownLeft ) {
       return;
     }
     var newX = event.clientX;
@@ -135,10 +138,19 @@ function mvPopMatrix() {
 	mvMatrix = mvMatrixStack.pop();
 }
 
+function throwOnGLError(err, funcName, args) {
+	//throw WebGLDebugUtils.glEnumToString(err) + " was caused by call to: " + funcName;
+}
+
 function logGLCall(functionName, args) {   
    console.log("gl." + functionName + "(" + 
      WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");   
 } 
+
+function logAndValidate(functionName, args) {
+   logGLCall(functionName, args);
+   validateNoneOfTheArgsAreUndefined (functionName, args);
+}
 
 function initGL(canvas) {
 	try {
@@ -149,7 +161,7 @@ function initGL(canvas) {
 				{antialias:m_antiAliasingEnabled});
 		}
 		
-		gl = WebGLDebugUtils.makeDebugContext(gl, undefined, logGLCall);
+		gl = WebGLDebugUtils.makeDebugContext(gl, throwOnGLError, logAndValidate);
 		
 		gl.viewportWidth = canvas.width;
 		gl.viewportHeight = canvas.height;
@@ -266,7 +278,7 @@ function initBuffers() {
 	squareVertexPositionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
 	
-	var aspectRatio = originalImage.width / originalImage.height;
+	var aspectRatio = tileImage.width / tileImage.height;
 	
 	if(aspectRatio > 1.0){
 		 vertices = [
@@ -402,27 +414,8 @@ function webGLStart() {
 	tick();
 }
 
-
-/// TODO: missing tile 00.jpg 
-// Large image, tiled
-// var originalImage = {
-  // "width": 5120,
-  // "height": 2880,
-  // "rows": 3,
-  // "cols": 5,
-  // "dimension": 512
-// };
-
 // Small image, single tile
-var originalImage = {
-	"stretchWidth": 1024,
-	"stretchHeight": 1024,
-	"width": 800,
-	"height":400,
-	"rows": 1,
-	"cols": 1,
-	"dimension": 1024
-}
+
 var imgSrc = "2.png";
 
 var mytexture;
@@ -436,8 +429,8 @@ function initTextures() {
     	}
     	
     	// For each "rows" && for each "cols", load tile as texture
-    	originalImage.rows;
-    	originalImage.cols; 
+    	tileImage.rows;
+    	tileImage.cols; 
     	
     	mytexture.image.src = imgSrc;
    }catch(e){
@@ -453,8 +446,8 @@ var rttTexture;
 function initTextureFramebuffer(){
     rttFramebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
-    rttFramebuffer.width = 512;
-    rttFramebuffer.height = 512;	
+    rttFramebuffer.width = tileImage.stretchWidth;
+    rttFramebuffer.height = tileImage.stretchHeight;	
     
     rttTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, rttTexture);
