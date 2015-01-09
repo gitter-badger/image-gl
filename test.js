@@ -1,5 +1,6 @@
 var gl;
 
+var m_useMipMap = false;
 var m_animateSquare = 0;
 
 var pi = 3.14159265359;
@@ -17,7 +18,7 @@ var m_roty = 0;
 
 var m_maxZ = -0.1;
 var m_minZ = -20.0;
-var m_initZ = -3.0;
+var m_initZ = -2.5;
 var m_antiAliasingEnabled = true;
 
 // Original dimensions
@@ -248,31 +249,42 @@ function setMatrixUniforms() {
 }
 
 
-
+var tileVertices;
 
 function initBuffers() {
+	// Make tile buffer:
+	tileVertices = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, tileVertices);
+	tileVertices= [
+		-0.5,  0.5,
+		 0.5,  0.5,
+		 0.5, -0.5,
+		-0.5, -0.5,
+		-0.5,  0.5
+	];
+	
 	squareVertexPositionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
 	
 	var aspectRatio = originalImage.width / originalImage.height;
 	
 	if(aspectRatio > 1.0){
-		vertices = [
-		-aspectRatio / 2,  0.5,
+		 vertices = [
+		 -aspectRatio / 2,  0.5,
 		 aspectRatio / 2,  0.5,
-		 aspectRatio / 2, -0.5,
-		-aspectRatio / 2, -0.5,
-		-aspectRatio / 2,  0.5
-		];
+		  aspectRatio / 2, -0.5,
+		 -aspectRatio / 2, -0.5,
+		 -aspectRatio / 2,  0.5
+		 ];
 	}else{
-		vertices = [
-		-0.5, aspectRatio,
-		 0.5, aspectRatio,
-		 0.5,-aspectRatio,
-		-0.5,-aspectRatio,
-		-0.5, aspectRatio
-		]; 
-	}
+		 vertices = [
+		 -0.5, aspectRatio,
+		  0.5, aspectRatio,
+		  0.5,-aspectRatio,
+		 -0.5,-aspectRatio,
+		 -0.5, aspectRatio
+		 ]; 
+ 	}
 	
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 	squareVertexPositionBuffer.itemSize = 2;
@@ -403,6 +415,8 @@ function webGLStart() {
 
 // Small image, single tile
 var originalImage = {
+	"stretchWidth": 1024,
+	"stretchHeight": 1024,
 	"width": 800,
 	"height":400,
 	"rows": 1,
@@ -423,6 +437,7 @@ function initTextures() {
     	
     	// For each "rows" && for each "cols", load tile as texture
     	originalImage.rows;
+    	originalImage.cols; 
     	
     	mytexture.image.src = imgSrc;
    }catch(e){
@@ -433,19 +448,49 @@ function initTextures() {
 var rttFrameBuffer;
 var rttTexture;
 
-function initTextureFramebuffer(){
-}
+/// TODO: initialize texture framebuffer to full size unstretched image
 
+function initTextureFramebuffer(){
+    rttFramebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
+    rttFramebuffer.width = 512;
+    rttFramebuffer.height = 512;	
+    
+    rttTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, rttTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+    gl.generateMipmap(gl.TEXTURE_2D);
+        
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rttFramebuffer.width, rttFramebuffer.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    var renderbuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, rttFramebuffer.width, rttFramebuffer.height);
+
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+        
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+  
 function handleLoadedTexture(texture) {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-  	gl.generateMipmap(gl.TEXTURE_2D);
-    // Used for claming textures that are not power of 2
-    gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    if(m_useMipMap){
+    	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+    	gl.generateMipmap(gl.TEXTURE_2D);
+    }else{
+    	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    }
+    //UNUSED: Used for clamping textures that are not power of 2
+    //gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	//gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
@@ -500,7 +545,7 @@ function zoomIn(){
     if (zoom >=  m_maxZ) {
     	zoom = m_maxZ;
     }else{
-    	zoom += 0.01;
+    	zoom += 0.001;
     }
 }
 
@@ -508,7 +553,7 @@ function zoomOut(){
     if (zoom <=  m_minZ) {
         zoom = m_minZ;
     }else{
-    	zoom -= 0.01;
+    	zoom -= 0.001;
 	}
 }
 
