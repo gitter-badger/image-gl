@@ -1,307 +1,43 @@
-//Util: Check for undefined
-function validateNoneOfTheArgsAreUndefined(functionName, args) {
-  for (var ii = 0; ii < args.length; ++ii) {
-    if (args[ii] === undefined) {
-      console.error("undefined passed to gl." + functionName + "(" +
-                     WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");
-    }
-  }
-} 
 
-var gl;
-
-var m_useMipMap = false;
-var m_animateSquare = 0;
-
-var pi = 3.14159265359;
-var m_flipH = false;
-var m_flipV = false;
-
-function flipH() {
-	m_flipH = !m_flipH;
-}
-function flipV() { 
-	m_flipV = !m_flipV;
-}
-var m_rotx = 0;
-var m_roty = 0;
-
-var m_maxZ = -0.1;
-var m_minZ = -20.0;
-var m_initZ = -2.5;
-var m_antiAliasingEnabled = true;
-
-
-var zoom = m_initZ;
-var transX = 0.0;
-var transY = 0.0;
-var rotation = 0.0;
-
-var shaderProgram;
+// Small image, single tile
 
 var squareVertexPositionBuffer;
 var squareVertexTextureCoordBuffer
 
-var mvMatrix = mat4.create();
-var mvMatrixStack = [];
-var pMatrix = mat4.create();
-
-
-var mouseDownLeft = false;  // used for pan (hand drag)
-var mouseDownRight = false; // used for brightness/contrast adjustment
-var lastMouseX = null;
-var lastMouseY = null;
-
-var moonRotationMatrix = mat4.create();
-mat4.identity(moonRotationMatrix);
-
-function handleMouseDown(e) {
-
-	if (!e.which && e.button) {
-		if (e.button & 1) e.which = 1      // Left
-    	else if (e.button & 4) e.which = 2 // Middle
-		else if (e.button & 2) e.which = 3 // Right
-	}
-	if(e.which == 1){
-    	mouseDownLeft = true;
-    }
-    if(e.which == 3){
-    	mouseDownRight = true;
-    }
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
+function initBuffersAndTextures(){
+	initBuffers();
+	initTextures();	
 }
-
-function handleMouseUp(e) {
-		if (!e.which && e.button) {
-		if (e.button & 1) e.which = 1      // Left
-    	else if (e.button & 4) e.which = 2 // Middle
-		else if (e.button & 2) e.which = 3 // Right
-	}
-	if(e.which == 1){
-    	mouseDownLeft = false;
-    }
-    if(e.which == 3){
-    	mouseDownRight = false;
-    }
-}
-
-function handleMouseMove(event) {
-    if ( !mouseDownLeft ) {
-      return;
-    }
-    var newX = event.clientX;
-    var newY = event.clientY;
-
-    var deltaX = newX - lastMouseX;
-    var deltaY = newY - lastMouseY;
-    
-    if(isCommandKeyDown()){
-
-	    if(deltaX > 0){
-	    	for(var i = 0; i < deltaX; i++){
-	    		panRight();
-	    	}
-	    }else{
-	    	for(var i = 0; i < -deltaX; i++){
-	    		panLeft();
-	    	}
-	    }
-	
-	    if(deltaY > 0){
-	    	for(var i = 0; i < deltaY; i++){
-	    		
-	    		panDown();
-	    	}
-	    }else{
-	    	for(var i = 0; i < -deltaY; i++){
-	    		panUp();
-	    	}
-	    }
-    }
-
-    lastMouseX = newX
-    lastMouseY = newY;
-}
-
-
-function mvPushMatrix() {
-    var copy = mat4.create();
-    mat4.set(mvMatrix, copy);
-    mvMatrixStack.push(copy);
-}
-
-function mvPopMatrix() {
-    if (mvMatrixStack.length == 0) {
-		throw "Invalid popMatrix!";
-    }
-	mvMatrix = mvMatrixStack.pop();
-}
-
-function throwOnGLError(err, funcName, args) {
-	//throw WebGLDebugUtils.glEnumToString(err) + " was caused by call to: " + funcName;
-}
-
-function logGLCall(functionName, args) {   
-   console.log("gl." + functionName + "(" + 
-     WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");   
-} 
-
-function logAndValidate(functionName, args) {
-   logGLCall(functionName, args);
-   validateNoneOfTheArgsAreUndefined (functionName, args);
-}
-
-function initGL(canvas) {
-	try {
-		gl = canvas.getContext("experimental-webgl", 
-				{antialias:m_antiAliasingEnabled});
-		if(gl == null){
-			gl = canvas.getContext("webgl", 
-				{antialias:m_antiAliasingEnabled});
-		}
-		
-		gl = WebGLDebugUtils.makeDebugContext(gl, throwOnGLError, logAndValidate);
-		
-		gl.viewportWidth = canvas.width;
-		gl.viewportHeight = canvas.height;
-		
-		canvas.addEventListener('webglcontextlost', function(){
-		    // context is lost
-		}, false);
-		
-		canvas.addEventListener('webglcontextrestored', function(){
-		    // context is restored
-		}, false);
-		
-		canvas.addEventListener('mousewheel', mouseWheelHandler, false);
-		canvas.addEventListener('DOMMouseScroll', mouseWheelHandler, false);
-		canvas.addEventListener('contextmenu', function(ev) {
-    		ev.preventDefault();
-    		return false;
-		}, false);
-
-	} catch (e) {
-		alert(e);
-	}
-    if (!gl) {
-		alert("Could not initialise WebGL, sorry :-(");
-    }
-}
-
-
-function getShader(gl, id) {
-	var shaderScript = document.getElementById(id);
-    if (!shaderScript) {
-    	return null;
-	}
-
-    var str = "";
-    var k = shaderScript.firstChild;
-    
-    while (k) {
-    	if (k.nodeType == 3) {
-   			str += k.textContent;
-    	}
-		k = k.nextSibling;
-	}
-
-	var shader;
-    if (shaderScript.type == "x-shader/x-fragment") {
-    	shader = gl.createShader(gl.FRAGMENT_SHADER);
-	} else if (shaderScript.type == "x-shader/x-vertex") {
-		shader = gl.createShader(gl.VERTEX_SHADER);
-	} else {
-		return null;
- 	}
-
-	gl.shaderSource(shader, str);
-	gl.compileShader(shader);
-
-	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-		alert(gl.getShaderInfoLog(shader));
-		return null;
-	}
-
-	return shader;
-}
-
-
-function initShaders() {
-	var fragmentShader = getShader(gl, "shader-fs");
-	var vertexShader = getShader(gl, "shader-vs");
-
-	shaderProgram = gl.createProgram();
-	gl.attachShader(shaderProgram, vertexShader);
- 	gl.attachShader(shaderProgram, fragmentShader);
-    gl.linkProgram(shaderProgram);
-
-	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-		alert("Could not initialise shaders");
-	}
-
-	gl.useProgram(shaderProgram);
-
-	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-    
-    shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
-    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);	
-
-	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-	shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
-}
-
-
-
-function setMatrixUniforms() {
-	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-}
-
-
-var tileVertices;
 
 function initBuffers() {
-	// Make tile buffer:
-	tileVertices = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, tileVertices);
-	tileVertices= [
-		-0.5,  0.5,
-		 0.5,  0.5,
-		 0.5, -0.5,
-		-0.5, -0.5,
-		-0.5,  0.5
-	];
-	
+
 	squareVertexPositionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-	
+
 	var aspectRatio = tileImage.width / tileImage.height;
-	
+
 	if(aspectRatio > 1.0){
 		 vertices = [
-		 -aspectRatio / 2,  0.5,
-		 aspectRatio / 2,  0.5,
-		  aspectRatio / 2, -0.5,
-		 -aspectRatio / 2, -0.5,
-		 -aspectRatio / 2,  0.5
+			 -aspectRatio / 2,  0.5,
+			  aspectRatio / 2,  0.5,
+			  aspectRatio / 2, -0.5,
+			 -aspectRatio / 2, -0.5,
+			 -aspectRatio / 2,  0.5
 		 ];
 	}else{
 		 vertices = [
-		 -0.5, aspectRatio,
-		  0.5, aspectRatio,
-		  0.5,-aspectRatio,
-		 -0.5,-aspectRatio,
-		 -0.5, aspectRatio
-		 ]; 
+			 -0.5, aspectRatio,
+			  0.5, aspectRatio,
+			  0.5,-aspectRatio,
+			 -0.5,-aspectRatio,
+			 -0.5, aspectRatio
+		 ];
  	}
-	
+
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 	squareVertexPositionBuffer.itemSize = 2;
 	squareVertexPositionBuffer.numItems = 5;
-	
+
 	squareVertexTextureCoordBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexTextureCoordBuffer);
 	var textureCoords = [
@@ -311,10 +47,27 @@ function initBuffers() {
           0.0, 0.0,
           0.0, 1.0
     ];
-   
+
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
     squareVertexTextureCoordBuffer.itemSize = 2;
     squareVertexTextureCoordBuffer.numItems = 5;
+}
+
+var mytexture;
+var imgSrc = "tiles/tile_13_1024.jpg";
+
+function initTextures() {
+	try{
+    	mytexture = gl.createTexture();
+    	mytexture.image = new Image();
+    	mytexture.image.onload = function() {
+			handleLoadedTexture(mytexture)
+    	}
+
+    	mytexture.image.src = imgSrc;
+   }catch(e){
+   		alert(e);
+   }
 }
 
 
@@ -325,22 +78,24 @@ function drawScene() {
 	mat4.perspective( 45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix );
 
 	mat4.identity( mvMatrix );
-	
-	// Rot v2, althouht now Pan doesn't work properly';
 
-	mat4.rotate( mvMatrix, rotation,        [0, 0, 1] ); // Rotation around Z axis
+	// Rot v2, although now Pan doesn't work properly';
 
-	mat4.translate( mvMatrix, [transX, transY, zoom] );
-	
+	mat4.rotate( mvMatrix, settings.rotation,        [0, 0, 1] ); // Rotation around Z axis
+
+	mat4.translate( mvMatrix, [transX, transY, settings.zoom] );
+
 	mvPushMatrix();
 	mat4.rotate( mvMatrix, m_rotx,    [1, 0, 0] );
     mat4.rotate( mvMatrix, m_roty,   [0, 1, 0] ); // Animation rotate around y axis
 
-    mat4.rotate( mvMatrix, m_animateSquare, [0, 1, 0] ); // Animation rotate around y axis
+   	if(m_animateOn){
+    	mat4.rotate( mvMatrix, m_animateSquare, [0.4, 0.5, 0.8] ); // Animation rotate around y axis
+    }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    
+
     gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexTextureCoordBuffer);
     gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, squareVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -348,362 +103,10 @@ function drawScene() {
     gl.bindTexture(gl.TEXTURE_2D, mytexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
 
-	
+
 	setMatrixUniforms();
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
-	
+
 	mvPopMatrix();
 }
 
-var lastTime = 0;
-function animate() {
-    var timeNow = new Date().getTime();
-    if (lastTime != 0) {
-		var elapsed = timeNow - lastTime;
-		//m_animateSquare += (75 * elapsed) / 100000.0;
-		
-		if(m_flipH){
-			// increase from 0 to pi
-			m_rotx += (75 *elapsed) / 4000.0;
-			if(m_rotx > pi){
-				m_rotx = pi;
-			}
-		}else{
-			// decrease from pi to 0
-			m_rotx -= (75 * elapsed) / 4000.0;
-			if(m_rotx < 0.0){
-				m_rotx = 0.0
-			}
-		}
-		if(m_flipV){
-			// increase from 0 to pi
-			m_roty += (75 * elapsed) / 4000.0;
-			if(m_roty > pi){
-				m_roty = pi;
-			}
-		}else{
-			// decrease from pi to 0
-			m_roty -= (75 * elapsed) / 4000.0;
-			if(m_roty < 0.0){
-				m_roty = 0.0;
-			}
-		}
-		
-    }
-	lastTime = timeNow;
-}
-
-function webGLStart() {
-	var canvas = document.getElementById("gl-canvas");
-	initGL(canvas);
-	initTextureFramebuffer();
-	initShaders();
-	initBuffers();
-	initTextures();
-
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);
-	gl.enable(gl.DEPTH_TEST);
-
-    canvas.onmousedown = handleMouseDown;
-    document.onmouseup = handleMouseUp;
-    document.onmousemove = handleMouseMove;
-
-	document.onkeydown = handleKeyDown;
-	document.onkeyup = handleKeyUp;
-
-	tick();
-}
-
-// Small image, single tile
-
-var imgSrc = "2.png";
-
-var mytexture;
-
-function initTextures() {
-	try{
-    	mytexture = gl.createTexture();
-    	mytexture.image = new Image();
-    	mytexture.image.onload = function() {    	
-			handleLoadedTexture(mytexture)
-    	}
-    	
-    	// For each "rows" && for each "cols", load tile as texture
-    	tileImage.rows;
-    	tileImage.cols; 
-    	
-    	mytexture.image.src = imgSrc;
-   }catch(e){
-   		alert(e);
-   }
-}
-
-var rttFrameBuffer;
-var rttTexture;
-
-/// TODO: initialize texture framebuffer to full size unstretched image
-
-function initTextureFramebuffer(){
-    rttFramebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
-    rttFramebuffer.width = tileImage.stretchWidth;
-    rttFramebuffer.height = tileImage.stretchHeight;	
-    
-    rttTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, rttTexture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-    gl.generateMipmap(gl.TEXTURE_2D);
-        
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rttFramebuffer.width, rttFramebuffer.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-    var renderbuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, rttFramebuffer.width, rttFramebuffer.height);
-
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
-        
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  }
-  
-function handleLoadedTexture(texture) {
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    
-    if(m_useMipMap){
-    	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-    	gl.generateMipmap(gl.TEXTURE_2D);
-    }else{
-    	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    }
-    //UNUSED: Used for clamping textures that are not power of 2
-    //gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	//gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl.bindTexture(gl.TEXTURE_2D, null);
-}
-
-function tick() {
-	requestAnimFrame(tick);
-	handleKeys();
-	drawScene();
-	animate();	
-}
-	
-var currentlyPressedKeys = {};
-
-function mouseWheelHandler(e){
-	// cross-browser wheel delta
-	 if(isCommandKeyDown()){
-		var e = window.event || e; // old IE support
-		var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-	
-		zoom += delta / 10.0;
-		if(zoom > m_maxZ){
-			zoom = m_maxZ;
-		}
-	}
-}
-
-/// TODO: this is platform and browser specific. 
-function commandKeyL(){
-	return 18;
-	//return 91; // command key in chrome & safari on mac. doesn't work in firefox
-}
-
-function commandKeyR(){
-	return 18;
-	// return 93; // right command key
-}
-
-function isCommandKeyDown(){
-	return currentlyPressedKeys[commandKeyL()] || currentlyPressedKeys[commandKeyR()];
-}
-
-/// TODO: event seems to only be handled incorrectly for multiple keys up. 
-/// Example, holding command while rotation is applied then releasing rotate causes indefinite spin
-function handleKeyUp(event) {
-	currentlyPressedKeys[event.keyCode] = false;
-}
-
-function handleKeyDown(event){
-  	currentlyPressedKeys[event.keyCode] = true;
-}
-	
-function zoomIn(){
-    if (zoom >=  m_maxZ) {
-    	zoom = m_maxZ;
-    }else{
-    	zoom += 0.001;
-    }
-}
-
-function zoomOut(){
-    if (zoom <=  m_minZ) {
-        zoom = m_minZ;
-    }else{
-    	zoom -= 0.001;
-	}
-}
-
-var panBase = 0.002;
-
-function panUp()   { 
-	transY += -zoom * panBase;
-}
-function panDown() { 
-	transY -= -zoom * panBase; 
-}
-function panLeft() { 
-	transX -= -zoom * panBase; 
-}
-function panRight(){ 
-	transX += -zoom * panBase; 
-}
-
-function rotateLeft() { rotation -= 0.03; }
-function rotateRight() { rotation += 0.03; }
-	
-	
-function reset() {
-	transY = 0.0;
-	transX = 0.0;
-	rotation = 0.0;
-	zoom = m_initZ;
-	
-	m_flipH = false;
-	m_flipV = false;
-}
-
-/*
-  This function provides a method for loading webgl textures using a pool of
-  image elements, which has very low memory overhead. For more details see:
-  http://blog.tojicode.com/2012/03/javascript-memory-optimization-and.html
-*/
-  var loadImgTexture = (function createTextureLoader() {
-  var MAX_CACHE_IMAGES = 16;
-
-  var textureImageCache = new Array(MAX_CACHE_IMAGES);
-  var cacheTop = 0;
-  var remainingCacheImages = MAX_CACHE_IMAGES;
-  var pendingTextureRequests = [];
-
-  var TextureImageLoader = function(loadedCallback) {
-  var self = this;
-  var blackPixel = new Uint8Array([0, 0, 0]);
-
-  this.gl = null;
-  this.texture = null;
-  this.callback = null;
-
-  this.image = new Image();
-  this.image.addEventListener('load', function() {
-  
-	var gl = self.gl;
-	gl.bindTexture(gl.TEXTURE_2D, self.texture);
-
-	var startTime = Date.now();
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, self.image);
-
-	if (isPowerOfTwo(self.image.width) && isPowerOfTwo(self.image.height)) {
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-		gl.generateMipmap(gl.TEXTURE_2D);
-	} else {
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	}
-	var uploadTime = Date.now() - startTime;
-
-	if(self.callback) {
-		var stats = {
-			width: self.image.width,
-            height: self.image.height,
-            internalFormat: gl.RGBA,
-            levelZeroSize: self.image.width * self.image.height * 4,
-            uploadTime: uploadTime
-          };
-          self.callback(self.texture, null, stats);
-	}
-	loadedCallback(self);
-	}, false);
-		this.image.addEventListener('error', function(ev) {
-		clearOnError(self.gl, 'Image could not be loaded', self.texture, self.callback);
-		loadedCallback(self);
-	}, false);
-	};
-
-    TextureImageLoader.prototype.loadTexture = function(gl, src, texture, callback) {
-      this.gl = gl;
-      this.texture = texture;
-      this.callback = callback;
-      this.image.src = src;
-    };
-
-    var PendingTextureRequest = function(gl, src, texture, callback) {
-      this.gl = gl;
-      this.src = src;
-      this.texture = texture;
-      this.callback = callback;
-    };
-
-    function releaseTextureImageLoader(til) {
-      var req;
-      if(pendingTextureRequests.length) {
-        req = pendingTextureRequests.shift();
-        til.loadTexture(req.gl, req.src, req.texture, req.callback);
-      } else {
-        textureImageCache[cacheTop++] = til;
-      }
-    }
-
-    return function(gl, src, texture, callback) {
-      var til;
-
-      if(cacheTop) {
-        til = textureImageCache[--cacheTop];
-        til.loadTexture(gl, src, texture, callback);
-      } else if (remainingCacheImages) {
-        til = new TextureImageLoader(releaseTextureImageLoader);
-        til.loadTexture(gl, src, texture, callback);
-        --remainingCacheImages;
-      } else {
-        pendingTextureRequests.push(new PendingTextureRequest(gl, src, texture, callback));
-      }
-
-      return texture;
-    };
-})();
-
-function handleKeys() {
-	if(currentlyPressedKeys[33]) { // Page Up
-   		zoomIn();
-	}
-   	if(currentlyPressedKeys[34]){ // Page Down
-    	zoomOut()
-	}
-	if(currentlyPressedKeys[37]){ // LEft 
-		panLeft();
-	}
-	if(currentlyPressedKeys[38]){ // UP
-		panUp();
-	}
-	if(currentlyPressedKeys[39]){ // RIGHT
-		panRight();
-	}
-	if(currentlyPressedKeys[40]){ // DOWN
-		panDown();
-	}
-	if(currentlyPressedKeys[35]){ // END
-		rotateRight();
-	}
-	if(currentlyPressedKeys[36]){ // HOME
-		rotateLeft();
-	}
-}
-
-window.setTimeout(tick, 1000);
