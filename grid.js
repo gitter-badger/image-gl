@@ -242,10 +242,10 @@ function initTextures() {
 		    	}
 		    	tileTextureGrid[2][0].image.src = "tiles/tile_" + 2 + "" + 0 + "_" + tileImage.dimension + "." + tileImage.format ;
 		    }
-			tileTextureGrid[2][1].image.onload = function() {   
+			tileTextureGrid[2][1].image.onload = function() { 
 		    	handleLoadedGridTexture(2,1) 
 		    	tileTextureGrid[2][1].image.onload = function() {
-		    	 	handleLoadedGridTexture(1,1) 
+		    	 	handleLoadedGridTexture(2,1) 
 		    	}
 		    	tileTextureGrid[2][1].image.src = "tiles/tile_" + 2 + "" + 1 + "_" + tileImage.dimension + "." + tileImage.format ;
 		    }

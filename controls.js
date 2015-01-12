@@ -10,7 +10,7 @@ var m_animateOn = false;
 // zoom range & init
 var m_maxZ = -0.1;
 var m_minZ = -20.0;
-var m_initZ = -4.6;
+var m_initZ = -3.8;
 
 var settings = {
     zoom: m_initZ,
