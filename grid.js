@@ -151,96 +151,144 @@ function initTextures() {
 			}
 		}
  
-  		// for(var row = 0; row < rows; row++){
-			// for(var col = 0; col < cols; col++){
-				// var r = row;
-				// var c = col; 				
-				// tileTextureGrid[r][c].image.onload = function() {
-					// handleLoadedGridTexture(r,c);
-				// }
-			// }
-		// }
-  
-		    tileTextureGrid[0][0].image.onload = function() { handleLoadedGridTexture(0,0) }
-			tileTextureGrid[0][1].image.onload = function() { handleLoadedGridTexture(0,1) }
-			tileTextureGrid[0][2].image.onload = function() { handleLoadedGridTexture(0,2) }
-			tileTextureGrid[0][3].image.onload = function() { handleLoadedGridTexture(0,3) }
-		 	tileTextureGrid[0][4].image.onload = function() { handleLoadedGridTexture(0,4) }
-			tileTextureGrid[0][5].image.onload = function() { handleLoadedGridTexture(0,5) }
-			// tileTextureGrid[0][6].image.onload = function() { handleLoadedGridTexture(0,6) }
-			// tileTextureGrid[0][7].image.onload = function() { handleLoadedGridTexture(0,7) }
-			// tileTextureGrid[0][8].image.onload = function() { handleLoadedGridTexture(0,8) }
-			// tileTextureGrid[0][9].image.onload = function() { handleLoadedGridTexture(0,9) }
-			// tileTextureGrid[0][10].image.onload = function() { handleLoadedGridTexture(0,10) }
-// 			
-			
-			tileTextureGrid[1][0].image.onload = function() { handleLoadedGridTexture(1,0) }
-			tileTextureGrid[1][1].image.onload = function() { handleLoadedGridTexture(1,1) }
-			tileTextureGrid[1][2].image.onload = function() { handleLoadedGridTexture(1,2) }
-			tileTextureGrid[1][3].image.onload = function() { handleLoadedGridTexture(1,3) }
-			tileTextureGrid[1][4].image.onload = function() { handleLoadedGridTexture(1,4) }
-			tileTextureGrid[1][5].image.onload = function() { handleLoadedGridTexture(1,5) }
-			// tileTextureGrid[1][6].image.onload = function() { handleLoadedGridTexture(1,6) }
-			// tileTextureGrid[1][7].image.onload = function() { handleLoadedGridTexture(1,7) }
-			// tileTextureGrid[1][8].image.onload = function() { handleLoadedGridTexture(1,8) }
-			// tileTextureGrid[1][9].image.onload = function() { handleLoadedGridTexture(1,9) }
-			// tileTextureGrid[1][10].image.onload = function() { handleLoadedGridTexture(1,10) }
-
-			
-			tileTextureGrid[2][0].image.onload = function() { handleLoadedGridTexture(2,0) }
-			tileTextureGrid[2][1].image.onload = function() { handleLoadedGridTexture(2,1) }
-			tileTextureGrid[2][2].image.onload = function() { handleLoadedGridTexture(2,2) }
-			tileTextureGrid[2][3].image.onload = function() { handleLoadedGridTexture(2,3) }
-			tileTextureGrid[2][4].image.onload = function() { handleLoadedGridTexture(2,4) }
-			tileTextureGrid[2][5].image.onload = function() { handleLoadedGridTexture(2,5) }
-			// tileTextureGrid[2][6].image.onload = function() { handleLoadedGridTexture(2,6) }
-			// tileTextureGrid[2][7].image.onload = function() { handleLoadedGridTexture(2,7) }
-			// tileTextureGrid[2][8].image.onload = function() { handleLoadedGridTexture(2,8) }
-			// tileTextureGrid[2][9].image.onload = function() { handleLoadedGridTexture(2,9) }
-			// tileTextureGrid[2][10].image.onload = function() { handleLoadedGridTexture(2,10) }
-
-			// tileTextureGrid[3][0].image.onload = function() { handleLoadedGridTexture(3,0) }
-			// tileTextureGrid[3][1].image.onload = function() { handleLoadedGridTexture(3,1) }
-			// tileTextureGrid[3][2].image.onload = function() { handleLoadedGridTexture(3,2) }
-			// tileTextureGrid[3][3].image.onload = function() { handleLoadedGridTexture(3,3) }
-			// tileTextureGrid[3][4].image.onload = function() { handleLoadedGridTexture(3,4) }
-			// tileTextureGrid[3][5].image.onload = function() { handleLoadedGridTexture(3,5) }
-			// tileTextureGrid[3][6].image.onload = function() { handleLoadedGridTexture(3,6) }
-			// tileTextureGrid[3][7].image.onload = function() { handleLoadedGridTexture(3,7) }
-			// tileTextureGrid[3][8].image.onload = function() { handleLoadedGridTexture(3,8) }
-			// tileTextureGrid[3][9].image.onload = function() { handleLoadedGridTexture(3,9) }
-			// tileTextureGrid[3][10].image.onload = function() { handleLoadedGridTexture(3,10) }
-// 
-			// tileTextureGrid[4][0].image.onload = function() { handleLoadedGridTexture(4,0) }
-			// tileTextureGrid[4][1].image.onload = function() { handleLoadedGridTexture(4,1) }
-			// tileTextureGrid[4][2].image.onload = function() { handleLoadedGridTexture(4,2) }
-			// tileTextureGrid[4][3].image.onload = function() { handleLoadedGridTexture(4,3) }
-			// tileTextureGrid[4][4].image.onload = function() { handleLoadedGridTexture(4,4) }
-			// tileTextureGrid[4][5].image.onload = function() { handleLoadedGridTexture(4,5) }
-			// tileTextureGrid[4][6].image.onload = function() { handleLoadedGridTexture(4,6) }
-			// tileTextureGrid[4][7].image.onload = function() { handleLoadedGridTexture(4,7) }
-			// tileTextureGrid[4][8].image.onload = function() { handleLoadedGridTexture(4,8) }
-			// tileTextureGrid[4][9].image.onload = function() { handleLoadedGridTexture(4,9) }
-			// tileTextureGrid[4][10].image.onload = function() { handleLoadedGridTexture(4,10) }
-// 
-			// tileTextureGrid[5][0].image.onload = function() { handleLoadedGridTexture(5,0) }
-			// tileTextureGrid[5][1].image.onload = function() { handleLoadedGridTexture(5,1) }
-			// tileTextureGrid[5][2].image.onload = function() { handleLoadedGridTexture(5,2) }
-			// tileTextureGrid[5][3].image.onload = function() { handleLoadedGridTexture(5,3) }
-			// tileTextureGrid[5][4].image.onload = function() { handleLoadedGridTexture(5,4) }
-			// tileTextureGrid[5][5].image.onload = function() { handleLoadedGridTexture(5,5) }
-			// tileTextureGrid[5][6].image.onload = function() { handleLoadedGridTexture(5,6) }
-			// tileTextureGrid[5][7].image.onload = function() { handleLoadedGridTexture(5,7) }
-			// tileTextureGrid[5][8].image.onload = function() { handleLoadedGridTexture(5,8) }
-			// tileTextureGrid[5][9].image.onload = function() { handleLoadedGridTexture(5,9) }
-			// tileTextureGrid[5][10].image.onload = function() { handleLoadedGridTexture(5,10) }										
-				
+		    tileTextureGrid[0][0].image.onload = function() { 
+		    	handleLoadedGridTexture(0,0) 
+		    	tileTextureGrid[0][0].image.onload = function() {
+		    	 	handleLoadedGridTexture(0,0) 
+		    	}
+		    	tileTextureGrid[0][0].image.src = "tiles/tile_" + 0 + "" + 0 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[0][1].image.onload = function() {   
+		    	handleLoadedGridTexture(0,1) 
+		    	tileTextureGrid[0][1].image.onload = function() {
+		    	 	handleLoadedGridTexture(0,1) 
+		    	}
+		    	tileTextureGrid[0][1].image.src = "tiles/tile_" + 0 + "" + 1 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[0][2].image.onload = function() { 
+		    	handleLoadedGridTexture(0,2) 
+		    	tileTextureGrid[0][2].image.onload = function() {
+		    	 	handleLoadedGridTexture(0,2) 
+		    	}
+		    	tileTextureGrid[0][2].image.src = "tiles/tile_" + 0 + "" + 2 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[0][3].image.onload = function() { 
+		    	handleLoadedGridTexture(0,3) 
+		    	tileTextureGrid[0][3].image.onload = function() {
+		    	 	handleLoadedGridTexture(0,3) 
+		    	}
+		    	tileTextureGrid[0][3].image.src = "tiles/tile_" + 0 + "" + 3 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[0][4].image.onload = function() { 
+		    	handleLoadedGridTexture(0,4) 
+		    	tileTextureGrid[0][4].image.onload = function() {
+		    	 	handleLoadedGridTexture(0,4) 
+		    	}
+		    	tileTextureGrid[0][4].image.src = "tiles/tile_" + 0 + "" + 4 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[0][5].image.onload = function() { 
+		    	handleLoadedGridTexture(0,5) 
+		    	tileTextureGrid[0][5].image.onload = function() {
+		    	 	handleLoadedGridTexture(0,5) 
+		    	}
+		    	tileTextureGrid[0][5].image.src = "tiles/tile_" + 0 + "" + 5 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+		    tileTextureGrid[1][0].image.onload = function() { 
+		    	handleLoadedGridTexture(1,0) 
+		    	tileTextureGrid[1][0].image.onload = function() {
+		    	 	handleLoadedGridTexture(1,0) 
+		    	}
+		    	tileTextureGrid[1][0].image.src = "tiles/tile_" + 1 + "" + 0 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[1][1].image.onload = function() {   
+		    	handleLoadedGridTexture(1,1) 
+		    	tileTextureGrid[1][1].image.onload = function() {
+		    	 	handleLoadedGridTexture(1,1) 
+		    	}
+		    	tileTextureGrid[1][1].image.src = "tiles/tile_" + 1 + "" + 1 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[1][2].image.onload = function() { 
+		    	handleLoadedGridTexture(1,2) 
+		    	tileTextureGrid[1][2].image.onload = function() {
+		    	 	handleLoadedGridTexture(1,2) 
+		    	}
+		    	tileTextureGrid[1][2].image.src = "tiles/tile_" + 1 + "" + 2 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[1][3].image.onload = function() { 
+		    	handleLoadedGridTexture(1,3) 
+		    	tileTextureGrid[1][3].image.onload = function() {
+		    	 	handleLoadedGridTexture(1,3) 
+		    	}
+		    	tileTextureGrid[1][3].image.src = "tiles/tile_" + 1 + "" + 3 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[1][4].image.onload = function() { 
+		    	handleLoadedGridTexture(1,4) 
+		    	tileTextureGrid[1][4].image.onload = function() {
+		    	 	handleLoadedGridTexture(1,4) 
+		    	}
+		    	tileTextureGrid[1][4].image.src = "tiles/tile_" + 1 + "" + 4 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[1][5].image.onload = function() { 
+		    	handleLoadedGridTexture(1,5) 
+		    	tileTextureGrid[1][5].image.onload = function() {
+		    	 	handleLoadedGridTexture(1,5) 
+		    	}
+		    	tileTextureGrid[1][5].image.src = "tiles/tile_" + 1 + "" + 5 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+		    tileTextureGrid[2][0].image.onload = function() { 
+		    	handleLoadedGridTexture(2,0) 
+		    	tileTextureGrid[2][0].image.onload = function() {
+		    	 	handleLoadedGridTexture(2,0) 
+		    	}
+		    	tileTextureGrid[2][0].image.src = "tiles/tile_" + 2 + "" + 0 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[2][1].image.onload = function() {   
+		    	handleLoadedGridTexture(2,1) 
+		    	tileTextureGrid[2][1].image.onload = function() {
+		    	 	handleLoadedGridTexture(1,1) 
+		    	}
+		    	tileTextureGrid[2][1].image.src = "tiles/tile_" + 2 + "" + 1 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[2][2].image.onload = function() { 
+		    	handleLoadedGridTexture(2,2) 
+		    	tileTextureGrid[2][2].image.onload = function() {
+		    	 	handleLoadedGridTexture(2,2) 
+		    	}
+		    	tileTextureGrid[2][2].image.src = "tiles/tile_" + 2 + "" + 2 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[2][3].image.onload = function() { 
+		    	handleLoadedGridTexture(2,3) 
+		    	tileTextureGrid[2][3].image.onload = function() {
+		    	 	handleLoadedGridTexture(2,3) 
+		    	}
+		    	tileTextureGrid[2][3].image.src = "tiles/tile_" + 2 + "" + 3 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[2][4].image.onload = function() { 
+		    	handleLoadedGridTexture(2,4) 
+		    	tileTextureGrid[2][4].image.onload = function() {
+		    	 	handleLoadedGridTexture(2,4) 
+		    	}
+		    	tileTextureGrid[2][4].image.src = "tiles/tile_" + 2 + "" + 4 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
+			tileTextureGrid[2][5].image.onload = function() { 
+		    	handleLoadedGridTexture(2,5) 
+		    	tileTextureGrid[2][5].image.onload = function() {
+		    	 	handleLoadedGridTexture(2,5) 
+		    	}
+		    	tileTextureGrid[2][5].image.src = "tiles/tile_" + 2 + "" + 5 + "_" + tileImage.dimension + "." + tileImage.format ;
+		    }
 
 	for(var row = 0; row < rows; row++){
 		for(var col = 0; col < cols; col++){
-			tileTextureGrid[row][col].image.src = "tiles/tile_" + row + "" + col + "_" + tileImage.dimension + "." + tileImage.format ;
+			tileTextureGrid[row][col].image.src = "tiles/tile_" + row + "" + col + "_" + 256 + "." + tileImage.format ;
 		}
 	}
+	
+		// for(var row = 0; row < rows; row++){
+		// for(var col = 0; col < cols; col++){
+			// tileTextureGrid[row][col].image.src = "tiles/tile_" + row + "" + col + "_" + tileImage.dimension + "." + tileImage.format ;
+		// }
+	// }
 }
 
 function drawGrid(x,y,w,h){
