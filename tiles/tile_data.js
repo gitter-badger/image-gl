@@ -1,6 +1,7 @@
 var tileImage = {
     "cols": 6,
     "dimension": 1024,
+    "format": "png",
     "height": 2880,
     "rows": 3,
     "stretchHeight": 3072,

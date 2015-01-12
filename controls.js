@@ -10,7 +10,7 @@ var m_animateOn = false;
 // zoom range & init
 var m_maxZ = -0.1;
 var m_minZ = -20.0;
-var m_initZ = -5.0;
+var m_initZ = -4.6;
 
 var settings = {
     zoom: m_initZ,
@@ -50,12 +50,14 @@ function rotRight90(){
 function reset() {
 	transY = 0.0;
 	transX = 0.0;
+	
 	settings.rotation = 0.0;
 	settings.zoom = m_initZ;
-
 	settings.flipH = false;
 	settings.flipV = false;
 	m_animateSquare = 0;
+	m_animateEven = 0;
+	m_animateOdd = 0;
 	m_animateOn = false;
 	
 	settings.invert = false; 
@@ -190,6 +192,16 @@ function handleKeyUp(event) {
 }
 
 function handleKeyDown(event){
+	if(event.keyCode == 65) { // a key
+		toggleAnimate();
+	}
+	if(event.keyCode == 86) { // v key
+		flipV();
+	}
+	if(event.keyCode == 72) { // h key
+		flipH();
+	}
+	
   	currentlyPressedKeys[event.keyCode] = true;
 }
 
@@ -232,17 +244,12 @@ function invert(){
 }
 
 function handleKeys() {
+
 	if(currentlyPressedKeys[73]) { // i key
 		invert();	
 	}
 	if(currentlyPressedKeys[82]) { // r key
 		reset();
-	}
-	if(currentlyPressedKeys[86]) { // v key
-		flipV();
-	}
-	if(currentlyPressedKeys[72]) { // h key
-		flipH();
 	}
 	if(currentlyPressedKeys[33]) { // Page Up
    		zoomIn();

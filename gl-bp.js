@@ -25,6 +25,11 @@ function mvPopMatrix() {
 	mvMatrix = mvMatrixStack.pop();
 }
 
+function setMatrixUniforms() {
+	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+}
+
 //Util: GL Exceptions
 function throwOnGLError(err, funcName, args) {
 	throw WebGLDebugUtils.glEnumToString(err) + " was caused by call to: " + funcName;
@@ -32,8 +37,8 @@ function throwOnGLError(err, funcName, args) {
 
 //Util: GL Logging
 function logGLCall(functionName, args) {
-   //console.log("gl." + functionName + "(" +
-  //   WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");
+	//console.log("gl." + functionName + "(" +
+	//	WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");
 }
 
 //Util: Check for undefined
@@ -51,12 +56,6 @@ function logAndValidate(functionName, args) {
    logGLCall(functionName, args);
    validateNoneOfTheArgsAreUndefined (functionName, args);
 }
-
-function setMatrixUniforms() {
-	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-}
-
 
 function initGL(canvas) {
 	try {

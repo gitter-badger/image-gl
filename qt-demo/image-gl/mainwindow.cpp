@@ -7,6 +7,9 @@
 #include <QImageReader>
 #include <QImageWriter>
 #include <QJsonDocument>
+#include "glgraphicsview.h"
+#include "glgraphicsscene.h"
+#include <QGL>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -31,7 +34,7 @@ bool MainWindow::loadImage(const QString &file){
         reader->setDecideFormatFromContent( true );
         if ( reader->canRead() ) {
             if ( !reader->read( &m_image ) ) {
-                QMessageBox::critical( this, QString( "Problem loading file: 2" ), QString("Could not load image selected." ));
+                QMessageBox::critical( this, QString( "Problem loading file: 2" ), QString("Could not load image selected: %1 ").arg(reader->errorString()));
             }else{
                 ret = true;
             }
@@ -105,6 +108,7 @@ void MainWindow::on_pushButtonSplit_clicked()
         map[ "rows" ]         = rows;
         map[ "cols" ]         = cols;
         map[ "dimension" ]    = dim;
+        map[ "format" ]       = format();
 
         QJsonDocument jsondoc = QJsonDocument::fromVariant( map );
         ok = writeJSON( jsondoc );
@@ -134,9 +138,16 @@ bool MainWindow::writeJSON( QJsonDocument &doc ){
     return ok;
 }
 
+QString MainWindow::format()
+{
+    return ui->comboBoxFormat->currentText();
+}
+
 bool MainWindow::writeImage(QImage &img, QPoint pos, int row, int column){
+
+    Q_UNUSED(pos);
+
     bool ok = false;
-    QString format = QString("jpg");
 
     int dim = dimension();
 
@@ -148,7 +159,7 @@ bool MainWindow::writeImage(QImage &img, QPoint pos, int row, int column){
             arg( row ).
             arg( column ).
             arg( dim ).
-            arg( format );
+            arg( format() );
 
 
     QFile wdevice(filename);
@@ -156,7 +167,7 @@ bool MainWindow::writeImage(QImage &img, QPoint pos, int row, int column){
         QMessageBox::critical( this, QString( "Problem writing file: 1" ), QString( "Could not write file %1" ).arg( filename ) );
         ok = false;
     }else{
-        QImageWriter writer( &wdevice, format.toLatin1() );
+        QImageWriter writer( &wdevice, format().toLatin1() );
 
         writer.setCompression( 0 );
         writer.setQuality( 100 );
@@ -177,4 +188,26 @@ void MainWindow::on_pushButtonLoadImage_clicked()
         ui->labelImageLoaded->setText( QString("File Loaded: %1" ).arg( m_file ));
         loadImage( m_file );
     }
+}
+
+void MainWindow::on_pushButtonDisplay_clicked()
+{
+    QDialog dlg;
+    QVBoxLayout layout;
+    dlg.setLayout(&layout);
+    GLGraphicsView glview(&dlg);
+    GLGraphicsScene glscene(this);
+
+    glview.setViewport(new QGLWidget(
+        QGLFormat(QGL::SampleBuffers)));
+    glview.setViewportUpdateMode(
+        QGraphicsView::FullViewportUpdate);
+    glview.setScene(&glscene);
+    glview.show();
+
+    layout.addWidget(&glview);
+
+    QSize size(500,500);
+    dlg.resize(size);
+    dlg.exec();
 }

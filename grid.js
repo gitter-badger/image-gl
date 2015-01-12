@@ -167,24 +167,80 @@ function initTextures() {
 			tileTextureGrid[0][3].image.onload = function() { handleLoadedGridTexture(0,3) }
 		 	tileTextureGrid[0][4].image.onload = function() { handleLoadedGridTexture(0,4) }
 			tileTextureGrid[0][5].image.onload = function() { handleLoadedGridTexture(0,5) }
+			// tileTextureGrid[0][6].image.onload = function() { handleLoadedGridTexture(0,6) }
+			// tileTextureGrid[0][7].image.onload = function() { handleLoadedGridTexture(0,7) }
+			// tileTextureGrid[0][8].image.onload = function() { handleLoadedGridTexture(0,8) }
+			// tileTextureGrid[0][9].image.onload = function() { handleLoadedGridTexture(0,9) }
+			// tileTextureGrid[0][10].image.onload = function() { handleLoadedGridTexture(0,10) }
+// 			
+			
 			tileTextureGrid[1][0].image.onload = function() { handleLoadedGridTexture(1,0) }
 			tileTextureGrid[1][1].image.onload = function() { handleLoadedGridTexture(1,1) }
 			tileTextureGrid[1][2].image.onload = function() { handleLoadedGridTexture(1,2) }
 			tileTextureGrid[1][3].image.onload = function() { handleLoadedGridTexture(1,3) }
 			tileTextureGrid[1][4].image.onload = function() { handleLoadedGridTexture(1,4) }
 			tileTextureGrid[1][5].image.onload = function() { handleLoadedGridTexture(1,5) }
+			// tileTextureGrid[1][6].image.onload = function() { handleLoadedGridTexture(1,6) }
+			// tileTextureGrid[1][7].image.onload = function() { handleLoadedGridTexture(1,7) }
+			// tileTextureGrid[1][8].image.onload = function() { handleLoadedGridTexture(1,8) }
+			// tileTextureGrid[1][9].image.onload = function() { handleLoadedGridTexture(1,9) }
+			// tileTextureGrid[1][10].image.onload = function() { handleLoadedGridTexture(1,10) }
+
+			
 			tileTextureGrid[2][0].image.onload = function() { handleLoadedGridTexture(2,0) }
 			tileTextureGrid[2][1].image.onload = function() { handleLoadedGridTexture(2,1) }
 			tileTextureGrid[2][2].image.onload = function() { handleLoadedGridTexture(2,2) }
 			tileTextureGrid[2][3].image.onload = function() { handleLoadedGridTexture(2,3) }
 			tileTextureGrid[2][4].image.onload = function() { handleLoadedGridTexture(2,4) }
 			tileTextureGrid[2][5].image.onload = function() { handleLoadedGridTexture(2,5) }
+			// tileTextureGrid[2][6].image.onload = function() { handleLoadedGridTexture(2,6) }
+			// tileTextureGrid[2][7].image.onload = function() { handleLoadedGridTexture(2,7) }
+			// tileTextureGrid[2][8].image.onload = function() { handleLoadedGridTexture(2,8) }
+			// tileTextureGrid[2][9].image.onload = function() { handleLoadedGridTexture(2,9) }
+			// tileTextureGrid[2][10].image.onload = function() { handleLoadedGridTexture(2,10) }
 
-		for(var row = 0; row < rows; row++){
-			for(var col = 0; col < cols; col++){
-			    tileTextureGrid[row][col].image.src = "tiles/tile_" + row + "" + col + "_" + tileImage.dimension + ".jpg";
-			}
+			// tileTextureGrid[3][0].image.onload = function() { handleLoadedGridTexture(3,0) }
+			// tileTextureGrid[3][1].image.onload = function() { handleLoadedGridTexture(3,1) }
+			// tileTextureGrid[3][2].image.onload = function() { handleLoadedGridTexture(3,2) }
+			// tileTextureGrid[3][3].image.onload = function() { handleLoadedGridTexture(3,3) }
+			// tileTextureGrid[3][4].image.onload = function() { handleLoadedGridTexture(3,4) }
+			// tileTextureGrid[3][5].image.onload = function() { handleLoadedGridTexture(3,5) }
+			// tileTextureGrid[3][6].image.onload = function() { handleLoadedGridTexture(3,6) }
+			// tileTextureGrid[3][7].image.onload = function() { handleLoadedGridTexture(3,7) }
+			// tileTextureGrid[3][8].image.onload = function() { handleLoadedGridTexture(3,8) }
+			// tileTextureGrid[3][9].image.onload = function() { handleLoadedGridTexture(3,9) }
+			// tileTextureGrid[3][10].image.onload = function() { handleLoadedGridTexture(3,10) }
+// 
+			// tileTextureGrid[4][0].image.onload = function() { handleLoadedGridTexture(4,0) }
+			// tileTextureGrid[4][1].image.onload = function() { handleLoadedGridTexture(4,1) }
+			// tileTextureGrid[4][2].image.onload = function() { handleLoadedGridTexture(4,2) }
+			// tileTextureGrid[4][3].image.onload = function() { handleLoadedGridTexture(4,3) }
+			// tileTextureGrid[4][4].image.onload = function() { handleLoadedGridTexture(4,4) }
+			// tileTextureGrid[4][5].image.onload = function() { handleLoadedGridTexture(4,5) }
+			// tileTextureGrid[4][6].image.onload = function() { handleLoadedGridTexture(4,6) }
+			// tileTextureGrid[4][7].image.onload = function() { handleLoadedGridTexture(4,7) }
+			// tileTextureGrid[4][8].image.onload = function() { handleLoadedGridTexture(4,8) }
+			// tileTextureGrid[4][9].image.onload = function() { handleLoadedGridTexture(4,9) }
+			// tileTextureGrid[4][10].image.onload = function() { handleLoadedGridTexture(4,10) }
+// 
+			// tileTextureGrid[5][0].image.onload = function() { handleLoadedGridTexture(5,0) }
+			// tileTextureGrid[5][1].image.onload = function() { handleLoadedGridTexture(5,1) }
+			// tileTextureGrid[5][2].image.onload = function() { handleLoadedGridTexture(5,2) }
+			// tileTextureGrid[5][3].image.onload = function() { handleLoadedGridTexture(5,3) }
+			// tileTextureGrid[5][4].image.onload = function() { handleLoadedGridTexture(5,4) }
+			// tileTextureGrid[5][5].image.onload = function() { handleLoadedGridTexture(5,5) }
+			// tileTextureGrid[5][6].image.onload = function() { handleLoadedGridTexture(5,6) }
+			// tileTextureGrid[5][7].image.onload = function() { handleLoadedGridTexture(5,7) }
+			// tileTextureGrid[5][8].image.onload = function() { handleLoadedGridTexture(5,8) }
+			// tileTextureGrid[5][9].image.onload = function() { handleLoadedGridTexture(5,9) }
+			// tileTextureGrid[5][10].image.onload = function() { handleLoadedGridTexture(5,10) }										
+				
+
+	for(var row = 0; row < rows; row++){
+		for(var col = 0; col < cols; col++){
+			tileTextureGrid[row][col].image.src = "tiles/tile_" + row + "" + col + "_" + tileImage.dimension + "." + tileImage.format ;
 		}
+	}
 }
 
 function drawGrid(x,y,w,h){
@@ -207,9 +263,7 @@ function drawGrid(x,y,w,h){
 	mat4.rotate( mvMatrix, m_rotx,    [1, 0, 0] );
     mat4.rotate( mvMatrix, m_roty,   [0, 1, 0] ); // Animation rotate around y axis
 
-   	if(m_animateOn){
-    	mat4.rotate( mvMatrix, m_animateSquare, [0.4, 0.5, 0.8] ); // Animation rotate around y axis
-    }
+    mat4.rotate( mvMatrix, m_animateSquare, [0.4, 0.1, 0.8] ); // Animation rotate around y axis
 
     gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexTextureCoordBuffer);
     gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, squareVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -218,6 +272,7 @@ function drawGrid(x,y,w,h){
 	var cols = tileImage.cols ;
 
 	try{
+		
 		for(var row = 0; row < rows; row++){
 			for(var col = 0; col < cols; col++){
 			    gl.bindBuffer(gl.ARRAY_BUFFER, tilePositionBufferGrid[row][col]);
@@ -229,6 +284,12 @@ function drawGrid(x,y,w,h){
 			    
 			    setMatrixUniforms();
 				gl.drawArrays(gl.TRIANGLE_STRIP, 0, tilePositionBufferGrid[row][col].numItems);
+				
+				if(row * col %2  == 0){
+    				mat4.rotate( mvMatrix, m_animateEven, [0.4, 0.5, 1.0] );
+    			}else{
+    				mat4.rotate( mvMatrix, m_animateOdd, [0.6, 0.8, 0.2] ); 
+    			}
 			}
 		}
 	}catch(e){
@@ -269,7 +330,7 @@ function drawScene() {
 	// drawGrid(0, 0, rttFramebuffer.width, rttFramebuffer.height);
 	// gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	// drawFrameBufferTexture(0, 0, gl.viewportWidth, gl.viewportHeight);
-	
+
 	drawGrid(0, 0, gl.viewportWidth, gl.viewportHeight);
 
 }

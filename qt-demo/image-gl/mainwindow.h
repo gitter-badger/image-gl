@@ -21,10 +21,13 @@ public:
 
     int dimension();
     bool writeJSON(QJsonDocument &doc);
+
+    QString format();
+
 private slots:
     void on_pushButtonSplit_clicked();
-
     void on_pushButtonLoadImage_clicked();
+    void on_pushButtonDisplay_clicked();
 
 private:
     Ui::MainWindow *ui;

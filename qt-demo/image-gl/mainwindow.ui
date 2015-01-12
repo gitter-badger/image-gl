@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>272</width>
+    <height>243</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,13 +15,6 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="1" column="0" colspan="2">
-     <widget class="QLabel" name="labelImageLoaded">
-      <property name="text">
-       <string>Image Loaded :</string>
-      </property>
-     </widget>
-    </item>
     <item row="0" column="1">
      <widget class="QPushButton" name="pushButtonSplit">
       <property name="text">
@@ -33,16 +26,6 @@
      <widget class="QLabel" name="labelDimension">
       <property name="text">
        <string>Dimension of Tile</string>
-      </property>
-     </widget>
-    </item>
-    <item row="5" column="0" colspan="2">
-     <widget class="QTextEdit" name="textEditLog"/>
-    </item>
-    <item row="0" column="0">
-     <widget class="QPushButton" name="pushButtonLoadImage">
-      <property name="text">
-       <string>Load Image</string>
       </property>
      </widget>
     </item>
@@ -74,6 +57,51 @@
       <item>
        <property name="text">
         <string>8192</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QPushButton" name="pushButtonLoadImage">
+      <property name="text">
+       <string>Load Image</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="2">
+     <widget class="QTextEdit" name="textEditLog"/>
+    </item>
+    <item row="1" column="0" colspan="2">
+     <widget class="QLabel" name="labelImageLoaded">
+      <property name="text">
+       <string>Image Loaded :</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0" colspan="2">
+     <widget class="QPushButton" name="pushButtonDisplay">
+      <property name="text">
+       <string>Display</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0">
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>Output File Format</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <widget class="QComboBox" name="comboBoxFormat">
+      <item>
+       <property name="text">
+        <string>png</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>jpg</string>
        </property>
       </item>
      </widget>

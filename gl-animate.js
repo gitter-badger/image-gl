@@ -6,13 +6,39 @@ var m_roty = 0;
 var m_rotz = 0;
 var lastTime = 0;
 
+var m_animateEven = 0;
+var m_animateOdd = 0;
 
 // Animate is called in tick() 
 function animate() {
     var timeNow = new Date().getTime();
     if (lastTime != 0) {
 		var elapsed = timeNow - lastTime;
-		m_animateSquare += (75 * elapsed) / (m_flipfreq * 10) ;
+
+		if(m_animateOn){
+			m_animateSquare += (75 * elapsed) / (m_flipfreq * 50) ;
+			m_animateEven += (75 * elapsed) / (m_flipfreq * 40) ;
+			m_animateOdd += (75 * elapsed) / (m_flipfreq * 20) ;
+		}else{
+			if(m_animateSquare > 0){
+				m_animateSquare -= (75 * elapsed) / (m_flipfreq * 5) ;
+				if(m_animateSquare < 0){
+					m_animateSquare = 0;
+				}
+			}
+			if(m_animateEven > 0){
+				m_animateEven -= (75 * elapsed) / (m_flipfreq * 4) ;
+				if(m_animateEven < 0){
+					m_animateEven = 0;
+				}
+			}
+			if(m_animateOdd > 0){
+				m_animateOdd -= (75 * elapsed) / (m_flipfreq * 2) ;
+				if(m_animateOdd < 0){
+					m_animateOdd = 0;
+				}
+			}
+		}
 
 		if(settings.flipH){
 			// increase from 0 to pi
