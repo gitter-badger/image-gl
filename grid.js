@@ -8,6 +8,7 @@ var tileTextureGrid;
 var bcgColorBuffer;
 
 function initBuffersAndTextures(){
+
 	initBuffers();
 	initTextures();	
 }
@@ -33,13 +34,19 @@ function initBuffers() {
 		for(var col = 0; col < cols; col++){
 			
 			var tRow = (rows - row)  - (rows / 2.0);
-			var tCol = (cols - col) - (cols / 2.0);
+			var tCol = ( col ) - (cols / 2.0);
+			if(cols / 2.0 == 0){
+				tCol += 0.5;
+			}else{
+				tCol += 1.0;
+			}
+			
 			var tile = [
-				tCol  , tRow  ,
-				tCol-1, tRow  ,
-				tCol-1, tRow-1,
-				tCol  , tRow-1,
-				tCol  , tRow
+				tCol-1 , tRow  ,
+				tCol   , tRow  ,
+				tCol   , tRow-1,
+				tCol-1 , tRow-1,
+				tCol-1 , tRow
 			] 
 			tilePositionBufferGrid[row][col] = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER, tilePositionBufferGrid[row][col]);
@@ -59,8 +66,8 @@ function initBuffers() {
           1.0, 0.0,
           0.0, 0.0,
           0.0, 1.0
-    ];    
-
+    ];
+    
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
     squareVertexTextureCoordBuffer.itemSize = 2;
     squareVertexTextureCoordBuffer.numItems = 5;	
@@ -73,6 +80,8 @@ function initBuffers() {
 	bcgColorBuffer.itemSize = 4;
 	bcgColorBuffer.numItems = 1;
 	
+	// Init line buffers
+	initLineBuffers();
 }
 
 function handleLoadedGridTexture(row,col){
@@ -83,66 +92,31 @@ function handleLoadedGridTexture(row,col){
 	}
 }
 
-var rttFramebuffer;
-var rttTexture;
-
-function initTextureFrameBuffer(){
-    rttFramebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
-    rttFramebuffer.width = tileImage.stretchWidth;
-    rttFramebuffer.height = tileImage.stretchHeight;
-    
-    rttTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, rttTexture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-     
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rttFramebuffer.width, rttFramebuffer.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-     
-    var renderbuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, rttFramebuffer.width, rttFramebuffer.height);
-    
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
-
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-}
-
 function initTextures() {
-		var rows = tileImage.rows ;
-		var cols = tileImage.cols ;
+	var rows = tileImage.rows ;
+	var cols = tileImage.cols ;
 
-		tileTextureGrid = Create2DArray( rows, cols );
+	tileTextureGrid = Create2DArray( rows, cols );
 
-		for(var row = 0; row < rows; row++){
-			for(var col = 0; col < cols; col++){
-				tileTextureGrid[ row ][ col ] = gl.createTexture();
-				tileTextureGrid[ row ][ col ].image = new Image();
-				tileTextureGrid[ row ][ col ].image.onload = (function(nr,nc) {
-					return function() {
-						handleLoadedGridTexture(nr,nc);
-						
-						tileTextureGrid[ nr ][ nc ].image.onload = (function(nnr, nnc) {
-							return function() {
-								handleLoadedGridTexture(nnr,nnc);
-							}
-						}(nr,nc));
-						tileTextureGrid[ nr ][ nc ].image.src = "tiles/tile_" + nr + "" + nc + "_" + tileImage.dimension + "." + tileImage.format;
-					}
-				}(row,col));
-				tileTextureGrid[ row ][ col ].image.src = "tiles/tile_" + row + "" + col + "_" + 256 + "." + tileImage.format ;
-			}
+	for(var row = 0; row < rows; row++){
+		for(var col = 0; col < cols; col++){
+			tileTextureGrid[ row ][ col ] = gl.createTexture();
+			tileTextureGrid[ row ][ col ].image = new Image();
+			tileTextureGrid[ row ][ col ].image.onload = (function(nr,nc) {
+				return function() {
+					handleLoadedGridTexture(nr,nc);
+					
+					tileTextureGrid[ nr ][ nc ].image.onload = (function(nnr, nnc) {
+						return function() {
+							handleLoadedGridTexture(nnr,nnc);
+						}
+					}(nr,nc));
+					tileTextureGrid[ nr ][ nc ].image.src = "tiles/tile_" + nr + "" + nc + "_" + tileImage.dimension + "." + tileImage.format;
+				}
+			}(row,col));
+			tileTextureGrid[ row ][ col ].image.src = "tiles/tile_" + row + "" + col + "_" + 256 + "." + tileImage.format ;
 		}
-//   
-	    // tileTextureGrid[0][0].image.onload = function() { 
-	    	// handleLoadedGridTexture(0,0) 
-	    	// tileTextureGrid[0][0].image.onload = function() {
-	    	 	// handleLoadedGridTexture(0,0) 
-	    	// }
-	    	// tileTextureGrid[0][0].image.src = "tiles/tile_" + 0 + "" + 0 + "_" + tileImage.dimension + "." + tileImage.format ;
+	}
 }
 
 function drawGrid(x,y,w,h){
@@ -206,4 +180,37 @@ function drawGrid(x,y,w,h){
 function drawScene() {
 	updateBCG(settings.brightness, settings.contrast, settings.gamma);
 	drawGrid(0, 0, gl.viewportWidth, gl.viewportHeight);
+	
+	//drawLines();
+}
+
+var vbuf;
+var ibuf;
+
+var vtx;
+var idx;
+
+function initLineBuffers(){
+	vtx = new Float32Array(
+		[ -1.0, -5.0, -5.0,
+		   5.0, 5.0, 5.0]);
+	idx = new Uint16Array([0, 1]);
+	
+	
+	vbuf = initLineBuffer(gl.ARRAY_BUFFER, vtx);
+	ibuf = initLineBuffer(gl.ELEMENT_ARRAY_BUFFER, idx);
+}
+
+function initLineBuffer(glELEMENT_ARRAY_BUFFER, data){
+	var buf = gl.createBuffer();
+	gl.bindBuffer(glELEMENT_ARRAY_BUFFER, buf);
+	gl.bufferData(glELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+	return buf;
+}
+
+function drawLines(){
+	gl.lineWidth(4.0);
+	gl.uniform4f(shaderProgram.colorUniform, 1.0, 1.0, 1.0, 1);
+	gl.drawElements(gl.LINES, 2, gl.UNSIGNED_SHORT, 0);
+	gl.uniform4f(shaderProgram.colorUniform, 0.0, 1.0, 1.0, 1);
 }

@@ -1,55 +1,36 @@
 <html>
 
 <head>
-<title>opengl</title>
+<title>image-gl-demo</title>
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
-
-<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
-<script type="text/javascript" src="webgl-utils.js"></script>
-
-<script id="shader-fs" type="x-shader/x-fragment">
-  precision mediump float;
-
-  varying vec2 vTextureCoord;
-
-  uniform sampler2D uSampler;
-
-  void main(void) {
-    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-  }
-</script>
-
-<script id="shader-vs" type="x-shader/x-vertex">
-  attribute vec3 aVertexPosition;
-  attribute vec2 aTextureCoord;
-
-  uniform mat4 uMVMatrix;
-  uniform mat4 uPMatrix;
-
-  varying vec2 vTextureCoord;
-
-  void main(void) {
-    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-    vTextureCoord = aTextureCoord;
-  }
-</script>
-
-<script type="text/javascript" src="webgl-debug.js"></script>
-<script type="text/javascript" src="test.js"></script>
-<script type="text/javascript" src="tiles/tile_data.js"></script>
-
 </head>
+<body style="background-color:gray" id="body">
+	<a href="5k/index.html">5k Color Image jpg</a><br/>
+	<a href="/ap/index.html">AP, 16 bit greyscale Tiff</a><br/>
+	<a href="/lat/index.html">Lat, 16 bit greyscale Tiff</a><br/>
 
+<p>
+<h3>Controls:<h3/>
+Contrast: right mouse + drag left/right<br/>
+Brightness: right mouse + drag up/down<br/>
+Gamma: right mouse + command + drag left/right<br/>
+Invert: I<br/>
+Flip Image over horizontal: H<br/>
+Flip Image over vertical: V<br/>
+</p>
+<p>
+<h3>Navigation:<h3/>
 
-<body style="background-color:gray" id="body" onload="webGLStart();">
-	<div class="texture" x-src="2.png" x-size-bytes="1181360" >
-	</div>
-	<canvas id="gl-canvas" style="border: none;" width="500" height="500" ></canvas>
-    	
-    	<br/>
-	<button onclick="reset();">Reset</button>
-	<button onclick="flipH();">flip H</button>
-	<button onclick="flipV();">flip V</button>
+Pan: left mouse + command OR arrow keys<br/>
+Rotate: mouse wheel + ctrl OR Home & End<br/>
+Zoom: mouse wheel + command OR page up / down<br/>
+</p>
+<p>
+<h3>Other:<h3/>
+Reset all: R<br/>
+Reset Image Settings only: ctrl + R<br/>
+Animation Demo: A to start/stop<br/>
+</p>
 </body>
 
 </html>

@@ -10,7 +10,7 @@ var m_animateOn = false;
 // zoom range & init
 var m_maxZ = -0.1;
 var m_minZ = -20.0;
-var m_initZ = -4.0;
+var m_initZ = -8.0;
 var m_stepZ = 5.0;
 
 var initBrightness = 0; 
@@ -57,15 +57,7 @@ function rotRight90(){
 	settings.rotation = 3 *( pi / 2 );
 }
 
-// Reset all control vars
-function reset() {
-	transY = 0.0;
-	transX = 0.0;
-	
-	settings.rotation = 0.0;
-	settings.zoom = m_initZ;
-	settings.flipH = false;
-	settings.flipV = false;
+function resetSettings() {
 	m_animateSquare = 0;
 	m_animateEven = 0;
 	m_animateOdd = 0;
@@ -74,13 +66,24 @@ function reset() {
 	settings.invert = false; 
 	settings.brightness = initBrightness; 
  	settings.contrast = initContrast; 
- 	settings.gammra = initGamma; 
+ 	settings.gamma = initGamma;
+ 	
  	updateBCG(settings.brightness, settings.contrast, settings.gamma);
+ 	updateInvert(settings.invert);
 }
 
-function invert() {
-	settings.invert = !settings.invert;
-	updateInvert(settings.invert);
+// Reset all control vars
+function reset() {
+	
+	resetSettings(); 
+	
+	transY = 0.0;
+	transX = 0.0;
+	
+	settings.rotation = 0.0;
+	settings.zoom = m_initZ;
+	settings.flipH = false;
+	settings.flipV = false;
 }
 
 // Flip image over its X axis
@@ -154,6 +157,16 @@ function setBrightness( val ){
 	}
 }
 
+function setGamma( val ){
+	settings.gamma = val;
+	if(settings.gamma < minGamma){
+		settings.gamma = minGamma;
+	}
+	if(settings.gamma > maxGamma){
+		settings.gamma = maxGamma;
+	}
+}
+
 function handleMouseMove(event) {
 	var newX = event.clientX;
     var newY = event.clientY;
@@ -163,18 +176,21 @@ function handleMouseMove(event) {
     
     if ( !mouseDownLeft ) {
 		if(mouseDownRight){
+			
 			var dy = deltaY / 100.0;
 			var dx = deltaX / 100.0;
+						
 			// Adjust BCG
-			setBrightness (settings.brightness - dy);
-	 		setContrast (settings.contrast - dx);
-			
+			if(isCommandKeyDown()){
+				setBrightness (settings.brightness - dy);
+	 			setContrast (settings.contrast - dx);
+			}else{
+				setGamma(settings.gamma - dx);
+			}
 			updateBCG( settings.brightness, settings.contrast, settings.gamma );
 		}
 		return;
     }
-
-
 
     if(isCommandKeyDown()){
 
@@ -206,16 +222,31 @@ function handleMouseMove(event) {
 
 var currentlyPressedKeys = {};
 function mouseWheelHandler(e){
+	var e = window.event || e; // old IE support
+	var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+
 	// cross-browser wheel delta
 	 if(isCommandKeyDown()){
-		var e = window.event || e; // old IE support
-		var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-
 		settings.zoom += delta / m_stepZ;
 		if(settings.zoom > m_maxZ){
 			settings.zoom = m_maxZ;
 		}
 	}
+	if(isCtrlKeyDown()){
+		var amt = 0;
+		if( delta > 0 ){
+			amt = 1;
+		}
+		if( delta < 0 ){
+			amt = -1;
+		}
+		amt = amt / ( 90 );
+		settings.rotation += ( amt ) ;
+	}	
+}
+
+function ctrlKey(){
+	return 17;
 }
 
 /// TODO: this is platform and browser specific.
@@ -231,6 +262,10 @@ function commandKeyR(){
 		return 93; // command key in chrome & safari on mac. doesn't work in firefox
 	} 
 	return 18;
+}
+
+function isCtrlKeyDown() {
+	return currentlyPressedKeys[ctrlKey()];
 }
 
 function isCommandKeyDown(){
@@ -264,7 +299,7 @@ function zoomIn(){
     if (settings.zoom >=  m_maxZ) {
     	settings.zoom = m_maxZ;
     }else{
-    	settings.zoom += 0.001;
+    	settings.zoom += 0.01;
     }
 }
 
@@ -272,30 +307,54 @@ function zoomOut(){
     if (settings.zoom <=  m_minZ) {
         settings.zoom = m_minZ;
     }else{
-    	settings.zoom -= 0.001;
+    	settings.zoom -= 0.01;
 	}
 }
 
-var panBase = 0.002;
+var panBase = 0.001;
+
+var rotMatrix = [ 1, 0, 
+				  0, 1]
+
+function updateRotMatrix () {
+	var angle = settings.rotation;
+	rotMatrix = [ 
+		cos(angle), asin(angle),
+		-sin(angle), cos(angle)
+	];
+}
 
 function panUp()   {
-	transY += -settings.zoom * panBase;
+	var y = -settings.zoom * panBase;
+	var x = 0.0;
+	transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
+	transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);	
 }
 function panDown() {
-	transY -= -settings.zoom * panBase;
+	var y = settings.zoom * panBase;
+	var x = 0.0;
+	transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
+	transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);	
 }
 function panLeft() {
-	transX -= -settings.zoom * panBase;
+	var x = settings.zoom * panBase;
+	var y = 0.0;
+	transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
+	transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);	
 }
-function panRight(){
-	transX += -settings.zoom * panBase;
+function panRight() {
+	var x = -settings.zoom * panBase;
+	var y = 0.0;;
+	transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
+	transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);
 }
 
-function rotateLeft() { settings.rotation -= 0.03; }
-function rotateRight() { settings.rotation += 0.03; }
+function rotateLeft() { settings.rotation -= pi / 190; }
+function rotateRight() { settings.rotation += pi / 180; }
 
-function invert(){
+function invert() {
 	settings.invert = !settings.invert;
+	updateInvert(settings.invert);
 }
 
 function handleKeys() {
@@ -304,7 +363,11 @@ function handleKeys() {
 		invert();	
 	}
 	if(currentlyPressedKeys[82]) { // r key
-		reset();
+		if(isCtrlKeyDown()){
+			resetSettings();
+		}else{
+			reset();
+		}
 	}
 	if(currentlyPressedKeys[33]) { // Page Up
    		zoomIn();

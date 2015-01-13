@@ -82,4 +82,7 @@ function initShaders() {
 	shaderProgram.pMatrixUniform  = gl.getUniformLocation( shaderProgram, "uPMatrix" );
 	shaderProgram.mvMatrixUniform = gl.getUniformLocation( shaderProgram, "uMVMatrix" );
 	shaderProgram.samplerUniform = gl.getUniformLocation( shaderProgram, "uSampler" );
+	
+    shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "uColor");
+
 }
