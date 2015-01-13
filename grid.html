@@ -24,9 +24,10 @@
 
 <script id="shader-fs" type="x-shader/x-fragment">
   precision mediump float;
-
+  
   varying vec2 vTextureCoord;
 
+  uniform int uInvert;
   uniform sampler2D uSampler;
   uniform vec4 uBCG;
   
@@ -52,6 +53,12 @@
    	vColor.x = (pow(((vColor.x * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;
    	vColor.y = (pow(((vColor.y * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;
    	vColor.z = (pow(((vColor.z * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;
+
+	if(uInvert > 0){
+		vColor.x = 1.0 - vColor.x;
+		vColor.y = 1.0 - vColor.y;
+		vColor.z = 1.0 - vColor.z;
+	}
 
     gl_FragColor = vColor;
   }
@@ -102,6 +109,7 @@
 	<button onclick="toggleAnimate();">Animate</button>
 	<button onclick="rotLeft90();">Rot+90</button>
 	<button onclick="rotRight90();">Rot-90</button>
+	<button onclick="invert();">invert</button>
 </body>
 
 </html>

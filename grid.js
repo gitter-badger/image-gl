@@ -191,9 +191,9 @@ function drawGrid(x,y,w,h){
 				gl.drawArrays(gl.TRIANGLE_STRIP, 0, tilePositionBufferGrid[row][col].numItems);
 				
 				if(row * col %2  == 0){
-    				mat4.rotate( mvMatrix, m_animateEven, [0.4, 0.5, 1.0] );
+    				mat4.rotate( mvMatrix, m_animateEven, [1.0, 0.4, 0.6] );
     			}else{
-    				mat4.rotate( mvMatrix, m_animateOdd, [0.6, 0.8, 0.2] ); 
+    				mat4.rotate( mvMatrix, m_animateOdd, [0.3, 1.0, 0.2] ); 
     			}
 			}
 		}

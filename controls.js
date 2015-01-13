@@ -10,7 +10,7 @@ var m_animateOn = false;
 // zoom range & init
 var m_maxZ = -0.1;
 var m_minZ = -20.0;
-var m_initZ = -3.8;
+var m_initZ = -4.0;
 var m_stepZ = 5.0;
 
 var initBrightness = 0; 
@@ -76,6 +76,11 @@ function reset() {
  	settings.contrast = initContrast; 
  	settings.gammra = initGamma; 
  	updateBCG(settings.brightness, settings.contrast, settings.gamma);
+}
+
+function invert() {
+	settings.invert = !settings.invert;
+	updateInvert(settings.invert);
 }
 
 // Flip image over its X axis
@@ -247,6 +252,9 @@ function handleKeyDown(event){
 	}
 	if(event.keyCode == 72) { // h key
 		flipH();
+	}
+	if(event.keyCode == 73) { // i key
+		invert();
 	}
 	
   	currentlyPressedKeys[event.keyCode] = true;

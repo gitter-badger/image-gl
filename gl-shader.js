@@ -4,12 +4,19 @@
 
 var shaderProgram;
 
+var uInvert = 0;
 var uBCG = new Array(4);
-var aBCG = new Array(4);
-var zBCG = Create2DArray(256, 4);
 
 function updateBCG( brightness, contrast, gamma ) {
 	gl.uniform4f(shaderProgram.uBCG, brightness, contrast, gamma , 1.0);
+}
+
+function updateInvert( invert ){
+	if(invert){
+		gl.uniform1i(shaderProgram.uInvert, 1);
+	}else{
+		gl.uniform1i(shaderProgram.uInvert, 0);
+	}
 }
 
 function getShader(gl, id) {
@@ -70,7 +77,7 @@ function initShaders() {
 	gl.enableVertexAttribArray( shaderProgram.textureCoordAttribute );
 	
 	shaderProgram.uBCG = gl.getUniformLocation( shaderProgram, "uBCG" );
-	shaderProgram.zBCG = gl.getUniformLocation( shaderProgram, "zBCG" );
+	shaderProgram.uInvert = gl.getUniformLocation( shaderProgram, "uInvert" );
 	
 	shaderProgram.pMatrixUniform  = gl.getUniformLocation( shaderProgram, "uPMatrix" );
 	shaderProgram.mvMatrixUniform = gl.getUniformLocation( shaderProgram, "uMVMatrix" );
