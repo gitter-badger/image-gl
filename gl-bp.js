@@ -105,7 +105,12 @@ window.setTimeout(tick, 1000);
 
 function webGLStart() {
 	var canvas = document.getElementById("gl-canvas");
+	
+	canvas.width = document.body.clientWidth;
+	canvas.height = document.body.clientHeight;
+	
 	initGL(canvas);
+
 	initShaders();
 	
 	initBuffersAndTextures();

@@ -11,18 +11,29 @@ var m_animateOn = false;
 var m_maxZ = -0.1;
 var m_minZ = -20.0;
 var m_initZ = -3.8;
+var m_stepZ = 5.0;
+
+var initBrightness = 0; 
+var initContrast = 100; 
+var initGamma = 50; 
+
+var minBrightness = -100;
+var maxBrightness = 100;
+var minContrast = 0;
+var maxContrast = 200;
+var minGamma = 0;
+var maxGamma = 100;
 
 var settings = {
     zoom: m_initZ,
     flipH :  false,
     flipV :  false,
 	invert :  false,
-	brightness : 100,
-	contrast : 50,
-	gamma : 0,
+	brightness : initBrightness,
+	contrast : initContrast,
+	gamma : initGamma,
 	rotation : 0.0
 }
-
 
 // Position & Rotation
 var transX = 0.0;
@@ -61,9 +72,10 @@ function reset() {
 	m_animateOn = false;
 	
 	settings.invert = false; 
-	settings.brightness = 100; 
- 	settings.contrast = 50; 
- 	settings.gamma = 0; 
+	settings.brightness = initBrightness; 
+ 	settings.contrast = initContrast; 
+ 	settings.gammra = initGamma; 
+ 	updateBCG(settings.brightness, settings.contrast, settings.gamma);
 }
 
 // Flip image over its X axis
@@ -117,16 +129,47 @@ function handleMouseUp(e) {
     }
 }
 
+function setContrast ( val ){
+	settings.contrast = val;
+	if(settings.contrast < minContrast){
+	 	settings.contrast = minContrast;
+	 } 
+	 if(settings.contrast > maxContrast){
+	 	settings.contrast = maxContrast;
+	 }
+}
+
+function setBrightness( val ){
+	settings.brightness = val;
+	if(settings.brightness < minBrightness){
+		settings.brightness = minBrightness;
+	}
+	if(settings.brightness > maxBrightness){
+		settings.brightness = maxBrightness;
+	}
+}
 
 function handleMouseMove(event) {
-    if ( !mouseDownLeft ) {
-      return;
-    }
-    var newX = event.clientX;
+	var newX = event.clientX;
     var newY = event.clientY;
 
     var deltaX = newX - lastMouseX;
     var deltaY = newY - lastMouseY;
+    
+    if ( !mouseDownLeft ) {
+		if(mouseDownRight){
+			var dy = deltaY / 100.0;
+			var dx = deltaX / 100.0;
+			// Adjust BCG
+			setBrightness (settings.brightness - dy);
+	 		setContrast (settings.contrast - dx);
+			
+			updateBCG( settings.brightness, settings.contrast, settings.gamma );
+		}
+		return;
+    }
+
+
 
     if(isCommandKeyDown()){
 
@@ -163,7 +206,7 @@ function mouseWheelHandler(e){
 		var e = window.event || e; // old IE support
 		var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 
-		settings.zoom += delta / 10.0;
+		settings.zoom += delta / m_stepZ;
 		if(settings.zoom > m_maxZ){
 			settings.zoom = m_maxZ;
 		}
@@ -172,13 +215,17 @@ function mouseWheelHandler(e){
 
 /// TODO: this is platform and browser specific.
 function commandKeyL(){
+	if(window.navigator.platform == "MacIntel"){
+		return 91; // command key in chrome & safari on mac. doesn't work in firefox
+	} 
 	return 18;
-	//return 91; // command key in chrome & safari on mac. doesn't work in firefox
 }
 
 function commandKeyR(){
+	if(window.navigator.platform == "MacIntel"){
+		return 93; // command key in chrome & safari on mac. doesn't work in firefox
+	} 
 	return 18;
-	// return 93; // right command key
 }
 
 function isCommandKeyDown(){

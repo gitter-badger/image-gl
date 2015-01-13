@@ -1,11 +1,13 @@
 
 var squareVertexTextureCoordBuffer
 
+
 var tilePositionBufferGrid;
 var tileTextureGrid;
 
+var bcgColorBuffer;
+
 function initBuffersAndTextures(){
-	initTextureFrameBuffer();
 	initBuffers();
 	initTextures();	
 }
@@ -21,15 +23,12 @@ function Create2DArray(rows,columns) {
 var tilePositionBufferGrid;
 var tilePoints;
 
-var framebufferVertexPositionBuffer;
-
 function initBuffers() {
 	var rows = tileImage.rows ;
 	var cols = tileImage.cols ;
 
+	// Init tile grid
 	tilePositionBufferGrid = Create2DArray(rows, cols);
-
-	// Make tile buffer:
 	for(var row = 0; row < rows; row++){
 		for(var col = 0; col < cols; col++){
 			
@@ -50,9 +49,10 @@ function initBuffers() {
 		}
 	}
 	
+	
+	// Init tile buffer
 	squareVertexTextureCoordBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexTextureCoordBuffer);
-
 	var textureCoords = [
           0.0, 1.0,
           1.0, 1.0,
@@ -65,35 +65,14 @@ function initBuffers() {
     squareVertexTextureCoordBuffer.itemSize = 2;
     squareVertexTextureCoordBuffer.numItems = 5;	
     
-    
-    
-    // This is the quad for the framebuffer texture to bind to
-    framebufferVertexPositionBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, framebufferVertexPositionBuffer);
+	// Init color buffer
+	bcgColorBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, bcgColorBuffer);
 
-	var aspectRatio = tileImage.width / tileImage.height;
-
-	if(aspectRatio > 1.0){
-		 vertices = [
-			 -aspectRatio / 2,  0.5,
-			  aspectRatio / 2,  0.5,
-			  aspectRatio / 2, -0.5,
-			 -aspectRatio / 2, -0.5,
-			 -aspectRatio / 2,  0.5
-		 ];
-	}else{
-		 vertices = [
-			 -0.5, aspectRatio,
-			  0.5, aspectRatio,
-			  0.5,-aspectRatio,
-			 -0.5,-aspectRatio,
-			 -0.5, aspectRatio
-		 ];
- 	}
-
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-	framebufferVertexPositionBuffer.itemSize = 2;
-	framebufferVertexPositionBuffer.numItems = 5;	
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uBCG), gl.STATIC_DRAW);
+	bcgColorBuffer.itemSize = 4;
+	bcgColorBuffer.numItems = 1;
+	
 }
 
 function handleLoadedGridTexture(row,col){
@@ -140,159 +119,34 @@ function initTextures() {
 
 		for(var row = 0; row < rows; row++){
 			for(var col = 0; col < cols; col++){
-				var r = row;
-				var c = col;
-				tileTextureGrid[ r ][ c ] = gl.createTexture();
-				tileTextureGrid[ r ][ c ].image = new Image();
-				tileTextureGrid[ r ][ c ].image.onload = function() { 
-					
-				}
-				//tileTextureGrid[ r ][ c ].image.src = "tiles/tile_" + r + "" + c + "_" + tileImage.dimension + ".jpg";
+				tileTextureGrid[ row ][ col ] = gl.createTexture();
+				tileTextureGrid[ row ][ col ].image = new Image();
+				tileTextureGrid[ row ][ col ].image.onload = (function(nr,nc) {
+					return function() {
+						handleLoadedGridTexture(nr,nc);
+						
+						tileTextureGrid[ nr ][ nc ].image.onload = (function(nnr, nnc) {
+							return function() {
+								handleLoadedGridTexture(nnr,nnc);
+							}
+						}(nr,nc));
+						tileTextureGrid[ nr ][ nc ].image.src = "tiles/tile_" + nr + "" + nc + "_" + tileImage.dimension + "." + tileImage.format;
+					}
+				}(row,col));
+				tileTextureGrid[ row ][ col ].image.src = "tiles/tile_" + row + "" + col + "_" + 256 + "." + tileImage.format ;
 			}
 		}
- 
-		    tileTextureGrid[0][0].image.onload = function() { 
-		    	handleLoadedGridTexture(0,0) 
-		    	tileTextureGrid[0][0].image.onload = function() {
-		    	 	handleLoadedGridTexture(0,0) 
-		    	}
-		    	tileTextureGrid[0][0].image.src = "tiles/tile_" + 0 + "" + 0 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[0][1].image.onload = function() {   
-		    	handleLoadedGridTexture(0,1) 
-		    	tileTextureGrid[0][1].image.onload = function() {
-		    	 	handleLoadedGridTexture(0,1) 
-		    	}
-		    	tileTextureGrid[0][1].image.src = "tiles/tile_" + 0 + "" + 1 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[0][2].image.onload = function() { 
-		    	handleLoadedGridTexture(0,2) 
-		    	tileTextureGrid[0][2].image.onload = function() {
-		    	 	handleLoadedGridTexture(0,2) 
-		    	}
-		    	tileTextureGrid[0][2].image.src = "tiles/tile_" + 0 + "" + 2 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[0][3].image.onload = function() { 
-		    	handleLoadedGridTexture(0,3) 
-		    	tileTextureGrid[0][3].image.onload = function() {
-		    	 	handleLoadedGridTexture(0,3) 
-		    	}
-		    	tileTextureGrid[0][3].image.src = "tiles/tile_" + 0 + "" + 3 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[0][4].image.onload = function() { 
-		    	handleLoadedGridTexture(0,4) 
-		    	tileTextureGrid[0][4].image.onload = function() {
-		    	 	handleLoadedGridTexture(0,4) 
-		    	}
-		    	tileTextureGrid[0][4].image.src = "tiles/tile_" + 0 + "" + 4 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[0][5].image.onload = function() { 
-		    	handleLoadedGridTexture(0,5) 
-		    	tileTextureGrid[0][5].image.onload = function() {
-		    	 	handleLoadedGridTexture(0,5) 
-		    	}
-		    	tileTextureGrid[0][5].image.src = "tiles/tile_" + 0 + "" + 5 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-		    tileTextureGrid[1][0].image.onload = function() { 
-		    	handleLoadedGridTexture(1,0) 
-		    	tileTextureGrid[1][0].image.onload = function() {
-		    	 	handleLoadedGridTexture(1,0) 
-		    	}
-		    	tileTextureGrid[1][0].image.src = "tiles/tile_" + 1 + "" + 0 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[1][1].image.onload = function() {   
-		    	handleLoadedGridTexture(1,1) 
-		    	tileTextureGrid[1][1].image.onload = function() {
-		    	 	handleLoadedGridTexture(1,1) 
-		    	}
-		    	tileTextureGrid[1][1].image.src = "tiles/tile_" + 1 + "" + 1 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[1][2].image.onload = function() { 
-		    	handleLoadedGridTexture(1,2) 
-		    	tileTextureGrid[1][2].image.onload = function() {
-		    	 	handleLoadedGridTexture(1,2) 
-		    	}
-		    	tileTextureGrid[1][2].image.src = "tiles/tile_" + 1 + "" + 2 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[1][3].image.onload = function() { 
-		    	handleLoadedGridTexture(1,3) 
-		    	tileTextureGrid[1][3].image.onload = function() {
-		    	 	handleLoadedGridTexture(1,3) 
-		    	}
-		    	tileTextureGrid[1][3].image.src = "tiles/tile_" + 1 + "" + 3 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[1][4].image.onload = function() { 
-		    	handleLoadedGridTexture(1,4) 
-		    	tileTextureGrid[1][4].image.onload = function() {
-		    	 	handleLoadedGridTexture(1,4) 
-		    	}
-		    	tileTextureGrid[1][4].image.src = "tiles/tile_" + 1 + "" + 4 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[1][5].image.onload = function() { 
-		    	handleLoadedGridTexture(1,5) 
-		    	tileTextureGrid[1][5].image.onload = function() {
-		    	 	handleLoadedGridTexture(1,5) 
-		    	}
-		    	tileTextureGrid[1][5].image.src = "tiles/tile_" + 1 + "" + 5 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-		    tileTextureGrid[2][0].image.onload = function() { 
-		    	handleLoadedGridTexture(2,0) 
-		    	tileTextureGrid[2][0].image.onload = function() {
-		    	 	handleLoadedGridTexture(2,0) 
-		    	}
-		    	tileTextureGrid[2][0].image.src = "tiles/tile_" + 2 + "" + 0 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[2][1].image.onload = function() { 
-		    	handleLoadedGridTexture(2,1) 
-		    	tileTextureGrid[2][1].image.onload = function() {
-		    	 	handleLoadedGridTexture(2,1) 
-		    	}
-		    	tileTextureGrid[2][1].image.src = "tiles/tile_" + 2 + "" + 1 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[2][2].image.onload = function() { 
-		    	handleLoadedGridTexture(2,2) 
-		    	tileTextureGrid[2][2].image.onload = function() {
-		    	 	handleLoadedGridTexture(2,2) 
-		    	}
-		    	tileTextureGrid[2][2].image.src = "tiles/tile_" + 2 + "" + 2 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[2][3].image.onload = function() { 
-		    	handleLoadedGridTexture(2,3) 
-		    	tileTextureGrid[2][3].image.onload = function() {
-		    	 	handleLoadedGridTexture(2,3) 
-		    	}
-		    	tileTextureGrid[2][3].image.src = "tiles/tile_" + 2 + "" + 3 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[2][4].image.onload = function() { 
-		    	handleLoadedGridTexture(2,4) 
-		    	tileTextureGrid[2][4].image.onload = function() {
-		    	 	handleLoadedGridTexture(2,4) 
-		    	}
-		    	tileTextureGrid[2][4].image.src = "tiles/tile_" + 2 + "" + 4 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-			tileTextureGrid[2][5].image.onload = function() { 
-		    	handleLoadedGridTexture(2,5) 
-		    	tileTextureGrid[2][5].image.onload = function() {
-		    	 	handleLoadedGridTexture(2,5) 
-		    	}
-		    	tileTextureGrid[2][5].image.src = "tiles/tile_" + 2 + "" + 5 + "_" + tileImage.dimension + "." + tileImage.format ;
-		    }
-
-	for(var row = 0; row < rows; row++){
-		for(var col = 0; col < cols; col++){
-			tileTextureGrid[row][col].image.src = "tiles/tile_" + row + "" + col + "_" + 256 + "." + tileImage.format ;
-		}
-	}
-	
-		// for(var row = 0; row < rows; row++){
-		// for(var col = 0; col < cols; col++){
-			// tileTextureGrid[row][col].image.src = "tiles/tile_" + row + "" + col + "_" + tileImage.dimension + "." + tileImage.format ;
-		// }
-	// }
+//   
+	    // tileTextureGrid[0][0].image.onload = function() { 
+	    	// handleLoadedGridTexture(0,0) 
+	    	// tileTextureGrid[0][0].image.onload = function() {
+	    	 	// handleLoadedGridTexture(0,0) 
+	    	// }
+	    	// tileTextureGrid[0][0].image.src = "tiles/tile_" + 0 + "" + 0 + "_" + tileImage.dimension + "." + tileImage.format ;
 }
 
 function drawGrid(x,y,w,h){
-
+	
 	gl.viewport(x, y, w, h);
 	
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -308,13 +162,16 @@ function drawGrid(x,y,w,h){
 	mat4.translate( mvMatrix, [transX, transY, settings.zoom] );
 
 	mvPushMatrix();
-	mat4.rotate( mvMatrix, m_rotx,    [1, 0, 0] );
-    mat4.rotate( mvMatrix, m_roty,   [0, 1, 0] ); // Animation rotate around y axis
-
+	mat4.rotate( mvMatrix, m_rotx,          [1, 0, 0] );
+    mat4.rotate( mvMatrix, m_roty,          [0, 1, 0] );       // Animation rotate around y axis
     mat4.rotate( mvMatrix, m_animateSquare, [0.4, 0.1, 0.8] ); // Animation rotate around y axis
 
     gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexTextureCoordBuffer);
     gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, squareVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, bcgColorBuffer);
+	gl.vertexAttribPointer(shaderProgram.uBCG, bcgColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
 
 	var rows = tileImage.rows ;
 	var cols = tileImage.cols ;
@@ -340,45 +197,13 @@ function drawGrid(x,y,w,h){
     			}
 			}
 		}
+		
 	}catch(e){
 		//alert(e);
 	}
 	mvPopMatrix();	
 }
-
-function drawFrameBufferTexture(x,y,w,h) {
-	gl.viewport(x,y,w,h);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-	mat4.perspective( 45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix );
-
-	mat4.identity( mvMatrix );
-
-	mvPushMatrix();
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, framebufferVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, framebufferVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexTextureCoordBuffer);
-    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, squareVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-	gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, rttTexture);
-    gl.uniform1i(shaderProgram.samplerUniform, 0);
-
-
-	setMatrixUniforms();
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, framebufferVertexPositionBuffer.numItems);
-
-	mvPopMatrix();
-}
-
 function drawScene() {
-	// gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
-	// drawGrid(0, 0, rttFramebuffer.width, rttFramebuffer.height);
-	// gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-	// drawFrameBufferTexture(0, 0, gl.viewportWidth, gl.viewportHeight);
-
+	updateBCG(settings.brightness, settings.contrast, settings.gamma);
 	drawGrid(0, 0, gl.viewportWidth, gl.viewportHeight);
-
 }
