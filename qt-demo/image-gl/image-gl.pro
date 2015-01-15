@@ -15,10 +15,25 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     glgraphicsview.cpp \
-    glgraphicsscene.cpp
+    model.cpp \
+    imagegrid.cpp \
+    ngraphicsscene.cpp \
+    glgraphicsscene.cpp \
+    openglwindow.cpp \
+    trianglewindow.cpp \
+    gridwindow.cpp \
+    imagetile.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
-    glgraphicsscene.h
+    model.h \
+    point3d.h \
+    imagegrid.h \
+    ngraphicsscene.h \
+    glgraphicsscene.h \
+    openglwindow.h \
+    trianglewindow.h \
+    gridwindow.h \
+    imagetile.h
 
 FORMS    += mainwindow.ui

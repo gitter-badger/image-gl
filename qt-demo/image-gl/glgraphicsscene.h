@@ -3,18 +3,16 @@
 
 #include <QObject>
 #include <QGraphicsScene>
-#include <QColor>
+#include <QOpenGLFunctions>
+#include <QOpenGLPaintDevice>
 
-class GLGraphicsScene : public QGraphicsScene
+class GLGraphicsScene : public QGraphicsScene, protected QOpenGLFunctions
 {
 public:
-    GLGraphicsScene(QObject *parent = NULL);
+    GLGraphicsScene();
     ~GLGraphicsScene();
 
-    void drawBackground(QPainter *painter, const QRectF &rect);
-
-private:
-    QColor m_backgroundColor;
+    virtual void drawBackground(QPainter *painter, const QRectF &rect);
 };
 
 #endif // GLGRAPHICSSCENE_H
