@@ -26,10 +26,11 @@ class GridWindow : public OpenGLWindow
     Q_OBJECT
 public:
     GridWindow();
-    ~GridWindow();
+    virtual ~GridWindow();
 
-    void initialize() ;
-    void render() ;
+    virtual void initialize() ;
+    virtual void render(qint64 frame);
+    virtual void render();
 
     void resetSettings();
     void reset();
@@ -64,8 +65,6 @@ public slots:
 
     void handleLoadedGridTexture(int row, int column);
 
-private slots:
-    void tick();
 
 protected:
     void handleLoadedTexture(QImage image, GLuint texture);
@@ -148,7 +147,6 @@ private:
     bool m_currentlyPressedKeys[Qt::Key_unknown];
     QPoint m_lastMouse;
 
-    QTimer m_timer;
     QStack<QMatrix4x4> m_mvStack;
 };
 

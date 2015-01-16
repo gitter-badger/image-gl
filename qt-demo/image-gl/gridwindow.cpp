@@ -81,6 +81,10 @@ static const char *fragmentShaderSourceG =
               "vColor.z = 0.0;\n"
               "vColor.a = 1.0;\n"
            "}\n"
+//        "vColor.x = 1.0;\n" // for testing: this is to debug where there is some drawing vs nothing.
+//        "vColor.y = 0.0;\n"
+//        "vColor.z = 0.0;\n"
+//        "vColor.a = 1.0;\n"
            "gl_FragColor = vColor;\n"
         "}\n";
 
@@ -108,11 +112,9 @@ GridWindow::GridWindow()
       m_animateEven(0),
       m_animateOdd(0)
 {
-    bool ok = connect(&m_timer, SIGNAL(timeout()), this, SLOT(tick()));
-    Q_ASSERT(ok);
-    m_timer.setInterval(1000);
-
     reset();
+    m_mvMatrix = QMatrix4x4();
+    m_pMatrix  = QMatrix4x4();
 }
 
 GridWindow::~GridWindow()
@@ -154,7 +156,6 @@ void GridWindow::webGLStart() {
     glClearColor(0.0, 0.0, 1.0, 1.0);            debug(__FUNCTION__, QString("glClearColor"));
     glEnable(GL_DEPTH_TEST);                     debug(__FUNCTION__, QString("glEnable(GL_DEPTH_TEST)"));
 
-    m_timer.start();
 }
 
 // gl-bp.js
@@ -164,7 +165,7 @@ void GridWindow::initGL()
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);    debug(__FUNCTION__,"glViewport");
 }
 
-void GridWindow::render()
+void GridWindow::render(qint64 frame)
 {
     const qreal retinaScale = devicePixelRatio();
     int x = 0;
@@ -182,6 +183,9 @@ void GridWindow::render()
     glClearColor(r,g, b, 1.0);            debug(__FUNCTION__, QString("glClearColor"));
     qDebug() << __FUNCTION__ << r << g << b;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                 debug(__FUNCTION__,"glClear");
+
+    m_pMatrix = QMatrix4x4();
+    m_mvMatrix = QMatrix4x4();
 
     m_program->bind();
     drawScene(w,y,w,h);
@@ -220,6 +224,9 @@ void GridWindow::initShaders(){
 void GridWindow::setMatrixUniforms(){
     m_program->setUniformValue(m_pMatrixUniform, m_pMatrix);      debug(__FUNCTION__,"program: setUniformValue, pMatrix");
     m_program->setUniformValue(m_mvMatrixUniform, m_mvMatrix);    debug(__FUNCTION__,"program: setUniformValue, mvMatrix");
+
+//    qDebug() << __FUNCTION__ << "Perspective: " << m_pMatrix;
+//    qDebug() << __FUNCTION__ << "ModelView: " << m_mvMatrix;
 }
 
 // gl-bp.js
@@ -322,7 +329,11 @@ void GridWindow::initTextures(){
     m_tileTextureGrid = ( GLuint * )malloc( textureGridSize );
     memset( m_tileTextureGrid, 0, textureGridSize );
 
-    glGenBuffers( rows * cols, m_tileTextureGrid );                               debug(__FUNCTION__,"loop: setMatrixUniforms");
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glGenTextures(rows * cols, m_tileTextureGrid);                                                debug(__FUNCTION__,"loop: setMatrixUniforms");
 
     m_imagegrid->loadTiles();
 }
@@ -337,7 +348,6 @@ void GridWindow::drawGrid(int x, int y, int w, int h){
     debug(__FUNCTION__, "beginning draw grid");
 
     QMatrix4x4 p;
-    p.setToIdentity( );
     p.perspective( 45.0f, w / h, 0.1f, 100.0f );
     m_pMatrix = p;
 
@@ -420,7 +430,6 @@ void GridWindow::handleLoadedGridTexture( int row, int col ){
 
 ////////////////////////////////////////////////////////////////
 
-// Animate is called in tick()
 void GridWindow::animate() {
     QDateTime dt;
     qint64 timeNow = dt.currentMSecsSinceEpoch();
@@ -639,9 +648,10 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
     handleKeys();
 }
 
-void GridWindow::tick(){
+void GridWindow::render(){
     handleKeys();
-    render();
+    render(m_frame);
+    m_frame++;
     animate();
 }
 
