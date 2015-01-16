@@ -108,7 +108,6 @@ private:
     GLint m_pMatrixUniform;
     GLint m_mvMatrixUniform;
     GLint m_samplerUniform;
-    GLint m_uColorUniform;
 
     QOpenGLShaderProgram *m_program;
     int m_frame;

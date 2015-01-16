@@ -40,7 +40,6 @@ static const char *vertexShaderSourceG =
         "attribute vec2 aTextureCoord;\n"
         "uniform mat4 uMVMatrix;\n"
         "uniform mat4 uPMatrix;\n"
-        "uniform mat4 uColor;\n"
         "varying vec2 vTextureCoord;\n"
         "void main(void) {\n"
           "gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);\n"
@@ -82,10 +81,6 @@ static const char *fragmentShaderSourceG =
               "vColor.z = 0.0;\n"
               "vColor.a = 1.0;\n"
            "}\n"
-        "vColor.x = 1.0;\n" // for testing: this is to debug where there is some drawing vs nothing.
-        "vColor.y = 0.0;\n"
-        "vColor.z = 0.0;\n"
-        "vColor.a = 1.0;\n"
            "gl_FragColor = vColor;\n"
         "}\n";
 
@@ -116,6 +111,8 @@ GridWindow::GridWindow()
     bool ok = connect(&m_timer, SIGNAL(timeout()), this, SLOT(tick()));
     Q_ASSERT(ok);
     m_timer.setInterval(1000);
+
+    reset();
 }
 
 GridWindow::~GridWindow()
@@ -170,12 +167,24 @@ void GridWindow::initGL()
 void GridWindow::render()
 {
     const qreal retinaScale = devicePixelRatio();
-    glViewport(0, 0, width() * retinaScale, height() * retinaScale);    debug(__FUNCTION__,"glViewport");
+    int x = 0;
+    int y = 0;
+    int w = width() * retinaScale;
+    int h = height() * retinaScale;
+    glViewport(w,y,w,h);    debug(__FUNCTION__,"glViewport");
 
+    QTime now = QTime::currentTime();
+    srand(now.msecsSinceStartOfDay());
+
+    double r = (double)rand() / (double)RAND_MAX ;
+    double g = (double)rand() / (double)RAND_MAX ;
+    double b = (double)rand() / (double)RAND_MAX ;
+    glClearColor(r,g, b, 1.0);            debug(__FUNCTION__, QString("glClearColor"));
+    qDebug() << __FUNCTION__ << r << g << b;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                 debug(__FUNCTION__,"glClear");
 
     m_program->bind();
-    drawScene(0, 0, width() * retinaScale, height() * retinaScale);
+    drawScene(w,y,w,h);
     m_program->release();
 }
 
@@ -186,12 +195,7 @@ void GridWindow::updateBCG( GLfloat brightness, GLfloat contrast, GLfloat gamma 
 
 // gl-shader.js
 void GridWindow::updateInvert( bool invert ){
-    if(invert){
-        glUniform1i(m_uInvert, 1);
-    }else{
-        glUniform1i(m_uInvert, 0);
-    }
-    debug( __FUNCTION__, "glUniform1i" );
+    glUniform1i(m_uInvert, invert == true ? 1 : 0);                                               debug( __FUNCTION__, "glUniform1i" );
 }
 
 // gl-shader.js
@@ -209,7 +213,7 @@ void GridWindow::initShaders(){
     m_uBCG 				            = m_program->uniformLocation( "uBCG" );      debug(__FUNCTION__, QString("initShaders"));
     m_uInvert 			            = m_program->uniformLocation( "uInvert" );   debug(__FUNCTION__, QString("initShaders"));
     m_samplerUniform 	            = m_program->uniformLocation( "uSampler" );  debug(__FUNCTION__, QString("initShaders"));
-    m_uColorUniform            		= m_program->uniformLocation( "uColor" );    debug(__FUNCTION__, QString("initShaders"));
+
 }
 
 // gl-bp.js
@@ -249,8 +253,6 @@ void GridWindow::initBuffers(){
 
     glGenBuffers( rows * cols, m_tilePositionBufferGrid );                    debug(__FUNCTION__, QString("before loop: glGenBuffers"));
 
-
-
     // Init tile grid
     for(int row = 0; row < rows; row++){
         for(int col = 0; col < cols; col++){
@@ -278,11 +280,11 @@ void GridWindow::initBuffers(){
 
             qint64 tileIndex = _tileIndex(row, col);
             glBindBuffer( GL_ARRAY_BUFFER, m_tilePositionBufferGrid[ tileIndex ] );            debug(__FUNCTION__, QString("tile loop: glBindBuffer"));
-            glBufferData( GL_ARRAY_BUFFER, tileBufferSize, tile, GL_STATIC_DRAW );                         debug(__FUNCTION__, QString("tile loop: glBufferData"));
+            glBufferData( GL_ARRAY_BUFFER, tileBufferSize, tile, GL_STATIC_DRAW );             debug(__FUNCTION__, QString("tile loop: glBufferData"));
         }
     }
 
-
+    // init texture coords
     m_textureCoords = ( GLfloat * )malloc( tileBufferSize );
     m_textureCoords[0] = 0.0;
     m_textureCoords[1] = 1.0;
@@ -297,15 +299,18 @@ void GridWindow::initBuffers(){
 
     glGenBuffers( 1, &m_squareVertexTextureCoordBuffer );                                        debug(__FUNCTION__, QString("after loop: glGenBuffers 2"));
     glBindBuffer( GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer );                           debug(__FUNCTION__, QString("after loop: glBindBuffer 2"));
-    glBufferData( GL_ARRAY_BUFFER, tileBufferSize , m_textureCoords, GL_STATIC_DRAW );    debug(__FUNCTION__, QString("after loop: glBufferData 1"));
+    glBufferData( GL_ARRAY_BUFFER, tileBufferSize , m_textureCoords, GL_STATIC_DRAW );           debug(__FUNCTION__, QString("after loop: glBufferData 1"));
 
-
-    // Init color buffer
+    // Init color
     m_puBCG = (GLfloat *) malloc( colorBufferSize );
+    m_puBCG[0] = 0.5;
+    m_puBCG[1] = 0.5;
+    m_puBCG[2] = 0.5;
+    m_puBCG[3] = 0.5;
 
     glGenBuffers( 1, &m_bcgColorBuffer );                                                        debug(__FUNCTION__, QString("after loop: glGenBuffers 2"));
     glBindBuffer( GL_ARRAY_BUFFER, m_bcgColorBuffer );                                           debug(__FUNCTION__, QString("after loop: glBindBuffer 2"));
-    glBufferData( GL_ARRAY_BUFFER, colorBufferSize , m_puBCG, GL_STATIC_DRAW );             debug(__FUNCTION__, QString("after loop: glBufferData 2"));
+    glBufferData( GL_ARRAY_BUFFER, colorBufferSize , m_puBCG, GL_STATIC_DRAW );                  debug(__FUNCTION__, QString("after loop: glBufferData 2"));
 }
 
 // grid.js
@@ -313,11 +318,11 @@ void GridWindow::initTextures(){
     int rows = m_imagegrid->rows();
     int cols = m_imagegrid->cols();
 
-    size_t size = rows * cols * sizeof( GLuint );
-    m_tileTextureGrid = (GLuint *)malloc( size );
-    memset( m_tileTextureGrid, 0, size );
+    size_t textureGridSize = rows * cols * sizeof( GLuint );
+    m_tileTextureGrid = ( GLuint * )malloc( textureGridSize );
+    memset( m_tileTextureGrid, 0, textureGridSize );
 
-    glGenBuffers(rows * cols, m_tileTextureGrid);                               debug(__FUNCTION__,"loop: setMatrixUniforms");
+    glGenBuffers( rows * cols, m_tileTextureGrid );                               debug(__FUNCTION__,"loop: setMatrixUniforms");
 
     m_imagegrid->loadTiles();
 }
@@ -331,24 +336,26 @@ void GridWindow::drawScene(int x, int y, int w, int h){
 void GridWindow::drawGrid(int x, int y, int w, int h){
     debug(__FUNCTION__, "beginning draw grid");
 
-    m_pMatrix.perspective( 45.0f, w / h, 0.1f, 100.0f );
+    QMatrix4x4 p;
+    p.setToIdentity( );
+    p.perspective( 45.0f, w / h, 0.1f, 100.0f );
+    m_pMatrix = p;
 
-    m_mvMatrix.setToIdentity(); // reset matrix
-
-    m_mvMatrix.rotate(QQuaternion(m_settings.rotation, 0,0,1));
-
-    m_mvMatrix.translate(m_settings.transX, m_settings.transY, m_settings.zoom);
+    m_mvMatrix.setToIdentity( ); // reset matrix
+    m_mvMatrix.rotate(QQuaternion( m_settings.rotation, 0,0,1 ));
+    m_mvMatrix.translate( m_settings.transX, m_settings.transY, m_settings.zoom );
 
     m_mvStack.push(m_mvMatrix);
-    m_mvMatrix.rotate(QQuaternion(m_rotx, 1, 0, 1));
-    m_mvMatrix.rotate(QQuaternion(m_roty, 0, 1, 0));
-    m_mvMatrix.rotate(QQuaternion(m_animateSquare, 0.4, 0.1, 0.8));
+    m_mvMatrix = QMatrix4x4();
+    m_mvMatrix.rotate(QQuaternion( m_rotx, 1, 0, 1 ));
+    m_mvMatrix.rotate(QQuaternion( m_roty, 0, 1, 0 ));
+    m_mvMatrix.rotate(QQuaternion( m_animateSquare, 0.4, 0.1, 0.8 ));
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer);             debug(__FUNCTION__,"glBindBuffer: m_squareVertexTextureCoordBuffer");
-    glVertexAttribPointer(m_textureCoordAttribute, 2 , GL_FLOAT, false, 0, 0);    debug(__FUNCTION__,"glVertexAttribPointer: m_textureCoordAttribute");
+    glBindBuffer( GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer );                   debug(__FUNCTION__,"glBindBuffer: m_squareVertexTextureCoordBuffer");
+    glVertexAttribPointer( m_textureCoordAttribute, 2 , GL_FLOAT, false, 0, 0 );         debug(__FUNCTION__,"glVertexAttribPointer: m_textureCoordAttribute");
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_bcgColorBuffer);                             debug(__FUNCTION__,"glBindBuffer: m_bcgColorBuffer");
-    glVertexAttribPointer(m_uBCG, 4, GL_FLOAT, false, 0, 0);                     debug(__FUNCTION__,"glVertexAttribPointer: m_uBCG");
+    glBindBuffer( GL_ARRAY_BUFFER, m_bcgColorBuffer );                                   debug(__FUNCTION__,"glBindBuffer: m_bcgColorBuffer");
+    glVertexAttribPointer( m_uBCG, 4, GL_FLOAT, false, 0, 0 );                     debug(__FUNCTION__,"glVertexAttribPointer: m_uBCG");
 
     int rows = m_imagegrid->rows();
     int cols = m_imagegrid->cols();
@@ -357,13 +364,17 @@ void GridWindow::drawGrid(int x, int y, int w, int h){
         for( int col = 0; col < cols; col++ ) {
 
             int tileIndex = _tileIndex( row, col );
+
             glEnable(GL_TEXTURE_2D);                                                           debug(__FUNCTION__,"loop: glEnable(GL_TEXTURE_2D)");
+            glEnable(GL_CULL_FACE);                                                            debug(__FUNCTION__,"loop: glEnable(GL_CULL_FACE)");
 
-            glBindBuffer( GL_ARRAY_BUFFER, m_tilePositionBufferGrid[ tileIndex ] );            debug(__FUNCTION__,"loop: glBindBuffer: m_tilePositionBufferGrid");
-            glVertexAttribPointer( m_vertexPositionAttribute, 2, GL_FLOAT, false, 0, 0);       debug(__FUNCTION__,"loop: glVertexAttribPointer: m_vertexPositionAttribute");
+            GLuint tileBuffer = m_tilePositionBufferGrid[ tileIndex ];
+            glBindBuffer( GL_ARRAY_BUFFER, tileBuffer );                                       debug(__FUNCTION__,"loop: glBindBuffer: m_tilePositionBufferGrid");
+            glVertexAttribPointer( m_vertexPositionAttribute, 2, GL_FLOAT, false, 0, 0 );      debug(__FUNCTION__,"loop: glVertexAttribPointer: m_vertexPositionAttribute");
 
+            GLuint tileTexture = m_tileTextureGrid[ tileIndex ];
             glActiveTexture( GL_TEXTURE0 );                                                    debug(__FUNCTION__,"loop: glActiveTexture");
-            glBindTexture( GL_TEXTURE_2D, m_tileTextureGrid[ tileIndex ] );                    debug(__FUNCTION__,"loop: glBindTexture");
+            glBindTexture( GL_TEXTURE_2D, tileTexture );                                       debug(__FUNCTION__,"loop: glBindTexture");
             glUniform1i( m_samplerUniform, 0 );                                                debug(__FUNCTION__,"loop: glUniform1i");
 
             setMatrixUniforms();                                                               debug(__FUNCTION__,"loop: setMatrixUniforms");
@@ -373,21 +384,22 @@ void GridWindow::drawGrid(int x, int y, int w, int h){
             glEnableVertexAttribArray(2);                                                      debug(__FUNCTION__,"loop: glEnableVertexAttribArray2");
 
             updateBCG( m_settings.brightness, m_settings.contrast, m_settings.gamma );
-            updateInvert(m_settings.invert);
+            updateInvert( m_settings.invert );
 
-            glDrawArrays( GL_TRIANGLE_STRIP, 0, 5);                                            debug(__FUNCTION__,"loop: glDrawArrays");
+            glDrawArrays( GL_TRIANGLE_STRIP, 0, 5 );                                           debug(__FUNCTION__,"loop: glDrawArrays");
 
             glDisableVertexAttribArray(2);                                                     debug(__FUNCTION__,"loop: glDisableVertexAttribArray");
             glDisableVertexAttribArray(1);                                                     debug(__FUNCTION__,"loop: glDisableVertexAttribArray");
             glDisableVertexAttribArray(0);                                                     debug(__FUNCTION__,"loop: glDisableVertexAttribArray");
 
             glDisable(GL_TEXTURE_2D);                                                          debug(__FUNCTION__,"loop: glDisable(GL_TEXTURE_2D)");
+            glDisable(GL_CULL_FACE);                                                           debug(__FUNCTION__,"loop: glDisable(GL_CULL_FACE)");
 
             // For "A" animation
             if(row * col % 2 == 0){
-                m_mvMatrix.rotate(QQuaternion(m_animateEven, 1.0, 0.4, 0.6));
+                m_mvMatrix.rotate( QQuaternion( m_animateEven, 1.0, 0.4, 0.6 ));
             }else{
-                m_mvMatrix.rotate(QQuaternion(m_animateOdd,  0.3, 1.0, 0.2));
+                m_mvMatrix.rotate( QQuaternion( m_animateOdd,  0.3, 1.0, 0.2 ));
             }
             debug(__FUNCTION__,"loop: glRotatef");
         }
@@ -401,9 +413,9 @@ void GridWindow::handleLoadedGridTexture( int row, int col ){
     ImageTile *tile = m_imagegrid->tile(row,col);
     handleLoadedTexture( tile->image(), m_tileTextureGrid[ _tileIndex( row, col ) ]);
 
-    Q_ASSERT(m_imagegrid->dimension() > 0 &&
+    Q_ASSERT( m_imagegrid->dimension() > 0 &&
              tile->image().width() == tile->image().height() &&
-             tile->image().width() == m_imagegrid->dimension());
+             tile->image().width() == m_imagegrid->dimension() );
 }
 
 ////////////////////////////////////////////////////////////////
