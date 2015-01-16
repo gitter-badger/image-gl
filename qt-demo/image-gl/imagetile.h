@@ -11,6 +11,8 @@ public:
     ~ImageTile();
 
     QImage image();
+    void setImage(QImage image);
+
 signals:
 
 public slots:

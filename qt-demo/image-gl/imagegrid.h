@@ -26,9 +26,13 @@ public:
     QStringList errors() const;
     QStringList logs() const;
 
-    bool loadImage();
+    bool loadTiles();
+    bool loadImage(qint64 dim);
     ImageTile *tile(qint64 row, qint64 col);
-    bool initTextures(qint64 count);
+
+signals:
+    void tileImageLoaded(int row, int col);
+
 private:
     void _log(const QString &message);
     void _error(const QString &message);
@@ -41,6 +45,10 @@ private:
     int m_dimension;
     QString m_format;
     QString m_file;
+
+    qint64 m_stretchwidth;
+    qint64 m_stretchheight;
+
     qint64 m_rows;
     qint64 m_cols;
     QImage m_image;

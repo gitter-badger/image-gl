@@ -11,6 +11,8 @@
 
 ImageGrid::ImageGrid(const QString &source, const QString &format, const int tileDimension, QObject *parent)
     :QObject(parent),
+      m_cols(0),
+      m_rows(0),
       m_file(source),
       m_format(format),
       m_dimension(tileDimension)
@@ -41,16 +43,10 @@ ImageTile *ImageGrid::tile(qint64 row, qint64 col){
 
     int index = ( cols() * row ) + col;
 
-    if( m_gridTiles.length() < index ){
+    if( index < m_gridTiles.length() ){
         val = m_gridTiles.at( index );
     }
-
     return val;
-}
-
-
-bool ImageGrid::initTextures(qint64 count){
-    // Load image for each texture in texture grid, bind texture on complete
 }
 
 bool ImageGrid::initTiles(qint64 dim)
@@ -79,75 +75,87 @@ bool ImageGrid::initTiles(qint64 dim)
     int rows = stretchheight / dim;
     int cols = stretchwidth  / dim;
 
+    m_stretchwidth = stretchwidth;
+    m_stretchheight = stretchheight;
+
     m_rows = rows;
     m_cols = cols;
 
-    // Initialize tile pointers
+    // Create tiles tiles
     for(qint64 i = 0; i < rows; i++){
         for(qint64 j = 0; j < cols; j++){
             ImageTile *tile = new ImageTile(this);
             m_gridTiles.append(tile);
         }
     }
+}
 
-    QImage input = m_image.scaled( stretchwidth, stretchheight, Qt::KeepAspectRatio, Qt::SmoothTransformation );
+bool ImageGrid::loadTiles(){
+    bool ok = true;
+    QImage input = m_image.scaled( m_stretchwidth, m_stretchheight, Qt::KeepAspectRatio, Qt::SmoothTransformation );
 
     QImage smallImage;
 
-    switch(dim){
+    qint64 dim = dimension();
+
+    switch( dim ){
     case 256:
     case 512:
         // don't make smaller copies;
         break;
     case 1024:
-        smallImage = m_image.scaled( stretchwidth / 4, stretchheight / 4, Qt::KeepAspectRatio, Qt::SmoothTransformation );
+        smallImage = m_image.scaled( m_stretchwidth / 4, m_stretchheight / 4, Qt::KeepAspectRatio, Qt::SmoothTransformation );
         break;
     case 2048:
-        smallImage = m_image.scaled( stretchwidth / 8, stretchheight / 8, Qt::KeepAspectRatio, Qt::SmoothTransformation );
+        smallImage = m_image.scaled( m_stretchwidth / 8, m_stretchheight / 8, Qt::KeepAspectRatio, Qt::SmoothTransformation );
         break;
     case 4096:
-        smallImage = m_image.scaled( stretchwidth / 16, stretchheight / 16, Qt::KeepAspectRatio, Qt::SmoothTransformation );
+        smallImage = m_image.scaled( m_stretchwidth / 16, m_stretchheight / 16, Qt::KeepAspectRatio, Qt::SmoothTransformation );
         break;
     case 8192:
-        smallImage = m_image.scaled( stretchwidth / 32, stretchheight / 32, Qt::KeepAspectRatio, Qt::SmoothTransformation );
+        smallImage = m_image.scaled( m_stretchwidth / 32, m_stretchheight / 32, Qt::KeepAspectRatio, Qt::SmoothTransformation );
         break;
     }
 
     QPoint offset = QPoint( 0,0 );
 
     // Make small image tiles 256 x 256
-    if(!smallImage.isNull()){
-        for( int row = 0; row < rows; row++ ){
-            for( int col = 0; col < cols; col++ ){
-                offset = QPoint( dim * col, dim * row );
-                QImage img = input.copy( offset.x(), offset.y(), dim, dim );
+//    if(!smallImage.isNull()){
+//        for( int row = 0; row < rows; row++ ){
+//            for( int col = 0; col < cols; col++ ){
+//                offset = QPoint( dim * col, dim * row );
+//                QImage img = input.copy( offset.x(), offset.y(), dim, dim );
+//                QString message;
+//                ImageTile *currentTile = tile( row, col );
+//                currentTile->setImage(img);
+//                //ok = _writeImage( img, offset, row, col, 256 );
+//                if(ok){
+//                    message = QString( "%1 %2 %3 %4" ).arg( offset.x() ).arg( offset.y() ).arg( dim ).arg( dim );
+//                    _log(message);
+//                }else{
+//                    message = QString( "Problem writing file" );
+//                    _error(message);
+//                }
+//            }
+//        }
+//    }
 
-                QString message;
-
-                ImageTile *currentTile = tile( row, col );
-//                tile->setImage(img);
-
-                //ok = _writeImage( img, offset, row, col, 256 );
-                if(ok){
-                    message = QString( "%1 %2 %3 %4" ).arg( offset.x() ).arg( offset.y() ).arg( dim ).arg( dim );
-                    _log(message);
-                }else{
-                    message = QString( "Problem writing file" );
-                    _error(message);
-                }
-            }
-        }
-    }
-
-    // Full Size image
-    for( int row = 0; row < rows; row++ ){
-        for( int col = 0; col < cols; col++ ){
+//     Full Size image
+    for( int row = 0; row < rows(); row++ ){
+        for( int col = 0; col < cols(); col++ ){
             offset = QPoint( dim * col, dim * row );
             QImage img = input.copy( offset.x(), offset.y(), dim, dim );
 
             QString message;
             //ok = _writeImage( img, offset, row, col, m_dimension );
-            if(ok){
+
+            ImageTile *currentTile = tile( row, col );
+
+            currentTile->setImage( img.copy() );
+
+            emit tileImageLoaded( row, col );
+
+            if( ok ){
                 message = QString( "%1 %2 %3 %4" ).arg( offset.x() ).arg( offset.y() ).arg( dim ).arg( dim );
                 _log(message) ;
             }else{
@@ -157,26 +165,28 @@ bool ImageGrid::initTiles(qint64 dim)
         }
     }
 
-    if(ok){
-        QVariantMap map;
 
-        map[ "stretchWidth"]  = stretchwidth;
-        map[ "stretchHeight"] = stretchheight;
-        map[ "width" ]        = origwidth;
-        map[ "height" ]       = origheight;
-        map[ "rows" ]         = rows;
-        map[ "cols" ]         = cols;
-        map[ "dimension" ]    = dim;
-        map[ "format" ]       = format();
 
-        QJsonDocument jsondoc = QJsonDocument::fromVariant( map );
+//    if(ok){
+//        QVariantMap map;
 
-        ok = _writeJSON( jsondoc, filePath );
-        if(!ok){
-            QString message = QString( "Problem writing data file" ) ;
-            _error ( message );
-        }
-    }
+//        map[ "stretchWidth"]  = stretchwidth;
+//        map[ "stretchHeight"] = stretchheight;
+//        map[ "width" ]        = origwidth;
+//        map[ "height" ]       = origheight;
+//        map[ "rows" ]         = rows;
+//        map[ "cols" ]         = cols;
+//        map[ "dimension" ]    = dim;
+//        map[ "format" ]       = format();
+
+//        QJsonDocument jsondoc = QJsonDocument::fromVariant( map );
+
+//        ok = _writeJSON( jsondoc, filePath );
+//        if(!ok){
+//            QString message = QString( "Problem writing data file" ) ;
+//            _error ( message );
+//        }
+//    }
 
     return ok;
 }
@@ -259,7 +269,7 @@ bool ImageGrid::_writeImage(QImage &img, QPoint pos, int row, int column, int di
     return ok;
 }
 
-bool ImageGrid::loadImage(){
+bool ImageGrid::loadImage( qint64 dim ){
 
     QFile device( m_file );
     bool ret = false;
@@ -282,6 +292,9 @@ bool ImageGrid::loadImage(){
         }
         delete reader;
     }
+
+    initTiles( dim );
+
     return ret;
 }
 

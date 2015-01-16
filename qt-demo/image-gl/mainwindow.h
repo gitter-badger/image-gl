@@ -29,10 +29,15 @@ public:
 
     QString format();
 
+    void loadSettings();
+    void saveSettings();
+
 private slots:
     void on_pushButtonSplit_clicked();
     void on_pushButtonLoadImage_clicked();
     void on_pushButtonDisplay_clicked();
+
+    void on_pushButtonSelectImage_clicked();
 
 private:
     void updateLog(QStringList log);

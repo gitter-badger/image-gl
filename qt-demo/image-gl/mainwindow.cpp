@@ -1,20 +1,20 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "glgraphicsview.h"
+#include "glgraphicsscene.h"
+#include "ngraphicsscene.h"
+#include "imagegrid.h"
+#include "trianglewindow.h"
+
 #include <QFile>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QImageReader>
 #include <QImageWriter>
 #include <QJsonDocument>
-#include "glgraphicsview.h"
-#include "glgraphicsscene.h"
-#include "ngraphicsscene.h"
 #include <QGL>
-
-#include "imagegrid.h"
-
-#include "trianglewindow.h"
+#include <QSettings>
 
 GridWindow *MainWindow::m_gridWindow = NULL;
 
@@ -24,6 +24,23 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    loadSettings();
+}
+
+void MainWindow::loadSettings(){
+    QSettings s;
+    QString selected = s.value("image/selected",QString()).toString();
+
+    if(QFile::exists(selected)){
+        ui->labelSelectedImage->setText(selected);
+        m_file = selected;
+    }
+}
+
+void MainWindow::saveSettings(){
+    QSettings s;
+    s.setValue("image/selected",m_file);
 }
 
 MainWindow::~MainWindow()
@@ -40,7 +57,7 @@ bool MainWindow::loadImage(const QString &file){
         delete m_grid;
     }
     m_grid = new ImageGrid(file, fmt, dim, this);
-    if(m_grid->loadImage()){
+    if(m_grid->loadImage( dim )){
         updateLog(m_grid->logs());
     }else{
         updateLog(m_grid->errors());
@@ -60,7 +77,7 @@ void MainWindow::on_pushButtonSplit_clicked()
         return;
     }
 
-    bool ok = m_grid->initTiles(dimension());
+    bool ok = false; // m_grid->initTiles(dimension());
 
     if(!ok){
         QMessageBox::critical( this, QString( "Split error" ), QString( "Unable to init tiles" ));
@@ -76,23 +93,8 @@ QString MainWindow::format()
     return ui->comboBoxFormat->currentText();
 }
 
-void MainWindow::on_pushButtonLoadImage_clicked()
-{
-    m_file = QFileDialog::getOpenFileName( this, QString( "Select file to split" ) );
-
-    if( QFile::exists( m_file ) ){
-        ui->labelImageLoaded->setText( QString("File Loaded: %1" ).arg( m_file ));
-        if(!loadImage( m_file )){
-            updateErrors(m_grid->errors());
-        }else{
-            updateLog(m_grid->logs());
-        }
-    }
-}
-
 void MainWindow::on_pushButtonDisplay_clicked()
 {
-    /// TODO: tell m_gridWindow to load ImageGrid that is loaded
     if(m_gridWindow){
         delete m_gridWindow;
     }
@@ -103,6 +105,9 @@ void MainWindow::on_pushButtonDisplay_clicked()
 
     m_gridWindow = new GridWindow();
 
+    bool ok;
+    ok = connect(m_grid, SIGNAL(tileImageLoaded(int,int)), m_gridWindow, SLOT( handleLoadedGridTexture(int,int) ));Q_ASSERT(ok);
+
     m_gridWindow->setGrid(m_grid);
 
     QSurfaceFormat format;
@@ -112,8 +117,12 @@ void MainWindow::on_pushButtonDisplay_clicked()
     m_gridWindow->resize(640, 480);
     m_gridWindow->setPosition(QPoint(30, 200));
     m_gridWindow->show();
-
     m_gridWindow->setAnimating(true);
+
+//    TriangleWindow *wnd = new TriangleWindow();
+//    wnd->resize(640, 480);
+//    wnd->show();
+//    wnd->setAnimating(true);
 }
 
 void MainWindow::updateLog(QStringList logs)
@@ -138,4 +147,28 @@ void MainWindow::updateErrors(QStringList errors)
 
     ui->textEditLog->setTextColor(QColor(Qt::red));
     ui->textEditLog->setText(text);
+}
+
+void MainWindow::on_pushButtonSelectImage_clicked()
+{
+    QString file = QFileDialog::getOpenFileName( this, QString( "Select input file" ) );
+
+    if(QFile::exists(file)){
+        m_file = file;
+        ui->labelSelectedImage->setText(m_file);
+        saveSettings();
+    }
+}
+
+
+void MainWindow::on_pushButtonLoadImage_clicked()
+{
+    if( QFile::exists( m_file ) ){
+        ui->labelLoadedImage->setText( m_file );
+        if(!loadImage( m_file )){
+            updateErrors(m_grid->errors());
+        }else{
+            updateLog(m_grid->logs());
+        }
+    }
 }

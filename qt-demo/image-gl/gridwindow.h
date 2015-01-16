@@ -3,6 +3,7 @@
 
 #include <openglwindow.h>
 #include <QOpenGLShaderProgram>
+#include <QTimer>
 
 struct GLSettings {
     GLfloat zoom;
@@ -21,6 +22,7 @@ struct GLSettings {
 class ImageGrid;
 class GridWindow : public OpenGLWindow
 {
+    Q_OBJECT
 public:
     GridWindow();
     ~GridWindow();
@@ -35,15 +37,51 @@ public:
 
     void setGrid(ImageGrid *grid);
 
-private slots:
+
+    void setContrast(qreal val);
+    void setBrightness(qreal val);
+    void setGamma(qreal val);
+public slots:
+    void panUp();
+    void panDown();
+    void panLeft();
+    void panRight();
+    void rotateLeft();
+    void rotateRight();
+    void invert();
+    void handleKeys();
+    void flipH();
+    void flipV();
+    void flipX();
+    void flipY();
+    // control
+    void toggleAnimate();
+    void rotLeft90();
+    void rotRight90();
+    void zoomIn();
+    void zoomOut();
+
     void handleLoadedGridTexture(int row, int column);
-    void initTextures(qint64 tileCount);
+
+private slots:
+    void tick();
 
 protected:
     void handleLoadedTexture(QImage image, GLuint texture);
-    void drawScene();
+    void drawScene(int x, int y, int w, int h);
+    void drawTriangle();
 
 private:
+    bool isCtrlKeyDown();
+    bool isCommandKeyDown();
+
+    void resizeEvent(QResizeEvent *event);
+    void wheelEvent(QWheelEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
+    void mousePressEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent *event);
+    void keyPressEvent(QKeyEvent *event);
+    void keyReleaseEvent(QKeyEvent *event);
 
     qint64 _tileIndex(qint64 row, qint64 col);
 
@@ -61,17 +99,15 @@ private:
     void setMatrixUniforms();
     GLuint loadShader(GLenum type, const char *source);
 
-    GLuint vertexPositionAttribute;
-    GLuint textureCoordAttribute;
-    GLuint uBCG;
-    GLuint uInvert;
+    GLint m_vertexPositionAttribute;
+    GLint m_textureCoordAttribute;
+    GLint m_uBCG;
+    GLint m_uInvert;
 
-    GLuint pMatrixUniform;
-    GLuint mvMatrixUniform;
-    GLuint samplerUniform;
-
-
-    GLuint colorUniform;
+    GLint m_pMatrixUniform;
+    GLint m_mvMatrixUniform;
+    GLint m_samplerUniform;
+    GLint m_uColorUniform;
 
     QOpenGLShaderProgram *m_program;
     int m_frame;
@@ -81,25 +117,17 @@ private:
 
     GLSettings settings;
 
-    GLuint *m_uTileTextures;
-
     GLuint m_animateSquare;
 
     GLboolean m_animateOn = false;
 
     ImageGrid *m_imagegrid;
 
-    void *puBCG;
-    GLuint bcgColorBuffer;
-    GLuint squareVertexCoordBuffer;
-    GLuint squareVertexTextureCoordBuffer;
+    GLuint m_bcgColorBuffer;
+    GLuint m_squareVertexTextureCoordBuffer;
 
-    QList< GLuint > tilePositionBufferGrid;
-    QList< GLuint > tileTextureGrid;
-
-    GLuint gridBuffer(qint64 row, qint64 col);
-    GLuint gridTexture(qint64 row, qint64 col);
-
+    GLuint *m_tilePositionBufferGrid;
+    GLuint *m_tileTextureGrid;
 
     // Animation
     // Variables used for animating flips & rotation
@@ -111,6 +139,16 @@ private:
 
     GLfloat m_animateEven ;
     GLfloat m_animateOdd ;
+
+    GLfloat m_panBase;
+
+
+    GLfloat *m_puBCG;
+    GLfloat *m_textureCoords;
+    bool m_currentlyPressedKeys[Qt::Key_unknown];
+    QPoint m_lastMouse;
+
+    QTimer m_timer;
 };
 
 #endif // GRIDWINDOW_H
