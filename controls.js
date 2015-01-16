@@ -177,11 +177,11 @@ function handleMouseMove(event) {
     if ( !mouseDownLeft ) {
 		if(mouseDownRight){
 			
-			var dy = deltaY / 100.0;
-			var dx = deltaX / 100.0;
+			var dy = deltaY / 30.0;
+			var dx = deltaX / 30.0;
 						
 			// Adjust BCG
-			if(isCommandKeyDown()){
+			if(!isCommandKeyDown()){
 				setBrightness (settings.brightness - dy);
 	 			setContrast (settings.contrast - dx);
 			}else{
