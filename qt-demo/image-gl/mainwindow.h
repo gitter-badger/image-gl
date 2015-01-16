@@ -39,6 +39,8 @@ private slots:
 
     void on_pushButtonSelectImage_clicked();
 
+    void on_pushButton_clicked();
+
 private:
     void updateLog(QStringList log);
     void updateErrors(QStringList errors);

@@ -82,6 +82,10 @@ static const char *fragmentShaderSourceG =
               "vColor.z = 0.0;\n"
               "vColor.a = 1.0;\n"
            "}\n"
+        "vColor.x = 1.0;\n" // for testing: this is to debug where there is some drawing vs nothing.
+        "vColor.y = 0.0;\n"
+        "vColor.z = 0.0;\n"
+        "vColor.a = 1.0;\n"
            "gl_FragColor = vColor;\n"
         "}\n";
 
@@ -150,7 +154,7 @@ void GridWindow::webGLStart() {
     initShaders();
     initBuffersAndTextures();
 
-    glClearColor(0.0, 0.0, 0.0, 1.0);            debug(__FUNCTION__, QString("glClearColor"));
+    glClearColor(0.0, 0.0, 1.0, 1.0);            debug(__FUNCTION__, QString("glClearColor"));
     glEnable(GL_DEPTH_TEST);                     debug(__FUNCTION__, QString("glEnable(GL_DEPTH_TEST)"));
 
     m_timer.start();
@@ -173,21 +177,6 @@ void GridWindow::render()
     m_program->bind();
     drawScene(0, 0, width() * retinaScale, height() * retinaScale);
     m_program->release();
-}
-
-// gl-bp.js
-void GridWindow::setMatrixUniforms(){
-    m_program->setUniformValue(m_pMatrixUniform, pMatrix);      debug(__FUNCTION__,"program: setUniformValue, pMatrix");
-    m_program->setUniformValue(m_mvMatrixUniform, mvMatrix);    debug(__FUNCTION__,"program: setUniformValue, mvMatrix");
-}
-
-// gl-bp.js
-void GridWindow::handleLoadedTexture(QImage image, GLuint texture){
-    glBindTexture(GL_TEXTURE_2D, texture);                                                        debug(__FUNCTION__,"glBindTexture");
-//    glPixelStorei(GL_UNPACK_FLIP_Y_WEBGL, );
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());    debug(__FUNCTION__,"glTexImage2D");
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);                            debug(__FUNCTION__,"glTexParameteri");
-    glBindTexture(GL_TEXTURE_2D, 0);                                                              debug(__FUNCTION__,"glBindTexture");
 }
 
 // gl-shader.js
@@ -223,6 +212,21 @@ void GridWindow::initShaders(){
     m_uColorUniform            		= m_program->uniformLocation( "uColor" );    debug(__FUNCTION__, QString("initShaders"));
 }
 
+// gl-bp.js
+void GridWindow::setMatrixUniforms(){
+    m_program->setUniformValue(m_pMatrixUniform, m_pMatrix);      debug(__FUNCTION__,"program: setUniformValue, pMatrix");
+    m_program->setUniformValue(m_mvMatrixUniform, m_mvMatrix);    debug(__FUNCTION__,"program: setUniformValue, mvMatrix");
+}
+
+// gl-bp.js
+void GridWindow::handleLoadedTexture(QImage image, GLuint texture){
+    glBindTexture(GL_TEXTURE_2D, texture);                                                        debug(__FUNCTION__,"glBindTexture");
+//    glPixelStorei(GL_UNPACK_FLIP_Y_WEBGL, );
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());    debug(__FUNCTION__,"glTexImage2D");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);                            debug(__FUNCTION__,"glTexParameteri");
+    glBindTexture(GL_TEXTURE_2D, 0);                                                              debug(__FUNCTION__,"glBindTexture");
+}
+
 // grid.js
 void GridWindow::initBuffersAndTextures(){
     initBuffers();
@@ -236,11 +240,16 @@ void GridWindow::initBuffers(){
 
     Q_ASSERT(rows > 0 && cols > 0);
 
-    size_t size = sizeof( GLuint ) * rows * cols;
-    m_tilePositionBufferGrid = (GLuint *)malloc( size );
-    memset( m_tilePositionBufferGrid, 0, size );
+    size_t tileBufferSize = 10 * sizeof ( GLfloat );
+    size_t colorBufferSize = 4 * sizeof( GLfloat );
+    size_t tilePositionBufferSize = sizeof( GLuint ) * rows * cols;
+
+    m_tilePositionBufferGrid = (GLuint *)malloc( tilePositionBufferSize );
+    memset( m_tilePositionBufferGrid, 0, tilePositionBufferSize );
 
     glGenBuffers( rows * cols, m_tilePositionBufferGrid );                    debug(__FUNCTION__, QString("before loop: glGenBuffers"));
+
+
 
     // Init tile grid
     for(int row = 0; row < rows; row++){
@@ -254,7 +263,7 @@ void GridWindow::initBuffers(){
                 tCol += 1.0;
             }
 
-            int tile[10];
+            GLfloat *tile = ( GLfloat* )malloc( tileBufferSize );
 
             tile[0] = tCol-1;
             tile[1] = tRow;
@@ -269,12 +278,12 @@ void GridWindow::initBuffers(){
 
             qint64 tileIndex = _tileIndex(row, col);
             glBindBuffer( GL_ARRAY_BUFFER, m_tilePositionBufferGrid[ tileIndex ] );            debug(__FUNCTION__, QString("tile loop: glBindBuffer"));
-            glBufferData( GL_ARRAY_BUFFER, 10, tile, GL_STATIC_DRAW );                         debug(__FUNCTION__, QString("tile loop: glBufferData"));
+            glBufferData( GL_ARRAY_BUFFER, tileBufferSize, tile, GL_STATIC_DRAW );                         debug(__FUNCTION__, QString("tile loop: glBufferData"));
         }
     }
 
-    size = 10 * sizeof(GLfloat);
-    m_textureCoords = (GLfloat *)malloc( size );
+
+    m_textureCoords = ( GLfloat * )malloc( tileBufferSize );
     m_textureCoords[0] = 0.0;
     m_textureCoords[1] = 1.0;
     m_textureCoords[2] = 1.0;
@@ -288,14 +297,15 @@ void GridWindow::initBuffers(){
 
     glGenBuffers( 1, &m_squareVertexTextureCoordBuffer );                                        debug(__FUNCTION__, QString("after loop: glGenBuffers 2"));
     glBindBuffer( GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer );                           debug(__FUNCTION__, QString("after loop: glBindBuffer 2"));
-    glBufferData( GL_ARRAY_BUFFER, size * sizeof(GLfloat), m_textureCoords, GL_STATIC_DRAW );    debug(__FUNCTION__, QString("after loop: glBufferData 1"));
+    glBufferData( GL_ARRAY_BUFFER, tileBufferSize , m_textureCoords, GL_STATIC_DRAW );    debug(__FUNCTION__, QString("after loop: glBufferData 1"));
+
 
     // Init color buffer
-    m_puBCG = (GLfloat *) malloc( 4 * sizeof( GLfloat ) );
+    m_puBCG = (GLfloat *) malloc( colorBufferSize );
 
     glGenBuffers( 1, &m_bcgColorBuffer );                                                        debug(__FUNCTION__, QString("after loop: glGenBuffers 2"));
     glBindBuffer( GL_ARRAY_BUFFER, m_bcgColorBuffer );                                           debug(__FUNCTION__, QString("after loop: glBindBuffer 2"));
-    glBufferData( GL_ARRAY_BUFFER, 4 * sizeof( GLfloat ), m_puBCG, GL_STATIC_DRAW );             debug(__FUNCTION__, QString("after loop: glBufferData 2"));
+    glBufferData( GL_ARRAY_BUFFER, colorBufferSize , m_puBCG, GL_STATIC_DRAW );             debug(__FUNCTION__, QString("after loop: glBufferData 2"));
 }
 
 // grid.js
@@ -321,23 +331,21 @@ void GridWindow::drawScene(int x, int y, int w, int h){
 void GridWindow::drawGrid(int x, int y, int w, int h){
     debug(__FUNCTION__, "beginning draw grid");
 
-    pMatrix.perspective( 45.0f, w / h, 0.1f, 100.0f );
-    m_program->setUniformValue(m_pMatrixUniform, pMatrix);                       debug(__FUNCTION__,"program: setUniformValue, pMatrix");
+    m_pMatrix.perspective( 45.0f, w / h, 0.1f, 100.0f );
 
-    mvMatrix.setToIdentity(); // reset matrix
-    mvMatrix.rotate(QQuaternion(settings.rotation, 0,0,1));
-    mvMatrix.translate(settings.transX, settings.transY, settings.zoom);
-    m_program->setUniformValue(m_mvMatrixUniform, mvMatrix);                     debug(__FUNCTION__,"program: setUniformValue, mvMatrix before Push");
+    m_mvMatrix.setToIdentity(); // reset matrix
 
-    glPushMatrix();                                                              debug(__FUNCTION__,"glPushMatrix");
+    m_mvMatrix.rotate(QQuaternion(m_settings.rotation, 0,0,1));
 
-    mvMatrix.rotate(QQuaternion(m_rotx, 1, 0, 1));
-    mvMatrix.rotate(QQuaternion(m_roty, 0, 1, 0));
-    mvMatrix.rotate(QQuaternion(m_animateSquare, 0.4, 0.1, 0.8));
-    m_program->setUniformValue(m_mvMatrixUniform, mvMatrix);                     debug(__FUNCTION__,"program: setUniformValue, mvMatrix after Push");
+    m_mvMatrix.translate(m_settings.transX, m_settings.transY, m_settings.zoom);
+
+    m_mvStack.push(m_mvMatrix);
+    m_mvMatrix.rotate(QQuaternion(m_rotx, 1, 0, 1));
+    m_mvMatrix.rotate(QQuaternion(m_roty, 0, 1, 0));
+    m_mvMatrix.rotate(QQuaternion(m_animateSquare, 0.4, 0.1, 0.8));
 
     glBindBuffer(GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer);             debug(__FUNCTION__,"glBindBuffer: m_squareVertexTextureCoordBuffer");
-    glVertexAttribPointer(m_textureCoordAttribute, 2, GL_FLOAT, false, 0, 0);    debug(__FUNCTION__,"glVertexAttribPointer: m_textureCoordAttribute");
+    glVertexAttribPointer(m_textureCoordAttribute, 2 , GL_FLOAT, false, 0, 0);    debug(__FUNCTION__,"glVertexAttribPointer: m_textureCoordAttribute");
 
     glBindBuffer(GL_ARRAY_BUFFER, m_bcgColorBuffer);                             debug(__FUNCTION__,"glBindBuffer: m_bcgColorBuffer");
     glVertexAttribPointer(m_uBCG, 4, GL_FLOAT, false, 0, 0);                     debug(__FUNCTION__,"glVertexAttribPointer: m_uBCG");
@@ -353,7 +361,7 @@ void GridWindow::drawGrid(int x, int y, int w, int h){
 
             glBindBuffer( GL_ARRAY_BUFFER, m_tilePositionBufferGrid[ tileIndex ] );            debug(__FUNCTION__,"loop: glBindBuffer: m_tilePositionBufferGrid");
             glVertexAttribPointer( m_vertexPositionAttribute, 2, GL_FLOAT, false, 0, 0);       debug(__FUNCTION__,"loop: glVertexAttribPointer: m_vertexPositionAttribute");
-            glEnable( GL_TEXTURE_2D );                                                         debug(__FUNCTION__,"loop: glEnable");
+
             glActiveTexture( GL_TEXTURE0 );                                                    debug(__FUNCTION__,"loop: glActiveTexture");
             glBindTexture( GL_TEXTURE_2D, m_tileTextureGrid[ tileIndex ] );                    debug(__FUNCTION__,"loop: glBindTexture");
             glUniform1i( m_samplerUniform, 0 );                                                debug(__FUNCTION__,"loop: glUniform1i");
@@ -364,8 +372,8 @@ void GridWindow::drawGrid(int x, int y, int w, int h){
             glEnableVertexAttribArray(1);                                                      debug(__FUNCTION__,"loop: glEnableVertexAttribArray1");
             glEnableVertexAttribArray(2);                                                      debug(__FUNCTION__,"loop: glEnableVertexAttribArray2");
 
-            updateBCG( settings.brightness, settings.contrast, settings.gamma );
-            updateInvert(settings.invert);
+            updateBCG( m_settings.brightness, m_settings.contrast, m_settings.gamma );
+            updateInvert(m_settings.invert);
 
             glDrawArrays( GL_TRIANGLE_STRIP, 0, 5);                                            debug(__FUNCTION__,"loop: glDrawArrays");
 
@@ -377,14 +385,15 @@ void GridWindow::drawGrid(int x, int y, int w, int h){
 
             // For "A" animation
             if(row * col % 2 == 0){
-                glRotatef( m_animateEven, 1.0, 0.4, 0.6);
+                m_mvMatrix.rotate(QQuaternion(m_animateEven, 1.0, 0.4, 0.6));
             }else{
-                glRotatef( m_animateOdd, 0.3, 1.0, 0.2);
+                m_mvMatrix.rotate(QQuaternion(m_animateOdd,  0.3, 1.0, 0.2));
             }
             debug(__FUNCTION__,"loop: glRotatef");
         }
     }
-    glPopMatrix();    debug(__FUNCTION__,"loop: glPopMatrix");
+//    glPopMatrix();    debug(__FUNCTION__,"loop: glPopMatrix");
+    m_mvMatrix = m_mvStack.pop();
 }
 
 // grid.js
@@ -432,7 +441,7 @@ void GridWindow::animate() {
             }
         }
 
-        if(settings.flipH){
+        if(m_settings.flipH){
             // increase from 0 to pi
             m_rotx += (75 *elapsed) / m_flipfreq;
             if(m_rotx > pi){
@@ -445,7 +454,7 @@ void GridWindow::animate() {
                 m_rotx = 0.0;
             }
         }
-        if(settings.flipV){
+        if(m_settings.flipV){
             // increase from 0 to pi
             m_roty += (75 * elapsed) / m_flipfreq;
             if(m_roty > pi){
@@ -459,18 +468,18 @@ void GridWindow::animate() {
             }
         }
 
-        if(m_rotz < settings.rotation){
+        if(m_rotz < m_settings.rotation){
             m_rotz += (75 * elapsed) / m_flipfreq;
-            if(m_rotz > settings.rotation){
+            if(m_rotz > m_settings.rotation){
                 // rotated too far
-                m_rotz = settings.rotation;
+                m_rotz = m_settings.rotation;
             }
         }
-        if(m_rotz > settings.rotation){
+        if(m_rotz > m_settings.rotation){
             m_rotz -= (75 * elapsed) / m_flipfreq;
-            if(m_rotz > settings.rotation){
+            if(m_rotz > m_settings.rotation){
                 // rotated too far
-                m_rotz = settings.rotation;
+                m_rotz = m_settings.rotation;
             }
         }
     }
@@ -488,48 +497,48 @@ void GridWindow::toggleAnimate(){
 
 // control.js
 void GridWindow::rotLeft90(){
-    settings.rotation = pi / 2;
+    m_settings.rotation = pi / 2;
 }
 
 // control.js
 void GridWindow::rotRight90(){
-    settings.rotation = 3 *( pi / 2 );
+    m_settings.rotation = 3 *( pi / 2 );
 }
 
 // control.js
 void GridWindow::setContrast ( qreal val ){
-    settings.contrast = val;
-    if(settings.contrast < minContrast){
-        settings.contrast = minContrast;
+    m_settings.contrast = val;
+    if(m_settings.contrast < minContrast){
+        m_settings.contrast = minContrast;
      }
-     if(settings.contrast > maxContrast){
-        settings.contrast = maxContrast;
+     if(m_settings.contrast > maxContrast){
+        m_settings.contrast = maxContrast;
      }
-     qDebug() << "CONTRAST:" << settings.contrast;
+     qDebug() << "CONTRAST:" << m_settings.contrast;
 }
 
 // control.js
 void GridWindow::setBrightness( qreal val ){
-    settings.brightness = val;
-    if(settings.brightness < minBrightness){
-        settings.brightness = minBrightness;
+    m_settings.brightness = val;
+    if(m_settings.brightness < minBrightness){
+        m_settings.brightness = minBrightness;
     }
-    if(settings.brightness > maxBrightness){
-        settings.brightness = maxBrightness;
+    if(m_settings.brightness > maxBrightness){
+        m_settings.brightness = maxBrightness;
     }
-    qDebug() << "BRIGHTNESS:" << settings.brightness;
+    qDebug() << "BRIGHTNESS:" << m_settings.brightness;
 }
 
 // control.js
 void GridWindow::setGamma( qreal val ){
-    settings.gamma = val;
-    if(settings.gamma < minGamma){
-        settings.gamma = minGamma;
+    m_settings.gamma = val;
+    if(m_settings.gamma < minGamma){
+        m_settings.gamma = minGamma;
     }
-    if(settings.gamma > maxGamma){
-        settings.gamma = maxGamma;
+    if(m_settings.gamma > maxGamma){
+        m_settings.gamma = maxGamma;
     }
-    qDebug() << "GAMMA:" << settings.gamma;
+    qDebug() << "GAMMA:" << m_settings.gamma;
 }
 
 // control.js
@@ -548,10 +557,10 @@ void GridWindow::mouseMoveEvent(QMouseEvent *event){
 
             // Adjust BCG
             if(isCommandKeyDown()){
-                setBrightness (settings.brightness - dy);
-                setContrast (settings.contrast - dx);
+                setBrightness (m_settings.brightness - dy);
+                setContrast (m_settings.contrast - dx);
             }else{
-                setGamma(settings.gamma - dx);
+                setGamma(m_settings.gamma - dx);
             }
         }
         return;
@@ -614,9 +623,8 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
         return;
         break;
     }
-    handleKeys();
-
     m_currentlyPressedKeys[keycode] = true;
+    handleKeys();
 }
 
 void GridWindow::tick(){
@@ -627,76 +635,76 @@ void GridWindow::tick(){
 
 // controls.js
 void GridWindow::zoomIn(){
-    if (settings.zoom >=  m_maxZ) {
-        settings.zoom = m_maxZ;
+    if (m_settings.zoom >=  m_maxZ) {
+        m_settings.zoom = m_maxZ;
     }else{
-        settings.zoom += 0.01;
+        m_settings.zoom += 0.01;
     }
-    qDebug() << "ZOOM in:" << settings.zoom;
+    qDebug() << "ZOOM in:" << m_settings.zoom;
 }
 
 // controls.js
 void GridWindow::zoomOut(){
-    if (settings.zoom <=  m_minZ) {
-        settings.zoom = m_minZ;
+    if (m_settings.zoom <=  m_minZ) {
+        m_settings.zoom = m_minZ;
     }else{
-        settings.zoom -= 0.01;
+        m_settings.zoom -= 0.01;
     }
-    qDebug() << "ZOOM out:" << settings.zoom;
+    qDebug() << "ZOOM out:" << m_settings.zoom;
 }
 
 // control.js
 void GridWindow::panUp()   {
-    qreal y = -settings.zoom * m_panBase;
+    qreal y = -m_settings.zoom * m_panBase;
     qreal x = 0.0;
-    settings.transX += x * cos(settings.rotation) + y * sin(settings.rotation);
-    settings.transY += y * cos(settings.rotation) - x * sin(settings.rotation);
-    qDebug() << "PAN UP:" << settings.transX << settings.transY;
+    m_settings.transX += x * cos(m_settings.rotation) + y * sin(m_settings.rotation);
+    m_settings.transY += y * cos(m_settings.rotation) - x * sin(m_settings.rotation);
+    qDebug() << "PAN UP:" << m_settings.transX << m_settings.transY;
 }
 
 // control.js
 void GridWindow::panDown() {
-    qreal y = settings.zoom * m_panBase;
+    qreal y = m_settings.zoom * m_panBase;
     qreal x = 0.0;
-    settings.transX += x * cos(settings.rotation) + y * sin(settings.rotation);
-    settings.transY += y * cos(settings.rotation) - x * sin(settings.rotation);
-    qDebug() << "PAN DOWN:" << settings.transX << settings.transY;
+    m_settings.transX += x * cos(m_settings.rotation) + y * sin(m_settings.rotation);
+    m_settings.transY += y * cos(m_settings.rotation) - x * sin(m_settings.rotation);
+    qDebug() << "PAN DOWN:" << m_settings.transX << m_settings.transY;
 }
 
 // control.js
 void GridWindow::panLeft() {
-    qreal x = settings.zoom * m_panBase;
+    qreal x = m_settings.zoom * m_panBase;
     qreal y = 0.0;
-    settings.transX += x * cos(settings.rotation) + y * sin(settings.rotation);
-    settings.transY += y * cos(settings.rotation) - x * sin(settings.rotation);
-    qDebug() << "PAN LEFT:" << settings.transX << settings.transY;
+    m_settings.transX += x * cos(m_settings.rotation) + y * sin(m_settings.rotation);
+    m_settings.transY += y * cos(m_settings.rotation) - x * sin(m_settings.rotation);
+    qDebug() << "PAN LEFT:" << m_settings.transX << m_settings.transY;
 }
 
 // control.js
 void GridWindow::panRight() {
-    qreal x = -settings.zoom * m_panBase;
+    qreal x = -m_settings.zoom * m_panBase;
     qreal y = 0.0;;
-    settings.transX += x * cos(settings.rotation) + y * sin(settings.rotation);
-    settings.transY += y * cos(settings.rotation) - x * sin(settings.rotation);
-    qDebug() << "PAN RIGHT:" << settings.transX << settings.transY;
+    m_settings.transX += x * cos(m_settings.rotation) + y * sin(m_settings.rotation);
+    m_settings.transY += y * cos(m_settings.rotation) - x * sin(m_settings.rotation);
+    qDebug() << "PAN RIGHT:" << m_settings.transX << m_settings.transY;
 }
 
 // control.js
 void GridWindow::rotateLeft() {
-    settings.rotation -= pi / 180.0;
-    qDebug() << "Rot Left" << settings.rotation ;
+    m_settings.rotation -= pi / 180.0;
+    qDebug() << "Rot Left" << m_settings.rotation ;
 }
 
 // control.js
 void GridWindow::rotateRight() {
-    settings.rotation += pi / 180.0;
-    qDebug() << "Rot Right" << settings.rotation ;
+    m_settings.rotation += pi / 180.0;
+    qDebug() << "Rot Right" << m_settings.rotation ;
 }
 
 // control.js
 void GridWindow::invert() {
-    settings.invert = !settings.invert;
-    qDebug() << "Invert" << settings.invert ;
+    m_settings.invert = !m_settings.invert;
+    qDebug() << "Invert" << m_settings.invert ;
 }
 
 // control.js
@@ -750,10 +758,10 @@ void GridWindow::resetSettings(){
     m_animateOdd = 0;
     m_animateOn = false;
 
-    settings.invert = false;
-    settings.brightness = initBrightness;
-    settings.contrast = initContrast;
-    settings.gamma = initGamma;
+    m_settings.invert = false;
+    m_settings.brightness = initBrightness;
+    m_settings.contrast = initContrast;
+    m_settings.gamma = initGamma;
 
     qDebug() << "settings reset";
 }
@@ -763,26 +771,26 @@ void GridWindow::reset(){
 
     resetSettings();
 
-    settings.transY = 0.0;
-    settings.transX = 0.0;
+    m_settings.transY = 0.0;
+    m_settings.transX = 0.0;
 
-    settings.rotation = 0.0;
-    settings.zoom = m_initZ;
-    settings.flipH = false;
-    settings.flipV = false;
+    m_settings.rotation = 0.0;
+    m_settings.zoom = m_initZ;
+    m_settings.flipH = false;
+    m_settings.flipV = false;
     qDebug() << "whole reset";
 }
 
 // controls.js // Flip image over its X axis
 void GridWindow::flipH() {
-    settings.flipH = !settings.flipH;
-    qDebug() << "FlipH" << settings.flipH;
+    m_settings.flipH = !m_settings.flipH;
+    qDebug() << "FlipH" << m_settings.flipH;
 }
 
 // controls.js // Flip image over its Y axis
 void GridWindow::flipV() {
-    settings.flipV = !settings.flipV;
-    qDebug() << "FlipV" << settings.flipV;
+    m_settings.flipV = !m_settings.flipV;
+    qDebug() << "FlipV" << m_settings.flipV;
 }
 
 // controls.js // Flip over X axis relative to view
@@ -819,14 +827,14 @@ void GridWindow::wheelEvent(QWheelEvent *e)
     float delta = e->delta() / 120.0;
 
     if(isCommandKeyDown()){
-        settings.zoom += delta / m_stepZ;
-        if(settings.zoom > m_maxZ){
-            settings.zoom = m_maxZ;
+        m_settings.zoom += delta / m_stepZ;
+        if(m_settings.zoom > m_maxZ){
+            m_settings.zoom = m_maxZ;
         }
-        if(settings.zoom < m_minZ){
-            settings.zoom = m_minZ;
+        if(m_settings.zoom < m_minZ){
+            m_settings.zoom = m_minZ;
         }
-        qDebug() << "Zoom" << settings.zoom;
+        qDebug() << "Zoom" << m_settings.zoom;
     }
     if(isCtrlKeyDown()){
         int amt = 0;
@@ -837,8 +845,8 @@ void GridWindow::wheelEvent(QWheelEvent *e)
             amt = -1;
         }
         amt = amt / ( 90 );
-        settings.rotation += ( amt ) ;
-        qDebug() << "Rotation" << settings.rotation;
+        m_settings.rotation += ( amt ) ;
+        qDebug() << "Rotation" << m_settings.rotation;
     }
     qDebug() << "Wheel" << delta;
 }

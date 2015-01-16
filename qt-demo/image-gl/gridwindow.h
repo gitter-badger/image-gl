@@ -4,6 +4,7 @@
 #include <openglwindow.h>
 #include <QOpenGLShaderProgram>
 #include <QTimer>
+#include <QStack>
 
 struct GLSettings {
     GLfloat zoom;
@@ -112,10 +113,10 @@ private:
     QOpenGLShaderProgram *m_program;
     int m_frame;
 
-    QMatrix4x4 pMatrix;
-    QMatrix4x4 mvMatrix;
+    QMatrix4x4 m_pMatrix;
+    QMatrix4x4 m_mvMatrix;
 
-    GLSettings settings;
+    GLSettings m_settings;
 
     GLuint m_animateSquare;
 
@@ -149,6 +150,7 @@ private:
     QPoint m_lastMouse;
 
     QTimer m_timer;
+    QStack<QMatrix4x4> m_mvStack;
 };
 
 #endif // GRIDWINDOW_H

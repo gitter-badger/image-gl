@@ -113,11 +113,11 @@ void MainWindow::on_pushButtonDisplay_clicked()
     QSurfaceFormat format;
     format.setSamples(16);
 
+    m_gridWindow->setAnimating(false);
     m_gridWindow->setFormat(format);
     m_gridWindow->resize(640, 480);
     m_gridWindow->setPosition(QPoint(30, 200));
     m_gridWindow->show();
-    m_gridWindow->setAnimating(true);
 
 //    TriangleWindow *wnd = new TriangleWindow();
 //    wnd->resize(640, 480);
@@ -171,4 +171,15 @@ void MainWindow::on_pushButtonLoadImage_clicked()
             updateLog(m_grid->logs());
         }
     }
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    QSurfaceFormat format;
+    format.setSamples(16);
+
+    TriangleWindow *wnd = new TriangleWindow();
+    wnd->resize(640, 480);
+    wnd->show();
+    wnd->setAnimating(true);
 }

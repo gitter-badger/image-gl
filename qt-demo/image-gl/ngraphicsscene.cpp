@@ -4,7 +4,6 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QtGui>
 #include <QtOpenGL>
-#include <glu.h>
 
 #include <QDebug>
 
@@ -116,7 +115,6 @@ void nGraphicsScene::drawBackground(QPainter *painter, const QRectF &)
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
-    gluPerspective(70, width() / height(), 0.01, 1000);
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
