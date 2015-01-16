@@ -79,9 +79,6 @@ function initBuffers() {
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uBCG), gl.STATIC_DRAW);
 	bcgColorBuffer.itemSize = 4;
 	bcgColorBuffer.numItems = 1;
-	
-	// Init line buffers
-	initLineBuffers();
 }
 
 function handleLoadedGridTexture(row,col){
@@ -135,8 +132,8 @@ function drawGrid(x,y,w,h){
 
 	mat4.translate( mvMatrix, [transX, transY, settings.zoom] );
 
-	mvPushMatrix();
-	mat4.rotate( mvMatrix, m_rotx,          [1, 0, 0] );
+   mvPushMatrix();
+   mat4.rotate( mvMatrix, m_rotx,          [1, 0, 0] );
     mat4.rotate( mvMatrix, m_roty,          [0, 1, 0] );       // Animation rotate around y axis
     mat4.rotate( mvMatrix, m_animateSquare, [0.4, 0.1, 0.8] ); // Animation rotate around y axis
 
@@ -154,21 +151,21 @@ function drawGrid(x,y,w,h){
 		
 		for(var row = 0; row < rows; row++){
 			for(var col = 0; col < cols; col++){
-			    gl.bindBuffer(gl.ARRAY_BUFFER, tilePositionBufferGrid[row][col]);
-			    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, tilePositionBufferGrid[row][col].itemSize, gl.FLOAT, false, 0, 0);
+			   gl.bindBuffer(gl.ARRAY_BUFFER, tilePositionBufferGrid[row][col]);
+			   gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, tilePositionBufferGrid[row][col].itemSize, gl.FLOAT, false, 0, 0);
 			
-				gl.activeTexture(gl.TEXTURE0);
-			    gl.bindTexture(gl.TEXTURE_2D, tileTextureGrid[row][col]);
-			    gl.uniform1i(shaderProgram.samplerUniform, 0);	
+			   gl.activeTexture(gl.TEXTURE0);
+			   gl.bindTexture(gl.TEXTURE_2D, tileTextureGrid[row][col]);
+			   gl.uniform1i(shaderProgram.samplerUniform, 0);	
 			    
 			    setMatrixUniforms();
-				gl.drawArrays(gl.TRIANGLE_STRIP, 0, tilePositionBufferGrid[row][col].numItems);
+			      gl.drawArrays(gl.TRIANGLE_STRIP, 0, tilePositionBufferGrid[row][col].numItems);
 				
-				if(row * col %2  == 0){
-    				mat4.rotate( mvMatrix, m_animateEven, [1.0, 0.4, 0.6] );
-    			}else{
-    				mat4.rotate( mvMatrix, m_animateOdd, [0.3, 1.0, 0.2] ); 
-    			}
+			   if(row * col %2  == 0){
+			      mat4.rotate( mvMatrix, m_animateEven, [1.0, 0.4, 0.6] );
+			   }else{
+			      mat4.rotate( mvMatrix, m_animateOdd, [0.3, 1.0, 0.2] ); 
+			   }
 			}
 		}
 		
@@ -182,35 +179,4 @@ function drawScene() {
 	drawGrid(0, 0, gl.viewportWidth, gl.viewportHeight);
 	
 	//drawLines();
-}
-
-var vbuf;
-var ibuf;
-
-var vtx;
-var idx;
-
-function initLineBuffers(){
-	vtx = new Float32Array(
-		[ -1.0, -5.0, -5.0,
-		   5.0, 5.0, 5.0]);
-	idx = new Uint16Array([0, 1]);
-	
-	
-	vbuf = initLineBuffer(gl.ARRAY_BUFFER, vtx);
-	ibuf = initLineBuffer(gl.ELEMENT_ARRAY_BUFFER, idx);
-}
-
-function initLineBuffer(glELEMENT_ARRAY_BUFFER, data){
-	var buf = gl.createBuffer();
-	gl.bindBuffer(glELEMENT_ARRAY_BUFFER, buf);
-	gl.bufferData(glELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
-	return buf;
-}
-
-function drawLines(){
-	gl.lineWidth(4.0);
-	gl.uniform4f(shaderProgram.colorUniform, 1.0, 1.0, 1.0, 1);
-	gl.drawElements(gl.LINES, 2, gl.UNSIGNED_SHORT, 0);
-	gl.uniform4f(shaderProgram.colorUniform, 0.0, 1.0, 1.0, 1);
 }

@@ -113,16 +113,11 @@ void MainWindow::on_pushButtonDisplay_clicked()
     QSurfaceFormat format;
     format.setSamples(16);
 
-    m_gridWindow->setAnimating(false);
+    m_gridWindow->setAnimating(true);
     m_gridWindow->setFormat(format);
     m_gridWindow->resize(640, 480);
     m_gridWindow->setPosition(QPoint(30, 200));
     m_gridWindow->show();
-
-//    TriangleWindow *wnd = new TriangleWindow();
-//    wnd->resize(640, 480);
-//    wnd->show();
-//    wnd->setAnimating(true);
 }
 
 void MainWindow::updateLog(QStringList logs)

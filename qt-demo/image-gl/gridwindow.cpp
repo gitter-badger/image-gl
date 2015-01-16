@@ -82,10 +82,10 @@ static const char *fragmentShaderSourceG =
               "vColor.z = 0.0;\n"
               "vColor.a = 1.0;\n"
            "}\n"
-        "vColor.x = 1.0;\n" // for testing: this is to debug where there is some drawing vs nothing.
-        "vColor.y = 0.0;\n"
-        "vColor.z = 0.0;\n"
-        "vColor.a = 1.0;\n"
+//        "vColor.x = 1.0;\n" // for testing: this is to debug where there is some drawing vs nothing.
+//        "vColor.y = 0.0;\n"
+//        "vColor.z = 0.0;\n"
+//        "vColor.a = 1.0;\n"
            "gl_FragColor = vColor;\n"
         "}\n";
 
@@ -113,9 +113,18 @@ GridWindow::GridWindow()
       m_animateEven(0),
       m_animateOdd(0)
 {
-    bool ok = connect(&m_timer, SIGNAL(timeout()), this, SLOT(tick()));
-    Q_ASSERT(ok);
-    m_timer.setInterval(1000);
+    m_mvMatrix = QMatrix4x4();
+    m_pMatrix  = QMatrix4x4();
+    m_settings.zoom = m_initZ;
+    m_settings.flipH = false;
+    m_settings.flipV = false;
+    m_settings.invert = false;
+    m_settings.brightness = initBrightness;
+    m_settings.contrast = initContrast;
+    m_settings.gamma = initGamma;
+    m_settings.rotation = 0.0;
+    m_settings.transX = 0.0;
+    m_settings.transY = 0.0;
 }
 
 GridWindow::~GridWindow()
@@ -157,7 +166,6 @@ void GridWindow::webGLStart() {
     glClearColor(0.0, 0.0, 1.0, 1.0);            debug(__FUNCTION__, QString("glClearColor"));
     glEnable(GL_DEPTH_TEST);                     debug(__FUNCTION__, QString("glEnable(GL_DEPTH_TEST)"));
 
-    m_timer.start();
 }
 
 // gl-bp.js
@@ -167,12 +175,15 @@ void GridWindow::initGL()
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);    debug(__FUNCTION__,"glViewport");
 }
 
-void GridWindow::render()
+void GridWindow::render(qint64 frame)
 {
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);    debug(__FUNCTION__,"glViewport");
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                 debug(__FUNCTION__,"glClear");
+
+    m_pMatrix = QMatrix4x4();
+    m_mvMatrix = QMatrix4x4();
 
     m_program->bind();
     drawScene(0, 0, width() * retinaScale, height() * retinaScale);
@@ -216,6 +227,9 @@ void GridWindow::initShaders(){
 void GridWindow::setMatrixUniforms(){
     m_program->setUniformValue(m_pMatrixUniform, m_pMatrix);      debug(__FUNCTION__,"program: setUniformValue, pMatrix");
     m_program->setUniformValue(m_mvMatrixUniform, m_mvMatrix);    debug(__FUNCTION__,"program: setUniformValue, mvMatrix");
+
+//    qDebug() << __FUNCTION__ << "Perspective: " << m_pMatrix;
+//    qDebug() << __FUNCTION__ << "ModelView: " << m_mvMatrix;
 }
 
 // gl-bp.js
@@ -249,8 +263,6 @@ void GridWindow::initBuffers(){
 
     glGenBuffers( rows * cols, m_tilePositionBufferGrid );                    debug(__FUNCTION__, QString("before loop: glGenBuffers"));
 
-
-
     // Init tile grid
     for(int row = 0; row < rows; row++){
         for(int col = 0; col < cols; col++){
@@ -278,10 +290,9 @@ void GridWindow::initBuffers(){
 
             qint64 tileIndex = _tileIndex(row, col);
             glBindBuffer( GL_ARRAY_BUFFER, m_tilePositionBufferGrid[ tileIndex ] );            debug(__FUNCTION__, QString("tile loop: glBindBuffer"));
-            glBufferData( GL_ARRAY_BUFFER, tileBufferSize, tile, GL_STATIC_DRAW );                         debug(__FUNCTION__, QString("tile loop: glBufferData"));
+            glBufferData( GL_ARRAY_BUFFER, tileBufferSize, tile, GL_STATIC_DRAW );             debug(__FUNCTION__, QString("tile loop: glBufferData"));
         }
     }
-
 
     m_textureCoords = ( GLfloat * )malloc( tileBufferSize );
     m_textureCoords[0] = 0.0;
@@ -305,7 +316,7 @@ void GridWindow::initBuffers(){
 
     glGenBuffers( 1, &m_bcgColorBuffer );                                                        debug(__FUNCTION__, QString("after loop: glGenBuffers 2"));
     glBindBuffer( GL_ARRAY_BUFFER, m_bcgColorBuffer );                                           debug(__FUNCTION__, QString("after loop: glBindBuffer 2"));
-    glBufferData( GL_ARRAY_BUFFER, colorBufferSize , m_puBCG, GL_STATIC_DRAW );             debug(__FUNCTION__, QString("after loop: glBufferData 2"));
+    glBufferData( GL_ARRAY_BUFFER, colorBufferSize , m_puBCG, GL_STATIC_DRAW );                  debug(__FUNCTION__, QString("after loop: glBufferData 2"));
 }
 
 // grid.js
@@ -317,7 +328,11 @@ void GridWindow::initTextures(){
     m_tileTextureGrid = (GLuint *)malloc( size );
     memset( m_tileTextureGrid, 0, size );
 
-    glGenBuffers(rows * cols, m_tileTextureGrid);                               debug(__FUNCTION__,"loop: setMatrixUniforms");
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glGenTextures(rows * cols, m_tileTextureGrid);                                                debug(__FUNCTION__,"loop: setMatrixUniforms");
 
     m_imagegrid->loadTiles();
 }
@@ -331,7 +346,9 @@ void GridWindow::drawScene(int x, int y, int w, int h){
 void GridWindow::drawGrid(int x, int y, int w, int h){
     debug(__FUNCTION__, "beginning draw grid");
 
-    m_pMatrix.perspective( 45.0f, w / h, 0.1f, 100.0f );
+    QMatrix4x4 p;
+    p.perspective( 45.0f, w / h, 0.1f, 100.0f );
+    m_pMatrix = p;
 
     m_mvMatrix.setToIdentity(); // reset matrix
 
@@ -340,15 +357,16 @@ void GridWindow::drawGrid(int x, int y, int w, int h){
     m_mvMatrix.translate(m_settings.transX, m_settings.transY, m_settings.zoom);
 
     m_mvStack.push(m_mvMatrix);
-    m_mvMatrix.rotate(QQuaternion(m_rotx, 1, 0, 1));
-    m_mvMatrix.rotate(QQuaternion(m_roty, 0, 1, 0));
+
+    m_mvMatrix.rotate(QQuaternion(m_rotx, 1.0, 0.0, 1.0));
+    m_mvMatrix.rotate(QQuaternion(m_roty, 0.0, 1.0, 0.0));
     m_mvMatrix.rotate(QQuaternion(m_animateSquare, 0.4, 0.1, 0.8));
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer);             debug(__FUNCTION__,"glBindBuffer: m_squareVertexTextureCoordBuffer");
-    glVertexAttribPointer(m_textureCoordAttribute, 2 , GL_FLOAT, false, 0, 0);    debug(__FUNCTION__,"glVertexAttribPointer: m_textureCoordAttribute");
+    glBindBuffer(GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer);              debug(__FUNCTION__,"glBindBuffer: m_squareVertexTextureCoordBuffer");
+    glVertexAttribPointer(m_textureCoordAttribute, 2 , GL_FLOAT, GL_FALSE, 2, (GLvoid*)(sizeof(GLfloat) * 2));    debug(__FUNCTION__,"glVertexAttribPointer: m_textureCoordAttribute");
 
     glBindBuffer(GL_ARRAY_BUFFER, m_bcgColorBuffer);                             debug(__FUNCTION__,"glBindBuffer: m_bcgColorBuffer");
-    glVertexAttribPointer(m_uBCG, 4, GL_FLOAT, false, 0, 0);                     debug(__FUNCTION__,"glVertexAttribPointer: m_uBCG");
+    glVertexAttribPointer(m_uBCG, 4, GL_FLOAT, false, 1, (GLvoid*)(sizeof(GLfloat) * 4));                     debug(__FUNCTION__,"glVertexAttribPointer: m_uBCG");
 
     int rows = m_imagegrid->rows();
     int cols = m_imagegrid->cols();
@@ -360,7 +378,7 @@ void GridWindow::drawGrid(int x, int y, int w, int h){
             glEnable(GL_TEXTURE_2D);                                                           debug(__FUNCTION__,"loop: glEnable(GL_TEXTURE_2D)");
 
             glBindBuffer( GL_ARRAY_BUFFER, m_tilePositionBufferGrid[ tileIndex ] );            debug(__FUNCTION__,"loop: glBindBuffer: m_tilePositionBufferGrid");
-            glVertexAttribPointer( m_vertexPositionAttribute, 2, GL_FLOAT, false, 0, 0);       debug(__FUNCTION__,"loop: glVertexAttribPointer: m_vertexPositionAttribute");
+            glVertexAttribPointer( m_vertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0);       debug(__FUNCTION__,"loop: glVertexAttribPointer: m_vertexPositionAttribute");
 
             glActiveTexture( GL_TEXTURE0 );                                                    debug(__FUNCTION__,"loop: glActiveTexture");
             glBindTexture( GL_TEXTURE_2D, m_tileTextureGrid[ tileIndex ] );                    debug(__FUNCTION__,"loop: glBindTexture");
@@ -408,7 +426,6 @@ void GridWindow::handleLoadedGridTexture( int row, int col ){
 
 ////////////////////////////////////////////////////////////////
 
-// Animate is called in tick()
 void GridWindow::animate() {
     QDateTime dt;
     qint64 timeNow = dt.currentMSecsSinceEpoch();
@@ -627,9 +644,10 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
     handleKeys();
 }
 
-void GridWindow::tick(){
+void GridWindow::render(){
     handleKeys();
-    render();
+    render(m_frame);
+    m_frame++;
     animate();
 }
 
