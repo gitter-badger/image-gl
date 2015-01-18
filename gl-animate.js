@@ -39,48 +39,6 @@ function animate() {
 				}
 			}
 		}
-		
-        if(settings.zoom != zoomZ){
-            if(settings.zoom > zoomZ){
-                var step = (settings.zoom - zoomZ) / 16.0;
-                zoomZ += step;
-                if(zoomZ > m_maxZ){
-                    zoomZ = m_maxZ;
-                }
-            }
-            if(settings.zoom < zoomZ){
-                var step = (settings.zoom - zoomZ) / 16.0;
-                zoomZ += step;
-                if(zoomZ < m_minZ){
-                    zoomZ = m_minZ;
-                }
-            }
-        }
-		
-		
-	    if(settings.transX != transX){
-            if(settings.transX > transX){
-                var step = (settings.transX - transX) / 5.0;
-                transX += step;
-
-            }
-            if(settings.transX < transX){
-                var step = (settings.transX - transX) / 5.0;
-                transX += step;
-            }
-        }
-
-        if(settings.transY != transY){
-            if(settings.transY > transY){
-                var step = (settings.transY - transY) / 5.0;
-                transY += step;
-
-            }
-            if(settings.transY < transY){
-                var step = (settings.transY - transY) / 5.0;
-                transY += step;
-            }
-        }
 
 		if(settings.flipH){
 			// increase from 0 to pi

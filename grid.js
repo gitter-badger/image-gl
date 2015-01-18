@@ -130,7 +130,7 @@ function drawGrid(x,y,w,h){
 
 	mat4.rotate( mvMatrix, settings.rotation,        [0, 0, 1] ); // Rotation around Z axis
 
-	mat4.translate( mvMatrix, [transX, transY, zoomZ] );
+	mat4.translate( mvMatrix, [transX, transY, settings.zoom] );
 
    mvPushMatrix();
    mat4.rotate( mvMatrix, m_rotx,          [1, 0, 0] );
