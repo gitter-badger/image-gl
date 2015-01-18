@@ -29,7 +29,7 @@ public:
     virtual ~GridWindow();
 
     virtual void initialize() ;
-    virtual void deinitialize();
+    virtual void render(qint64 frame);
     virtual void render();
 
     void resetSettings();
@@ -75,11 +75,9 @@ protected:
 
 
 private:
-    void _render();
     bool isCtrlKeyDown();
     bool isCommandKeyDown();
 
-    void closeEvent();
     void resizeEvent(QResizeEvent *event);
     void wheelEvent(QWheelEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
@@ -151,12 +149,6 @@ private:
     GLfloat m_zoom;
     GLfloat m_transX;
     GLfloat m_transY;
-
-    GLfloat m_minX;
-    GLfloat m_maxX;
-
-    GLfloat m_minY;
-    GLfloat m_maxY;
 
     GLfloat *m_pColor;
     GLfloat *m_textureCoords;

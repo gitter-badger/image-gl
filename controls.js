@@ -70,8 +70,6 @@ function resetSettings() {
 	settings.brightness = initBrightness; 
  	settings.contrast = initContrast; 
  	settings.gamma = initGamma;
- 	settings.panY = 0.0;
- 	settings.panX = 0.0;
  	
  	updateBCG(settings.brightness, settings.contrast, settings.gamma);
  	updateInvert(settings.invert);

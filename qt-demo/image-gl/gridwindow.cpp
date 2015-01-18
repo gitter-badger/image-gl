@@ -54,27 +54,25 @@ static const char *fragmentShaderSourceG =
         "mediump float b = brightness / 100.0;\n"
         "mediump float c = contrast / 100.0;\n"
         "mediump float g;\n"
-
         "if (gamma > 50.0) {\n"
-        "   g = 1.0 + (gamma - 50.0) / 10.0;\n"
+        "g = 1.0 + (gamma - 50.0) / 10.0;\n"
         "} else {"
-        "  g = 1.0 / (1.0 + (50.0 - gamma) / 10.0);\n"
+        "g = 1.0 / (1.0 + (50.0 - gamma) / 10.0);\n"
         "}\n"
-
         "mediump float bias = (1.0 - c) / 2.0 + b * c;\n"
-
-        "if(vColor.x == 0.0 && vColor.y == 0.0 && vColor.z == 0.0){\n"
-                "vColor.a = 0.0;\n"
-        "} else {\n"
-        "  vColor.x = (pow(((vColor.x * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
-        "  vColor.y = (pow(((vColor.y * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
-        "  vColor.z = (pow(((vColor.z * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
-
-        "  if(uInvert > 0){\n"
-        "    vColor.x = 1.0 - vColor.x;\n"
-        "    vColor.y = 1.0 - vColor.y;\n"
-        "    vColor.z = 1.0 - vColor.z;\n"
-        "  }\n"
+        "vColor.x = (pow(((vColor.x * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
+        "vColor.y = (pow(((vColor.y * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
+        "vColor.z = (pow(((vColor.z * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
+        "if(uInvert > 0){\n"
+        "vColor.x = 1.0 - vColor.x;\n"
+        "vColor.y = 1.0 - vColor.y;\n"
+        "vColor.z = 1.0 - vColor.z;\n"
+        "}\n"
+        "if(vColor.w == 0.0){\n"
+          "vColor.x = 0.0;\n"
+          "vColor.y = 0.0;\n"
+          "vColor.z = 0.0;\n"
+          "vColor.w = 1.0;\n"
         "}\n"
         "gl_FragColor = vColor;\n"
         "}\n";
@@ -125,14 +123,7 @@ GridWindow::GridWindow()
 
 GridWindow::~GridWindow()
 {
-    deinitialize();
-}
 
-void GridWindow::closeEvent(){
-    deinitialize();
-}
-
-void GridWindow::deinitialize(){
     if(m_gridInitialized){
 
         qint64 count = m_imagegrid->rows() * m_imagegrid->cols();
@@ -145,21 +136,11 @@ void GridWindow::deinitialize(){
         free ( m_tileTextureGrid );
         free ( m_pColor );
     }
-    m_gridInitialized = false;
 }
 
 void GridWindow::setGrid(ImageGrid *grid)
 {
     m_imagegrid = grid;
-
-    float rows = m_imagegrid->rows();
-    float cols = m_imagegrid->cols();
-
-    // Values restrict how far pan value can go, so the image doesn't disappear
-    m_minY = -rows / 2.0;
-    m_minX = -cols / 2.0;
-    m_maxY = rows / 2.0;
-    m_maxX = cols / 2.0;
 }
 
 qint64 GridWindow::_tileIndex(qint64 row, qint64 col){
@@ -181,12 +162,10 @@ void GridWindow::webGLStart() {
     initGridBuffersAndTextures();
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //    glEnable(GL_DEPTH_TEST);
 }
 
-void GridWindow::_render( )
+void GridWindow::render( qint64 frame )
 {
     const qreal retinaScale = devicePixelRatio();
     int x = 0;
@@ -200,7 +179,7 @@ void GridWindow::_render( )
     m_program->bind();
     drawScene(x, y, w, h);
     m_program->release();
-
+    ++m_frame;
 }
 
 // gl-shader.js
@@ -277,7 +256,6 @@ void GridWindow::initGridBuffersAndTextures(){
 void GridWindow::initGridBuffers(){
     float rows = m_imagegrid->rows();
     float cols = m_imagegrid->cols();
-
 
     Q_ASSERT(rows > 0 && cols > 0);
 
@@ -415,15 +393,6 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
     for( int row = 0; row < rows; row++ ) {
         for( int col = 0; col < cols; col++ ) {
 
-            m_mvStack.push(m_mvMatrix);
-
-            // For "A" animation
-            if(row * col % 2 == 0){
-                m_mvMatrix.rotate( m_animateEven * 57.2957795, 0.2, 0.4, 0.6 );
-            }else{
-                m_mvMatrix.rotate( m_animateOdd * 57.2957795,  0.3, 1.0, 0.2 );
-            }
-
             int tileIndex = _tileIndex( row, col );
 
             GLuint tileBuffer = m_tilePositionBufferGrid[ tileIndex ];
@@ -443,6 +412,7 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
             glEnableVertexAttribArray(0);
             glEnableVertexAttribArray(1);
 
+
             glDrawArrays( GL_TRIANGLE_STRIP, 0, 5 );
 
             glDisableVertexAttribArray(2);
@@ -452,7 +422,13 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
             glBindBuffer( GL_ARRAY_BUFFER, 0);
             glBindTexture( GL_TEXTURE_2D, 0);
 
-            m_mvMatrix = m_mvStack.pop();
+
+            // For "A" animation
+            if(row * col % 2 == 0){
+                m_mvMatrix.rotate( m_animateEven * 57.2957795, 0.2, 0.4, 0.6 );
+            }else{
+                m_mvMatrix.rotate( m_animateOdd * 57.2957795,  0.3, 1.0, 0.2 );
+            }
         }
     }
     m_mvMatrix = m_mvStack.pop();
@@ -494,8 +470,6 @@ void GridWindow::drawTriangle(int, int, float, float)
 
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(0);
-
-    ++m_frame;
 }
 
 // grid.js
@@ -543,44 +517,60 @@ void GridWindow::animate() {
         }
 
         if(m_settings.zoom != m_zoom){
-            if(m_settings.zoom > m_zoom ||
-                    m_settings.zoom < m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 16.0;
+            if(m_settings.zoom > m_zoom){
+                float step = (m_settings.zoom - m_zoom) / 2.0;
                 m_zoom += step;
+                if(m_zoom > m_maxZ){
+                    m_zoom = m_maxZ;
+                }
             }
-            if(m_zoom > m_maxZ){
-                m_zoom = m_maxZ;
+            if(m_settings.zoom < m_zoom){
+                float step = (m_settings.zoom - m_zoom) / 2.0;
+                m_zoom += step;
+                if(m_zoom < m_minZ){
+                    m_zoom = m_minZ;
+                }
             }
-            if(m_zoom < m_minZ){
-                m_zoom = m_minZ;
+        }
+
+        if(m_settings.zoom != m_zoom){
+            if(m_settings.zoom > m_zoom){
+                float step = (m_settings.zoom - m_zoom) / 2.0;
+                m_zoom += step;
+                if(m_zoom > m_maxZ){
+                    m_zoom = m_maxZ;
+                }
+            }
+            if(m_settings.zoom < m_zoom){
+                float step = (m_settings.zoom - m_zoom) / 2.0;
+                m_zoom += step;
+                if(m_zoom < m_minZ){
+                    m_zoom = m_minZ;
+                }
             }
         }
 
         if(m_settings.transX != m_transX){
-            if(m_settings.transX > m_transX ||
-                m_settings.transX < m_transX){
-                float step = (m_settings.transX - m_transX) / 5.0;
+            if(m_settings.transX > m_transX){
+                float step = (m_settings.transX - m_transX) / 2.0;
                 m_transX += step;
+
             }
-            if(m_transX > m_maxX){
-                m_transX = m_maxX;
-            }
-            if(m_transX < m_minX){
-                m_transX = m_minX;
+            if(m_settings.transX < m_transX){
+                float step = (m_settings.transX - m_transX) / 2.0;
+                m_transX += step;
             }
         }
 
         if(m_settings.transY != m_transY){
-            if(m_settings.transY > m_transY ||
-                    m_settings.transY < m_transY){
-                float step = (m_settings.transY - m_transY) / 5.0;
+            if(m_settings.transY > m_transY){
+                float step = (m_settings.transY - m_transY) / 2.0;
                 m_transY += step;
+
             }
-            if(m_transY > m_maxY){
-                m_transY = m_maxY;
-            }
-            if(m_transY < m_minY){
-                m_transY = m_minY;
+            if(m_settings.transY < m_transY){
+                float step = (m_settings.transY - m_transY) / 2.0;
+                m_transY += step;
             }
         }
 
@@ -695,8 +685,8 @@ void GridWindow::mouseMoveEvent(QMouseEvent *event){
     if (! ( buttonState & Qt::LeftButton ) ) {
         if( buttonState & Qt::RightButton){
 
-            qreal dy = deltaY / 75.0;
-            qreal dx = deltaX / 75.0;
+            qreal dy = deltaY / 10.0;
+            qreal dx = deltaX / 10.0;
 
             // Adjust BCG
             if(!isCommandKeyDown()){
@@ -749,9 +739,6 @@ void GridWindow::mouseReleaseEvent(QMouseEvent *e){
 void GridWindow::keyPressEvent(QKeyEvent *e){
     int keycode = e->key();
     switch(keycode){
-    case Qt::Key_Escape:
-        close();
-        break;
     case Qt::Key_A:
         toggleAnimate();
         return;
@@ -775,7 +762,7 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
 
 void GridWindow::render(){
     handleKeys();
-    _render();
+    render( m_frame );
     animate();
 }
 

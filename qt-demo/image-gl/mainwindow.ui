@@ -38,16 +38,6 @@
         </property>
         <item>
          <property name="text">
-          <string>64</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>128</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
           <string>256</string>
          </property>
         </item>
