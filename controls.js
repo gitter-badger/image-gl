@@ -32,12 +32,15 @@ var settings = {
 	brightness : initBrightness,
 	contrast : initContrast,
 	gamma : initGamma,
-	rotation : 0.0
+	rotation : 0.0,
+	transX : 0.0,
+	transY : 0.0
 }
 
 // Position & Rotation
 var transX = 0.0;
 var transY = 0.0;
+var zoomZ = m_initZ;
 
 // Mouse 
 var mouseDownLeft = false;  // used for pan (hand drag)
@@ -327,26 +330,26 @@ function updateRotMatrix () {
 function panUp()   {
 	var y = -settings.zoom * panBase;
 	var x = 0.0;
-	transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
-	transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);	
+	settings.transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
+	settings.transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);	
 }
 function panDown() {
 	var y = settings.zoom * panBase;
 	var x = 0.0;
-	transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
-	transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);	
+	settings.transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
+	settings.transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);	
 }
 function panLeft() {
 	var x = settings.zoom * panBase;
 	var y = 0.0;
-	transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
-	transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);	
+	settings.transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
+	settings.transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);	
 }
 function panRight() {
 	var x = -settings.zoom * panBase;
 	var y = 0.0;;
-	transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
-	transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);
+	settings.transX += x * Math.cos(settings.rotation) + y * Math.sin(settings.rotation);
+	settings.transY += y * Math.cos(settings.rotation) - x * Math.sin(settings.rotation);
 }
 
 function rotateLeft() { settings.rotation -= pi / 190; }
