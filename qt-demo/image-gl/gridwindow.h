@@ -43,6 +43,7 @@ public:
     void setContrast(qreal val);
     void setBrightness(qreal val);
     void setGamma(qreal val);
+
 public slots:
     void panUp();
     void panDown();
@@ -68,8 +69,10 @@ public slots:
 
 protected:
     void handleLoadedTexture(QImage image, GLuint texture);
-    void drawScene(int x, int y, int w, int h);
-    void drawTriangle();
+    void drawScene(int x, int y, float w, float h);
+    void drawGrid(int, int, float, float);
+    void drawTriangle(int, int, float, float);
+
 
 private:
     bool isCtrlKeyDown();
@@ -85,29 +88,30 @@ private:
 
     qint64 _tileIndex(qint64 row, qint64 col);
 
-    void updateInvert(bool invert);
-    void updateBCG(GLfloat brightness, GLfloat contrast, GLfloat gamma);
+    void updateInvert();
+    void updateBCG();
 
     void webGLStart();
-    void initShaders();
-    void initGL();
-    void initBuffersAndTextures();
-    void initBuffers();
-    void initTextures();
-    void drawGrid(int, int, int, int);
+    void initShadersGrid();
+    void initShadersTriangle();
+    void initGridBuffersAndTextures();
+    void initGridBuffers();
+    void initGridTextures();
 
     void setMatrixUniforms();
+    void setColorUniforms();
     GLuint loadShader(GLenum type, const char *source);
 
     GLint m_vertexPositionAttribute;
     GLint m_textureCoordAttribute;
-    GLint m_uBCG;
+    GLint m_colorAttribute;
     GLint m_uInvert;
 
     GLint m_pMatrixUniform;
     GLint m_mvMatrixUniform;
     GLint m_samplerUniform;
 
+    bool m_gridInitialized;
     QOpenGLShaderProgram *m_program;
     int m_frame;
 
@@ -122,11 +126,12 @@ private:
 
     ImageGrid *m_imagegrid;
 
-    GLuint m_bcgColorBuffer;
     GLuint m_squareVertexTextureCoordBuffer;
 
     GLuint *m_tilePositionBufferGrid;
     GLuint *m_tileTextureGrid;
+
+    GLfloat **m_tiles;
 
     // Animation
     // Variables used for animating flips & rotation
@@ -141,8 +146,11 @@ private:
 
     GLfloat m_panBase;
 
+    GLfloat m_zoom;
+    GLfloat m_transX;
+    GLfloat m_transY;
 
-    GLfloat *m_puBCG;
+    GLfloat *m_pColor;
     GLfloat *m_textureCoords;
     bool m_currentlyPressedKeys[Qt::Key_unknown];
     QPoint m_lastMouse;

@@ -5,8 +5,9 @@
 #include <QWindow>
 #include <QOpenGLFunctions>
 #include <QOpenGLPaintDevice>
+#include "openglfunctionsdebug.h"
 
-class OpenGLWindow : public QWindow, protected QOpenGLFunctions
+class OpenGLWindow : public QWindow, protected OpenGLFunctionsDebug
 {
     Q_OBJECT
 public:

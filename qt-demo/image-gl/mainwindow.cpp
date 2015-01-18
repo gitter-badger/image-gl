@@ -112,12 +112,13 @@ void MainWindow::on_pushButtonDisplay_clicked()
 
     QSurfaceFormat format;
     format.setSamples(16);
+    format.setRenderableType(QSurfaceFormat::OpenGLES);
 
-    m_gridWindow->setAnimating(true);
     m_gridWindow->setFormat(format);
-    m_gridWindow->resize(640, 480);
-    m_gridWindow->setPosition(QPoint(30, 200));
+
+    m_gridWindow->resize(1280, 768);
     m_gridWindow->show();
+    m_gridWindow->setAnimating(true);
 }
 
 void MainWindow::updateLog(QStringList logs)

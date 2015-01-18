@@ -22,7 +22,8 @@ SOURCES += main.cpp\
     openglwindow.cpp \
     trianglewindow.cpp \
     gridwindow.cpp \
-    imagetile.cpp
+    imagetile.cpp \
+    openglfunctionsdebug.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
@@ -34,6 +35,7 @@ HEADERS  += mainwindow.h \
     openglwindow.h \
     trianglewindow.h \
     gridwindow.h \
-    imagetile.h
+    imagetile.h \
+    openglfunctionsdebug.h
 
 FORMS    += mainwindow.ui
