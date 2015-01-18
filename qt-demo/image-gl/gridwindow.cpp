@@ -106,12 +106,12 @@ GridWindow::GridWindow()
     :       m_program(0),
       m_frame(0),
       m_gridInitialized(false),
-      m_flipfreq(4000.0),
+      m_flipfreq(400.0),
       m_rotx(0),
       m_roty(0),
       m_rotz(0),
       lastTime(0),
-      m_panBase(0.002),
+      m_panBase(0.001),
       m_animateSquare(0),
       m_animateEven(0),
       m_animateOdd(0)
@@ -123,9 +123,17 @@ GridWindow::GridWindow()
 
 GridWindow::~GridWindow()
 {
+    deinitialize();
+}
 
+void GridWindow::closeEvent()
+{
+    deinitialize();
+}
+
+void GridWindow::deinitialize(){
+    setAnimating(false);
     if(m_gridInitialized){
-
         qint64 count = m_imagegrid->rows() * m_imagegrid->cols();
         glDeleteBuffers( count, m_tilePositionBufferGrid);
         glDeleteBuffers( count, m_tileTextureGrid);
@@ -135,6 +143,7 @@ GridWindow::~GridWindow()
         free ( m_tilePositionBufferGrid );
         free ( m_tileTextureGrid );
         free ( m_pColor );
+        m_gridInitialized = false;
     }
 }
 
@@ -165,7 +174,7 @@ void GridWindow::webGLStart() {
     //    glEnable(GL_DEPTH_TEST);
 }
 
-void GridWindow::render( qint64 frame )
+void GridWindow::_render( )
 {
     const qreal retinaScale = devicePixelRatio();
     int x = 0;
@@ -179,7 +188,6 @@ void GridWindow::render( qint64 frame )
     m_program->bind();
     drawScene(x, y, w, h);
     m_program->release();
-    ++m_frame;
 }
 
 // gl-shader.js
@@ -362,7 +370,7 @@ void GridWindow::initGridTextures(){
 // grid.js
 void GridWindow::drawScene(int x, int y, float w, float h){
     drawGrid( x, y, w, h );
-    //    drawTriangle( x, y, w, h);
+//    drawTriangle( x, y, w, h);
 }
 
 // grid.js
@@ -393,6 +401,15 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
     for( int row = 0; row < rows; row++ ) {
         for( int col = 0; col < cols; col++ ) {
 
+            m_mvStack.push(m_mvMatrix);
+
+            // For "A" animation
+            if(row * col % 2 == 0){
+                m_mvMatrix.rotate( m_animateEven * 57.2957795, 0.0, 0.4, 0.2 );
+            }else{
+                m_mvMatrix.rotate( m_animateOdd * 57.2957795,  0.0, 1.0, 0.2 );
+            }
+
             int tileIndex = _tileIndex( row, col );
 
             GLuint tileBuffer = m_tilePositionBufferGrid[ tileIndex ];
@@ -422,13 +439,7 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
             glBindBuffer( GL_ARRAY_BUFFER, 0);
             glBindTexture( GL_TEXTURE_2D, 0);
 
-
-            // For "A" animation
-            if(row * col % 2 == 0){
-                m_mvMatrix.rotate( m_animateEven * 57.2957795, 0.2, 0.4, 0.6 );
-            }else{
-                m_mvMatrix.rotate( m_animateOdd * 57.2957795,  0.3, 1.0, 0.2 );
-            }
+            m_mvMatrix = m_mvStack.pop();
         }
     }
     m_mvMatrix = m_mvStack.pop();
@@ -436,8 +447,6 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
 
 void GridWindow::drawTriangle(int, int, float, float)
 {
-
-
     QMatrix4x4 matrix;
     matrix.perspective(60.0f, 4.0f/3.0f, 0.1f, 100.0f);
     matrix.translate(0, 0, -2);
@@ -470,6 +479,7 @@ void GridWindow::drawTriangle(int, int, float, float)
 
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(0);
+    ++m_frame;
 }
 
 // grid.js
@@ -516,33 +526,33 @@ void GridWindow::animate() {
             }
         }
 
-        if(m_settings.zoom != m_zoom){
-            if(m_settings.zoom > m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
-                m_zoom += step;
-                if(m_zoom > m_maxZ){
-                    m_zoom = m_maxZ;
-                }
-            }
-            if(m_settings.zoom < m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
-                m_zoom += step;
-                if(m_zoom < m_minZ){
-                    m_zoom = m_minZ;
-                }
-            }
-        }
+//        if(m_settings.zoom != m_zoom){
+//            if(m_settings.zoom > m_zoom){
+//                float step = (m_settings.zoom - m_zoom) / 16.0;
+//                m_zoom += step;
+//                if(m_zoom > m_maxZ){
+//                    m_zoom = m_maxZ;
+//                }
+//            }
+//            if(m_settings.zoom < m_zoom){
+//                float step = (m_settings.zoom - m_zoom) / 16.0;
+//                m_zoom += step;
+//                if(m_zoom < m_minZ){
+//                    m_zoom = m_minZ;
+//                }
+//            }
+//        }
 
         if(m_settings.zoom != m_zoom){
             if(m_settings.zoom > m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
+                float step = (m_settings.zoom - m_zoom) / 16.0;
                 m_zoom += step;
                 if(m_zoom > m_maxZ){
                     m_zoom = m_maxZ;
                 }
             }
             if(m_settings.zoom < m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
+                float step = (m_settings.zoom - m_zoom) / 16.0;
                 m_zoom += step;
                 if(m_zoom < m_minZ){
                     m_zoom = m_minZ;
@@ -552,24 +562,24 @@ void GridWindow::animate() {
 
         if(m_settings.transX != m_transX){
             if(m_settings.transX > m_transX){
-                float step = (m_settings.transX - m_transX) / 2.0;
+                float step = (m_settings.transX - m_transX) / 5.0;
                 m_transX += step;
 
             }
             if(m_settings.transX < m_transX){
-                float step = (m_settings.transX - m_transX) / 2.0;
+                float step = (m_settings.transX - m_transX) / 5.0;
                 m_transX += step;
             }
         }
 
         if(m_settings.transY != m_transY){
             if(m_settings.transY > m_transY){
-                float step = (m_settings.transY - m_transY) / 2.0;
+                float step = (m_settings.transY - m_transY) / 5.0;
                 m_transY += step;
 
             }
             if(m_settings.transY < m_transY){
-                float step = (m_settings.transY - m_transY) / 2.0;
+                float step = (m_settings.transY - m_transY) / 5.0;
                 m_transY += step;
             }
         }
@@ -685,8 +695,8 @@ void GridWindow::mouseMoveEvent(QMouseEvent *event){
     if (! ( buttonState & Qt::LeftButton ) ) {
         if( buttonState & Qt::RightButton){
 
-            qreal dy = deltaY / 10.0;
-            qreal dx = deltaX / 10.0;
+            qreal dy = deltaY / 75.0;
+            qreal dx = deltaX / 75.0;
 
             // Adjust BCG
             if(!isCommandKeyDown()){
@@ -739,6 +749,9 @@ void GridWindow::mouseReleaseEvent(QMouseEvent *e){
 void GridWindow::keyPressEvent(QKeyEvent *e){
     int keycode = e->key();
     switch(keycode){
+    case Qt::Key_Escape:
+        close();
+        return;
     case Qt::Key_A:
         toggleAnimate();
         return;
@@ -762,7 +775,7 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
 
 void GridWindow::render(){
     handleKeys();
-    render( m_frame );
+    _render();
     animate();
 }
 
@@ -816,7 +829,7 @@ void GridWindow::panLeft() {
 // control.js
 void GridWindow::panRight() {
     qreal x = -m_settings.zoom * m_panBase;
-    qreal y = 0.0;;
+    qreal y = 0.0;
     m_settings.transX += x * cos(m_settings.rotation) + y * sin(m_settings.rotation);
     m_settings.transY += y * cos(m_settings.rotation) - x * sin(m_settings.rotation);
     qDebug() << "PAN RIGHT:" << m_settings.transX << m_settings.transY;

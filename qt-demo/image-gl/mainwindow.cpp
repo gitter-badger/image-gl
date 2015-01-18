@@ -50,6 +50,7 @@ MainWindow::~MainWindow()
 }
 
 bool MainWindow::loadImage(const QString &file){
+    bool ret = false;
     int dim = dimension();
     QString fmt = format();
 
@@ -59,10 +60,12 @@ bool MainWindow::loadImage(const QString &file){
     m_grid = new ImageGrid(file, fmt, dim, this);
     if(m_grid->loadImage( dim )){
         updateLog(m_grid->logs());
+        ret = true;
     }else{
         updateLog(m_grid->errors());
+        ret = false;
     }
-    bool ret = true;
+
     return ret;
 }
 

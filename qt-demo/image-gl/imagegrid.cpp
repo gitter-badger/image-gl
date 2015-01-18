@@ -287,8 +287,11 @@ bool ImageGrid::loadImage( qint64 dim ){
             }else{
                 ret = true;
                 QString message = QString("Image loaded successfully");
-                _log( message );
+                _error( message );
             }
+        }else{
+            QString message = QString("Reader can't read images");
+            _error( message );
         }
         delete reader;
     }

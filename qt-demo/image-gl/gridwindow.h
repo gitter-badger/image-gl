@@ -29,7 +29,7 @@ public:
     virtual ~GridWindow();
 
     virtual void initialize() ;
-    virtual void render(qint64 frame);
+    virtual void deinitialize();
     virtual void render();
 
     void resetSettings();
@@ -75,9 +75,12 @@ protected:
 
 
 private:
+    void _render();
+
     bool isCtrlKeyDown();
     bool isCommandKeyDown();
 
+    void closeEvent();
     void resizeEvent(QResizeEvent *event);
     void wheelEvent(QWheelEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
