@@ -28,6 +28,10 @@ const GLfloat maxGamma = 100;
 
 const GLfloat pi = 3.14159265359;
 
+qreal r2d(qreal r){
+    return r * 57.2957795;
+}
+
 static const char *vertexShaderSourceG =
         "attribute vec2 aVertexPosition;\n"
         "attribute vec2 aTextureCoord;\n"
@@ -39,8 +43,8 @@ static const char *vertexShaderSourceG =
         "vTextureCoord = aTextureCoord;\n"
         "}\n";
 
+//        "precision mediump float;\n"
 static const char *fragmentShaderSourceG =
-        "precision mediump float;\n"
         "varying vec2 vTextureCoord;\n"
         "uniform int uInvert;\n"
         "uniform sampler2D uSampler;\n"
@@ -59,6 +63,10 @@ static const char *fragmentShaderSourceG =
         "} else {"
         "g = 1.0 / (1.0 + (50.0 - gamma) / 10.0);\n"
         "}\n"
+        "if( vColor.x == 0.0 && vColor.y == 0.0 && vColor.z == 0.0 ){\n"
+          "vColor.w = 0.0;\n"
+          "vColor.a = 0.0;\n"
+        "}\n"
         "mediump float bias = (1.0 - c) / 2.0 + b * c;\n"
         "vColor.x = (pow(((vColor.x * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
         "vColor.y = (pow(((vColor.y * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
@@ -72,7 +80,7 @@ static const char *fragmentShaderSourceG =
           "vColor.x = 0.0;\n"
           "vColor.y = 0.0;\n"
           "vColor.z = 0.0;\n"
-          "vColor.w = 1.0;\n"
+          "vColor.w = 0.0;\n"
         "}\n"
         "gl_FragColor = vColor;\n"
         "}\n";
@@ -162,7 +170,9 @@ void GridWindow::webGLStart() {
     initGridBuffersAndTextures();
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
-    //    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void GridWindow::render( qint64 frame )
@@ -375,14 +385,14 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
 
     m_mvMatrix.setToIdentity();
 
-    m_mvMatrix.rotate( m_settings.rotation * 57.2957795, 0, 0, 1 );
+    m_mvMatrix.rotate( r2d(m_settings.rotation), 0, 0, 1 );
     m_mvMatrix.translate( m_transX, m_transY, m_zoom);
 
     m_mvStack.push(m_mvMatrix);
 
-    m_mvMatrix.rotate( m_rotx * 57.2957795, 1, 0, 0 );
-    m_mvMatrix.rotate( m_roty * 57.2957795, 0, 1, 0 );
-    m_mvMatrix.rotate( m_animateSquare * 57.2957795, 0.4, 0.1, 0.8 );
+    m_mvMatrix.rotate( r2d(m_rotx), 1, 0, 0 );
+    m_mvMatrix.rotate( r2d(m_roty), 0, 1, 0 );
+    m_mvMatrix.rotate( r2d(m_animateSquare), 0.4, 0.1, 0.8 );
 
     glBindBuffer( GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer );
     glVertexAttribPointer( m_textureCoordAttribute, 2 , GL_FLOAT, GL_FALSE, 0, 0 );
@@ -393,6 +403,13 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
     for( int row = 0; row < rows; row++ ) {
         for( int col = 0; col < cols; col++ ) {
 
+            m_mvStack.push(m_mvMatrix);
+            // For "A" animation
+            if(row * col % 2 == 0){
+                m_mvMatrix.rotate( r2d(m_animateEven), 0.2, 0.4, 0.6 );
+            }else{
+                m_mvMatrix.rotate( r2d(m_animateOdd),  0.3, 1.0, 0.2 );
+            }
             int tileIndex = _tileIndex( row, col );
 
             GLuint tileBuffer = m_tilePositionBufferGrid[ tileIndex ];
@@ -422,14 +439,9 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
             glBindBuffer( GL_ARRAY_BUFFER, 0);
             glBindTexture( GL_TEXTURE_2D, 0);
 
-
-            // For "A" animation
-            if(row * col % 2 == 0){
-                m_mvMatrix.rotate( m_animateEven * 57.2957795, 0.2, 0.4, 0.6 );
-            }else{
-                m_mvMatrix.rotate( m_animateOdd * 57.2957795,  0.3, 1.0, 0.2 );
-            }
+            m_mvMatrix = m_mvStack.pop();
         }
+
     }
     m_mvMatrix = m_mvStack.pop();
 }
@@ -517,61 +529,30 @@ void GridWindow::animate() {
         }
 
         if(m_settings.zoom != m_zoom){
-            if(m_settings.zoom > m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
+            if(m_settings.zoom > m_zoom ||
+                    m_settings.zoom < m_zoom){
+                float step = (m_settings.zoom - m_zoom) / 10.0;
                 m_zoom += step;
-                if(m_zoom > m_maxZ){
-                    m_zoom = m_maxZ;
-                }
             }
-            if(m_settings.zoom < m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
-                m_zoom += step;
-                if(m_zoom < m_minZ){
-                    m_zoom = m_minZ;
-                }
+            if(m_zoom > m_maxZ){
+                m_zoom = m_maxZ;
+            }
+            if(m_zoom < m_minZ){
+                m_zoom = m_minZ;
             }
         }
 
-        if(m_settings.zoom != m_zoom){
-            if(m_settings.zoom > m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
-                m_zoom += step;
-                if(m_zoom > m_maxZ){
-                    m_zoom = m_maxZ;
-                }
-            }
-            if(m_settings.zoom < m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
-                m_zoom += step;
-                if(m_zoom < m_minZ){
-                    m_zoom = m_minZ;
-                }
-            }
+        if(m_settings.transX != m_transX ||
+                m_settings.transX > m_transX
+                || m_settings.transX < m_transX){
+            float step = (m_settings.transX - m_transX) / 8.0;
+            m_transX += step;
         }
 
-        if(m_settings.transX != m_transX){
-            if(m_settings.transX > m_transX){
-                float step = (m_settings.transX - m_transX) / 2.0;
-                m_transX += step;
-
-            }
-            if(m_settings.transX < m_transX){
-                float step = (m_settings.transX - m_transX) / 2.0;
-                m_transX += step;
-            }
-        }
-
-        if(m_settings.transY != m_transY){
-            if(m_settings.transY > m_transY){
-                float step = (m_settings.transY - m_transY) / 2.0;
-                m_transY += step;
-
-            }
-            if(m_settings.transY < m_transY){
-                float step = (m_settings.transY - m_transY) / 2.0;
-                m_transY += step;
-            }
+        if(m_settings.transY != m_transY
+                || m_settings.transY > m_transY ){
+            float step = (m_settings.transY - m_transY) / 8.0;
+            m_transY += step;
         }
 
         if(m_settings.flipH){
@@ -691,7 +672,7 @@ void GridWindow::mouseMoveEvent(QMouseEvent *event){
             // Adjust BCG
             if(!isCommandKeyDown()){
                 setBrightness (m_settings.brightness - dy);
-                setContrast (m_settings.contrast - dx);
+                setContrast (m_settings.contrast + dx);
             }else{
                 setGamma(m_settings.gamma - dx);
             }
@@ -901,7 +882,6 @@ void GridWindow::resetSettings(){
 
 // controls.js
 void GridWindow::reset(){
-
     resetSettings();
 
     m_settings.transY = 0.0;
@@ -914,6 +894,7 @@ void GridWindow::reset(){
     qDebug() << "whole reset";
 
     m_zoom = m_settings.zoom;
+
 }
 
 // controls.js // Flip image over its X axis
@@ -941,7 +922,9 @@ void GridWindow::flipY() {
 // controls.js
 bool GridWindow::isCommandKeyDown()
 {
-    return m_currentlyPressedKeys[Qt::Key_Meta];
+     return m_currentlyPressedKeys[Qt::Key_Meta] ||
+             m_currentlyPressedKeys[Qt::Key_Alt] ||
+             m_currentlyPressedKeys[Qt::Key_Control];
 }
 
 // controls.js
@@ -959,7 +942,7 @@ void GridWindow::resizeEvent(QResizeEvent *)
 // controls.js
 void GridWindow::wheelEvent(QWheelEvent *e)
 {
-    float delta = e->delta() / 120.0;
+    float delta = e->delta() / 70.0;
 
     if(isCommandKeyDown()){
         m_settings.zoom += delta / m_stepZ;

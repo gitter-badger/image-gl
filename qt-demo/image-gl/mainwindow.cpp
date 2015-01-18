@@ -77,48 +77,25 @@ void MainWindow::on_pushButtonSplit_clicked()
         return;
     }
 
-    bool ok = false; // m_grid->initTiles(dimension());
+    bool ok =  m_grid->initTiles(dimension());
 
     if(!ok){
         QMessageBox::critical( this, QString( "Split error" ), QString( "Unable to init tiles" ));
         updateErrors(m_grid->errors());
-        return;
     }else{
-        updateLog(m_grid->logs());
+        ok = m_grid->writeTiles();
+        if(!ok){
+            QMessageBox::critical( this, QString( "Split error" ), QString( "Unable to write tiles" ));
+            updateLog(m_grid->errors());
+        }else{
+            updateLog(m_grid->logs());
+        }
     }
 }
 
 QString MainWindow::format()
 {
     return ui->comboBoxFormat->currentText();
-}
-
-void MainWindow::on_pushButtonDisplay_clicked()
-{
-    if(m_gridWindow){
-        delete m_gridWindow;
-    }
-
-    if(!m_grid){
-        return;
-    }
-
-    m_gridWindow = new GridWindow();
-
-    bool ok;
-    ok = connect(m_grid, SIGNAL(tileImageLoaded(int,int)), m_gridWindow, SLOT( handleLoadedGridTexture(int,int) ));Q_ASSERT(ok);
-
-    m_gridWindow->setGrid(m_grid);
-
-    QSurfaceFormat format;
-    format.setSamples(16);
-    format.setRenderableType(QSurfaceFormat::OpenGLES);
-
-    m_gridWindow->setFormat(format);
-
-    m_gridWindow->resize(1280, 768);
-    m_gridWindow->show();
-    m_gridWindow->setAnimating(true);
 }
 
 void MainWindow::updateLog(QStringList logs)
@@ -167,6 +144,34 @@ void MainWindow::on_pushButtonLoadImage_clicked()
             updateLog(m_grid->logs());
         }
     }
+}
+
+void MainWindow::on_pushButtonDisplay_clicked()
+{
+    if(m_gridWindow){
+        delete m_gridWindow;
+    }
+
+    if(!m_grid){
+        return;
+    }
+
+    m_gridWindow = new GridWindow();
+
+    bool ok;
+    ok = connect(m_grid, SIGNAL(tileImageLoaded(int,int)), m_gridWindow, SLOT( handleLoadedGridTexture(int,int) ));Q_ASSERT(ok);
+
+    m_gridWindow->setGrid(m_grid);
+
+    QSurfaceFormat format;
+    format.setSamples(16);
+//    format.setRenderableType(QSurfaceFormat::OpenGLES);
+
+    m_gridWindow->setFormat(format);
+
+    m_gridWindow->resize(1280, 768);
+    m_gridWindow->setAnimating(true);
+    m_gridWindow->show();
 }
 
 void MainWindow::on_pushButton_clicked()

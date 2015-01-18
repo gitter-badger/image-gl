@@ -30,6 +30,9 @@ public:
     bool loadImage(qint64 dim);
     ImageTile *tile(qint64 row, qint64 col);
 
+    bool writeTiles();
+
+    QString filePath();
 signals:
     void tileImageLoaded(int row, int col);
 
@@ -38,7 +41,7 @@ private:
     void _error(const QString &message);
 
     bool _writeImage(QImage &img, QPoint pos, int row, int column, int dim);
-    const bool _writeJSON(const QJsonDocument &doc, const QString path);
+    const bool _writeJSON(const QJsonDocument &doc);
 
     QList< ImageTile *> m_gridTiles;
 

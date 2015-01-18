@@ -133,7 +133,7 @@
       <item row="3" column="3">
        <widget class="QPushButton" name="pushButtonSplit">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="text">
          <string>Split</string>
