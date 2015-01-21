@@ -8,6 +8,7 @@
 #include <QImageWriter>
 #include <QVariantMap>
 #include <QJsonDocument>
+#include <QDebug>
 
 ImageGrid::ImageGrid(const QString &source, const QString &format, const int tileDimension, QObject *parent)
     :QObject(parent),
@@ -15,6 +16,7 @@ ImageGrid::ImageGrid(const QString &source, const QString &format, const int til
       m_rows(0),
       m_file(source),
       m_format(format),
+      m_index(-1),
       m_dimension(tileDimension)
 {
 }
@@ -210,7 +212,7 @@ bool ImageGrid::loadTiles(){
 
             currentTile->setImage( img.copy() );
 
-            emit tileImageLoaded( row, col );
+            emit tileImageLoaded(m_index, row, col );
 
             if( ok ){
                 message = QString( "%1 %2 %3 %4" ).arg( offset.x() ).arg( offset.y() ).arg( dim ).arg( dim );
@@ -270,6 +272,12 @@ const bool ImageGrid::_writeJSON( const QJsonDocument &doc )
 QString ImageGrid::filePath(){
     QFileInfo fileinfo( m_file );
     return fileinfo.absoluteDir().absolutePath();
+}
+
+void ImageGrid::setIndex(qint64 index)
+{
+    m_index = index;
+    qDebug() << __FUNCTION__ << index;
 }
 
 bool ImageGrid::_writeImage(QImage &img, QPoint pos, int row, int column, int dim){

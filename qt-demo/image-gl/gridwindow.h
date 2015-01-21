@@ -5,6 +5,10 @@
 #include <QOpenGLShaderProgram>
 #include <QTimer>
 #include <QStack>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+class ImageGrid;
 
 struct GLSettings {
     GLfloat zoom;
@@ -20,7 +24,23 @@ struct GLSettings {
     GLfloat transY ;
 };
 
-class ImageGrid;
+struct GridImage {
+    qreal m_zrotation;
+    QVector3D m_translate;
+
+    QQuaternion q;
+    QVector3D translate;
+    qreal zrotation;
+
+
+    ImageGrid *m_imagegrid;
+    GLuint m_squareVertexTextureCoordBuffer;
+    GLuint *m_tilePositionBufferGrid;
+    GLuint *m_tileTextureGrid;
+    GLfloat **m_tiles;
+    GLfloat *m_textureCoords;
+};
+
 class GridWindow : public OpenGLWindow
 {
     Q_OBJECT
@@ -29,22 +49,28 @@ public:
     virtual ~GridWindow();
 
     virtual void initialize() ;
-    virtual void render(qint64 frame);
     virtual void render();
 
-    void resetSettings();
-    void reset();
+    virtual void reset();
 
-    void animate();
+    void addImage(ImageGrid *grid, QQuaternion &q, QVector3D translate = QVector3D(), qreal zrotation = 0);
+//    void setGrid(ImageGrid *grid);
 
-    void setGrid(ImageGrid *grid);
+public slots:
+    void setVFlip90(bool);
+    void setSceneRotation(QQuaternion);
 
+    virtual void handleLoadedGridTexture(int index, int row, int column);
 
     void setContrast(qreal val);
     void setBrightness(qreal val);
     void setGamma(qreal val);
 
-public slots:
+    // control
+    void resetOrientation();
+    void resetAnimation();
+    void resetColor();
+
     void panUp();
     void panDown();
     void panLeft();
@@ -57,24 +83,30 @@ public slots:
     void flipV();
     void flipX();
     void flipY();
-    // control
-    void toggleAnimate();
-    void rotLeft90();
     void rotRight90();
+    void rotLeft90();
     void zoomIn();
     void zoomOut();
-
-    void handleLoadedGridTexture(int row, int column);
-
+    void toggleAnimate();
+    void toggleOsteotomy();
 
 protected:
-    void handleLoadedTexture(QImage image, GLuint texture);
-    void drawScene(int x, int y, float w, float h);
+    void handleLoadedTexture(GridImage *grid, QImage image, GLuint texture);
+    virtual void drawScene(int x, int y, float w, float h);
+    virtual void drawHud(int x, int y, float w, float h);
+
+    void drawOverlay1(int, int, float, float);
+    void drawOverlayText(int x, int y, float w, float h);
     void drawGrid(int, int, float, float);
     void drawTriangle(int, int, float, float);
 
+    void render_text(const char *text, float x, float y, float sx, float sy);
 
 private:
+    void _dbgZoom();
+    void _render(qint64 frame);
+
+    void controlAnimate();
     bool isCtrlKeyDown();
     bool isCommandKeyDown();
 
@@ -86,52 +118,66 @@ private:
     void keyPressEvent(QKeyEvent *event);
     void keyReleaseEvent(QKeyEvent *event);
 
-    qint64 _tileIndex(qint64 row, qint64 col);
+    qint64 _tileIndex(qint64 row, qint64 col, qint64 cols);
 
     void updateInvert();
     void updateBCG();
 
     void webGLStart();
-    void initShadersGrid();
+    void initShadersScene();
+    void initShadersHud();
+    void initShadersHudText();
     void initShadersTriangle();
     void initGridBuffersAndTextures();
     void initGridBuffers();
     void initGridTextures();
 
-    void setMatrixUniforms();
-    void setColorUniforms();
+    void initColorBuffer();
+
+    void setSceneMatrixUniforms();
+    void setHudMatrixUniforms();
+    void setHudTextUniforms();
+
+    void setSceneColorUniforms();
+
     GLuint loadShader(GLenum type, const char *source);
 
-    GLint m_vertexPositionAttribute;
-    GLint m_textureCoordAttribute;
-    GLint m_colorAttribute;
-    GLint m_uInvert;
+    GLint m_sceneVertexPositionAttribute;
+    GLint m_sceneColorAttribute;
+    GLint m_sceneTextureCoordAttribute;
+    GLint m_sceneMVMatrixUniform;
+    GLint m_scenePMatrixUniform;
+    GLint m_sceneUInvert;
+    GLint m_sceneSamplerUniform;
 
-    GLint m_pMatrixUniform;
-    GLint m_mvMatrixUniform;
-    GLint m_samplerUniform;
+    GLint m_hudVertexPositionAttribute ;
+    GLint m_hudColorAttribute;
+    GLint m_hudPMatrixUniform;
+    GLint m_hudMVMatrixUniform;
+
+    GLint m_hudTextVertexPositionAttribute;
+    GLint m_hudTextColorAttribute;
+    GLint m_hudTextPMatrixUniform;
+    GLint m_hudTextMVMatrixUniform;
+    GLint m_hudTextSamplerUniform;
+
+    GLuint m_hudTextTextTexture;
+    GLuint m_hudTextVbo;
+    QVector4D m_hudTextColor;
 
     bool m_gridInitialized;
-    QOpenGLShaderProgram *m_program;
-    int m_frame;
 
-    QMatrix4x4 m_pMatrix;
-    QMatrix4x4 m_mvMatrix;
+    QOpenGLShaderProgram *m_sceneProgram;
+    QOpenGLShaderProgram *m_hudProgram;
+    QOpenGLShaderProgram *m_hudTextProgram;
+
+    int m_frame;
 
     GLSettings m_settings;
 
     GLuint m_animateSquare;
-
     GLboolean m_animateOn = false;
-
-    ImageGrid *m_imagegrid;
-
-    GLuint m_squareVertexTextureCoordBuffer;
-
-    GLuint *m_tilePositionBufferGrid;
-    GLuint *m_tileTextureGrid;
-
-    GLfloat **m_tiles;
+    GLboolean m_osteotomyOn = false;
 
     // Animation
     // Variables used for animating flips & rotation
@@ -151,11 +197,29 @@ private:
     GLfloat m_transY;
 
     GLfloat *m_pColor;
-    GLfloat *m_textureCoords;
     bool m_currentlyPressedKeys[Qt::Key_unknown];
     QPoint m_lastMouse;
 
+    QMatrix4x4 m_pMatrix;
+    QMatrix4x4 m_mvMatrix;
     QStack<QMatrix4x4> m_mvStack;
+
+    GLfloat m_brightness;
+    GLfloat m_contrast;
+    GLfloat m_gamma;
+    GLfloat m_zoomStep;
+
+    QQuaternion m_sceneRotation;
+
+    QList< GridImage * > m_GridImages;
+
+    GLfloat m_fov;
+
+    bool m_vflip90;
+
+    FT_Library m_ft;
+    FT_Face m_face;
+    FT_GlyphSlot m_glyph;
 };
 
 #endif // GRIDWINDOW_H

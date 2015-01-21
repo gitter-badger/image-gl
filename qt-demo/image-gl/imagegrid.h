@@ -33,8 +33,11 @@ public:
     bool writeTiles();
 
     QString filePath();
+
+    void setIndex(qint64 index);
+
 signals:
-    void tileImageLoaded(int row, int col);
+    void tileImageLoaded(int index, int row, int col);
 
 private:
     void _log(const QString &message);
@@ -49,6 +52,7 @@ private:
     QString m_format;
     QString m_file;
 
+    qint64 m_index;
     qint64 m_stretchwidth;
     qint64 m_stretchheight;
 
