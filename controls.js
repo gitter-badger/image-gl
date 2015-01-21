@@ -87,6 +87,8 @@ function reset() {
 	settings.zoom = m_initZ;
 	settings.flipH = false;
 	settings.flipV = false;
+	settings.transX = 0.0;
+	settings.transY = 0.0;
 }
 
 // Flip image over its X axis

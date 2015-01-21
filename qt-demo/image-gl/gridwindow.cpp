@@ -4,6 +4,7 @@
 #include <QScreen>
 #include <QDateTime>
 #include <math.h>
+#include <QApplication>
 
 // constant rotation around y axis at m_flipfreq * 10
 GLfloat m_animateSquare = 0;
@@ -11,7 +12,7 @@ GLboolean m_animateOn = false;
 
 // zoom range & init
 const GLfloat m_maxZ = -0.1;
-const GLfloat m_minZ = -20.0;
+const GLfloat m_minZ = -50.0;
 const GLfloat m_initZ = -8.0;
 const GLfloat m_stepZ = 5.0;
 
@@ -26,7 +27,16 @@ const GLfloat maxContrast = 200;
 const GLfloat minGamma = 0;
 const GLfloat maxGamma = 100;
 
+const GLfloat m_rulerZ = -6.0;
+
 const GLfloat pi = 3.14159265359;
+
+qreal r2d(qreal r){
+    return r * 57.2957795;
+}
+qreal d2r(qreal d){
+    return d / 57.2957795;
+}
 
 static const char *vertexShaderSourceG =
         "attribute vec2 aVertexPosition;\n"
@@ -39,8 +49,8 @@ static const char *vertexShaderSourceG =
         "vTextureCoord = aTextureCoord;\n"
         "}\n";
 
+//        "precision mediump float;\n"
 static const char *fragmentShaderSourceG =
-        "precision mediump float;\n"
         "varying vec2 vTextureCoord;\n"
         "uniform int uInvert;\n"
         "uniform sampler2D uSampler;\n"
@@ -59,6 +69,11 @@ static const char *fragmentShaderSourceG =
         "} else {"
         "g = 1.0 / (1.0 + (50.0 - gamma) / 10.0);\n"
         "}\n"
+        //        "if( vColor.x < 0.2 && vColor.y < 0.2 && vColor.z < 0.2 ){\n"
+        "if( vColor.x == 0.0 && vColor.y == 0.0 && vColor.z == 0.0 ){\n"
+        "vColor.w = 0.0;\n"
+        "vColor.a = 0.0;\n"
+        "}\n"
         "mediump float bias = (1.0 - c) / 2.0 + b * c;\n"
         "vColor.x = (pow(((vColor.x * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
         "vColor.y = (pow(((vColor.y * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
@@ -69,10 +84,10 @@ static const char *fragmentShaderSourceG =
         "vColor.z = 1.0 - vColor.z;\n"
         "}\n"
         "if(vColor.w == 0.0){\n"
-          "vColor.x = 0.0;\n"
-          "vColor.y = 0.0;\n"
-          "vColor.z = 0.0;\n"
-          "vColor.w = 1.0;\n"
+        "vColor.x = 0.0;\n"
+        "vColor.y = 0.0;\n"
+        "vColor.z = 0.0;\n"
+        "vColor.w = 0.0;\n"
         "}\n"
         "gl_FragColor = vColor;\n"
         "}\n";
@@ -81,16 +96,35 @@ static const char *vertexShaderSource =
         "attribute highp vec4 aVertexPosition;\n"
         "attribute lowp vec4 color;\n"
         "varying lowp vec4 col;\n"
+        "uniform highp mat4 uMVMatrix;\n"
         "uniform highp mat4 uPMatrix;\n"
         "void main() {\n"
         "   col = color;\n"
-        "   gl_Position = uPMatrix * aVertexPosition;\n"
+        "   gl_Position = uPMatrix * uMVMatrix * aVertexPosition;\n"
         "}\n";
 
 static const char *fragmentShaderSource =
         "varying lowp vec4 col;\n"
         "void main() {\n"
         "   gl_FragColor = col;\n"
+        "}\n";
+
+static const char *vertexShaderSourceT =
+        "uniform mat4 uMVMatrix;\n"
+        "uniform mat4 uPMatrix;\n"
+        "attribute vec4 aVertexPosition;\n"
+        "varying vec2 vTextureCoord;\n"
+        "void main(void) {\n"
+        "gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition.xy, 0, 1);\n"
+        "vTextureCoord = aVertexPosition.zw;\n"
+        "}\n";
+
+static const char *fragmentShaderSourceT =
+        "varying vec2 vTextureCoord;\n"
+        "uniform sampler2D uSampler;\n"
+        "uniform vec4 uColor;\n"
+        "void main(void) {\n"
+        "gl_FragColor = vec4(1, 1, 1, texture2D(uSampler, vTextureCoord).r) * uColor;\n"
         "}\n";
 
 
@@ -103,8 +137,11 @@ GLuint GridWindow::loadShader(GLenum type, const char *source)
 }
 
 GridWindow::GridWindow()
-    :       m_program(0),
+    :
+      m_sceneProgram(0),
+      m_fov(60.0f),
       m_frame(0),
+      m_vflip90(false),
       m_gridInitialized(false),
       m_flipfreq(4000.0),
       m_rotx(0),
@@ -114,11 +151,15 @@ GridWindow::GridWindow()
       m_panBase(0.002),
       m_animateSquare(0),
       m_animateEven(0),
-      m_animateOdd(0)
+      m_animateOdd(0),
+      m_brightness(initBrightness),
+      m_contrast(initContrast),
+      m_gamma(initGamma)
 {
     reset();
     m_mvMatrix = QMatrix4x4();
     m_pMatrix  = QMatrix4x4();
+
 }
 
 GridWindow::~GridWindow()
@@ -126,118 +167,141 @@ GridWindow::~GridWindow()
 
     if(m_gridInitialized){
 
-        qint64 count = m_imagegrid->rows() * m_imagegrid->cols();
-        glDeleteBuffers( count, m_tilePositionBufferGrid);
-        glDeleteBuffers( count, m_tileTextureGrid);
+        foreach(GridImage *grid, m_GridImages){
+            qint64 count = grid->m_imagegrid->rows() * grid->m_imagegrid->cols();
+            glDeleteBuffers( count, grid->m_tilePositionBufferGrid);
+            glDeleteBuffers( count, grid->m_tileTextureGrid);
+            glDeleteBuffers( 1, &grid->m_squareVertexTextureCoordBuffer );
 
-        glDeleteBuffers( 1, &m_squareVertexTextureCoordBuffer );
-
-        free ( m_tilePositionBufferGrid );
-        free ( m_tileTextureGrid );
+            free ( grid->m_tilePositionBufferGrid );
+            free ( grid->m_tileTextureGrid );
+        }
+        glDeleteBuffers(1, &m_hudTextTextTexture);
+        glDeleteBuffers(1, &m_hudTextVbo);
         free ( m_pColor );
     }
 }
 
-void GridWindow::setGrid(ImageGrid *grid)
-{
-    m_imagegrid = grid;
-}
-
-qint64 GridWindow::_tileIndex(qint64 row, qint64 col){
-    qint64 cols = m_imagegrid->cols();
+qint64 GridWindow::_tileIndex(qint64 row, qint64 col, qint64 cols){
     qint64 index = cols * row + col;
     return index;
 }
 
 void GridWindow::initialize()
 {
+    FT_Error error;
+    // Initialize freetype
+    error = FT_Init_FreeType(&m_ft);
+    if(error != 0){
+        qDebug() << "Could not init freetype library\n" << error;
+    }else{
+        error = FT_New_Face(m_ft, "/Users/Jon/Downloads/FreeSans/FreeSans.ttf", 0, &m_face);
+        if(error != 0){
+            qDebug() << "Could not open font:" << error;
+        }else{
+            FT_Set_Pixel_Sizes(m_face, 0, 48);
+            m_glyph = m_face->glyph;
+        }
+    }
     webGLStart();
 }
 
 // gl-bp.js
 void GridWindow::webGLStart() {
 
-    initShadersGrid();
+    initShadersScene();
+    initShadersHud();
+    initShadersHudText();
     //    initShadersTriangle();
     initGridBuffersAndTextures();
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
-    //    glEnable(GL_DEPTH_TEST);
-}
-
-void GridWindow::render( qint64 frame )
-{
-    const qreal retinaScale = devicePixelRatio();
-    int x = 0;
-    int y = 0;
-    int w = width() * retinaScale;
-    int h = height() * retinaScale;
-
-    glViewport(x, y, w, h);
-    glClear(GL_COLOR_BUFFER_BIT );
-
-    m_program->bind();
-    drawScene(x, y, w, h);
-    m_program->release();
-    ++m_frame;
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glEnable(GL_STENCIL_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 // gl-shader.js
-void GridWindow::initShadersGrid(){
-    m_program = new QOpenGLShaderProgram(this);
-    m_program->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceG );
-    m_program->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceG );
-    m_program->link();
+void GridWindow::initShadersScene(){
+    m_sceneProgram = new QOpenGLShaderProgram(this);
+    m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceG );
+    m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceG );
+    m_sceneProgram->link();
 
-    m_vertexPositionAttribute       = m_program->attributeLocation( "aVertexPosition" );
-    m_colorAttribute 				= m_program->uniformLocation( "color" );
-
-    m_textureCoordAttribute         = m_program->attributeLocation( "aTextureCoord" );
-
-    m_mvMatrixUniform               = m_program->uniformLocation( "uMVMatrix" );
-    m_pMatrixUniform                = m_program->uniformLocation( "uPMatrix" );
-    m_uInvert 			            = m_program->uniformLocation( "uInvert" );
-    m_samplerUniform 	            = m_program->uniformLocation( "uSampler" );
-
+    m_sceneVertexPositionAttribute         = m_sceneProgram->attributeLocation( "aVertexPosition" );
+    m_sceneColorAttribute 			       = m_sceneProgram->uniformLocation( "color" );
+    m_sceneTextureCoordAttribute           = m_sceneProgram->attributeLocation( "aTextureCoord" );
+    m_sceneMVMatrixUniform                 = m_sceneProgram->uniformLocation( "uMVMatrix" );
+    m_scenePMatrixUniform                  = m_sceneProgram->uniformLocation( "uPMatrix" );
+    m_sceneUInvert 			               = m_sceneProgram->uniformLocation( "uInvert" );
+    m_sceneSamplerUniform 	               = m_sceneProgram->uniformLocation( "uSampler" );
 }
 
-void GridWindow::initShadersTriangle(){
-    m_program = new QOpenGLShaderProgram(this);
-    m_program->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSource );
-    m_program->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSource );
-    m_program->link();
-    m_vertexPositionAttribute       = m_program->attributeLocation( "aVertexPosition" );
-    m_colorAttribute 				= m_program->attributeLocation( "color" );
-    m_pMatrixUniform                = m_program->uniformLocation( "uPMatrix" );
+void GridWindow::initShadersHud(){
+    m_hudProgram = new QOpenGLShaderProgram(this);
+    m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSource );
+    m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSource );
+    m_hudProgram->link();
+
+    m_hudVertexPositionAttribute           = m_hudProgram->attributeLocation( "aVertexPosition" );
+    m_hudColorAttribute 			       = m_hudProgram->attributeLocation( "color" );
+    m_hudPMatrixUniform                    = m_hudProgram->uniformLocation( "uPMatrix" );
+    m_hudMVMatrixUniform                   = m_hudProgram->uniformLocation( "uMVMatrix" );
+}
+
+void GridWindow::initShadersHudText(){
+    m_hudTextProgram = new QOpenGLShaderProgram(this);
+    m_hudTextProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceT );
+    m_hudTextProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceT );
+    m_hudTextProgram->link();
+
+    m_hudTextVertexPositionAttribute       = m_hudTextProgram->attributeLocation( "aVertexPosition" );
+    m_hudTextColorAttribute 			   = m_hudTextProgram->attributeLocation( "uColor" );
+    m_hudTextPMatrixUniform                = m_hudTextProgram->uniformLocation( "uPMatrix" );
+    m_hudTextMVMatrixUniform               = m_hudTextProgram->uniformLocation( "uMVMatrix" );
+    m_hudTextSamplerUniform 	           = m_hudTextProgram->uniformLocation( "uSampler" );
 }
 
 // gl-bp.js
-void GridWindow::setMatrixUniforms(){
-    m_program->setUniformValue(m_pMatrixUniform, m_pMatrix);
-    m_program->setUniformValue(m_mvMatrixUniform, m_mvMatrix);
+void GridWindow::setSceneMatrixUniforms(){
+    m_sceneProgram->setUniformValue(m_scenePMatrixUniform, m_pMatrix);
+    m_sceneProgram->setUniformValue(m_sceneMVMatrixUniform, m_mvMatrix);
 }
 
-void GridWindow::setColorUniforms(){
+// gl-bp.js
+void GridWindow::setHudMatrixUniforms(){
+    m_hudProgram->setUniformValue(m_hudPMatrixUniform, m_pMatrix);
+    m_hudProgram->setUniformValue(m_hudMVMatrixUniform, m_mvMatrix);
+}
+
+void GridWindow::setHudTextUniforms(){
+    m_hudTextProgram->setUniformValue(m_hudTextPMatrixUniform,  m_pMatrix);
+    m_hudTextProgram->setUniformValue(m_hudTextMVMatrixUniform, m_mvMatrix);
+    m_hudTextProgram->setUniformValue(m_hudTextColorAttribute,  m_hudTextColor);
+}
+
+void GridWindow::setSceneColorUniforms(){
     updateBCG();
     updateInvert();
 }
 
 // gl-shader.js
 void GridWindow::updateBCG() {
-    glUniform4f(m_colorAttribute, m_settings.brightness, m_settings.contrast, m_settings.gamma , 1.0);
+    glUniform4f(m_sceneColorAttribute, m_brightness, m_contrast, m_gamma, 1.0);
 }
 
 // gl-shader.js
 void GridWindow::updateInvert() {
-    glUniform1i(m_uInvert, m_settings.invert == true ? 1 : 0);
+    glUniform1i(m_sceneUInvert, m_settings.invert == true ? 1 : 0);
 }
 
 // gl-bp.js
-void GridWindow::handleLoadedTexture(QImage image, GLuint texture){
+void GridWindow::handleLoadedTexture(GridImage *grid, QImage image, GLuint texture){
 
     QImage img = image.convertToFormat(QImage::Format_RGBA8888);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_imagegrid->dimension(), m_imagegrid->dimension(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img.mirrored(false,true).bits());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, grid->m_imagegrid->dimension(), grid->m_imagegrid->dimension(), 0, GL_RGBA, GL_UNSIGNED_BYTE, img.mirrored(false,true).bits());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -254,67 +318,91 @@ void GridWindow::initGridBuffersAndTextures(){
 
 // grid.js
 void GridWindow::initGridBuffers(){
-    float rows = m_imagegrid->rows();
-    float cols = m_imagegrid->cols();
 
-    Q_ASSERT(rows > 0 && cols > 0);
+    int index = -1;
+    foreach(GridImage *grid, m_GridImages){
+        index++;
+        float rows = grid->m_imagegrid->rows();
+        float cols = grid->m_imagegrid->cols();
 
-    ////////////// Allocate memory
+        Q_ASSERT(rows > 0 && cols > 0);
 
-    size_t tileBufferSize = 10 * sizeof ( GLfloat );
-    size_t colorBufferSize = 4 * sizeof( GLfloat );
-    size_t tilePositionBufferSize = sizeof( GLuint ) * rows * cols;
+        ////////////// Allocate memory
 
-    m_tilePositionBufferGrid = (GLuint *)malloc( tilePositionBufferSize );
-    memset( m_tilePositionBufferGrid, 0, tilePositionBufferSize );
+        size_t tileBufferSize = 10 * sizeof ( GLfloat );
+        size_t tilePositionBufferSize = sizeof( GLuint ) * rows * cols;
+
+        grid->m_tilePositionBufferGrid = ( GLuint * )malloc( tilePositionBufferSize );
+        memset( grid->m_tilePositionBufferGrid, 0, tilePositionBufferSize );
 
 
-    m_tiles = (GLfloat **)malloc(sizeof(GLfloat *) * rows * cols);
+        grid->m_tiles = ( GLfloat ** )malloc( sizeof ( GLfloat * ) * rows * cols );
 
-    // Init tile grid
-    for(float row = 0; row < rows; row++){
-        for(float col = 0; col < cols; col++){
+        // Init tile grid
+        for( float row = 0; row < rows; row++ ){
+            for( float col = 0; col < cols; col++ ){
 
-            float tRow = (rows - row)  - (rows / 2.0f);
-            float tCol = ( col ) - (cols / 2.0f);
-            if(cols / 2.0 == 0){
-                tCol += 0.5f;
-            }else{
-                tCol += 1.0f;
+                float tRow = (rows - row)  - (rows / 2.0f);
+                float tCol = ( col ) - (cols / 2.0f);
+                if(cols / 2.0 == 0){
+                    tCol += 0.5f;
+                }else{
+                    tCol += 1.0f;
+                }
+
+                GLfloat *tile = ( GLfloat* )malloc( tileBufferSize );
+
+                tile[ 0 ] = tCol-1;
+                tile[ 1 ] = tRow;
+                tile[ 2 ] = tCol;
+                tile[ 3 ] = tRow;
+                tile[ 4 ] = tCol;
+                tile[ 5 ] = tRow-1;
+                tile[ 6 ] = tCol-1;
+                tile[ 7 ] = tRow-1;
+                tile[ 8 ] = tCol-1;
+                tile[ 9 ] = tRow;
+
+                qint64 tileIndex = _tileIndex( row, col, cols );
+                grid->m_tiles[ tileIndex ] = tile;
             }
-
-            GLfloat *tile = ( GLfloat* )malloc( tileBufferSize );
-
-            tile[0] = tCol-1;
-            tile[1] = tRow;
-            tile[2] = tCol;
-            tile[3] = tRow;
-            tile[4] = tCol;
-            tile[5] = tRow-1;
-            tile[6] = tCol-1;
-            tile[7] = tRow-1;
-            tile[8] = tCol-1;
-            tile[9] = tRow;
-
-            qint64 tileIndex = _tileIndex(row, col);
-            m_tiles[tileIndex] = tile;
         }
+
+        // init texture coords
+        grid->m_textureCoords = ( GLfloat * )malloc( tileBufferSize );
+        grid->m_textureCoords[ 0 ] = 0.0f;
+        grid->m_textureCoords[ 1 ] = 1.0f;
+        grid->m_textureCoords[ 2 ] = 1.0f;
+        grid->m_textureCoords[ 3 ] = 1.0f;
+        grid->m_textureCoords[ 4 ] = 1.0f;
+        grid->m_textureCoords[ 5 ] = 0.0f;
+        grid->m_textureCoords[ 6 ] = 0.0f;
+        grid->m_textureCoords[ 7 ] = 0.0f;
+        grid->m_textureCoords[ 8 ] = 0.0f;
+        grid->m_textureCoords[ 9 ] = 1.0f;
+
+        ///////// Bind gl buffers
+
+        glGenBuffers( rows * cols, grid->m_tilePositionBufferGrid );
+        for(int row = 0; row < rows; row++){
+            for(int col = 0; col < cols; col++){
+                qint64 tileIndex = _tileIndex(row, col, cols);
+                glBindBuffer( GL_ARRAY_BUFFER, grid->m_tilePositionBufferGrid[ tileIndex ] );
+                glBufferData( GL_ARRAY_BUFFER, tileBufferSize, grid->m_tiles[ tileIndex ], GL_STATIC_DRAW );
+                glBindBuffer( GL_ARRAY_BUFFER, 0 );
+            }
+        }
+
+        ////////// Square vertex buffer
+
+        glGenBuffers( 1, &grid->m_squareVertexTextureCoordBuffer );
+        glBindBuffer( GL_ARRAY_BUFFER, grid->m_squareVertexTextureCoordBuffer );
+        glBufferData( GL_ARRAY_BUFFER, tileBufferSize , grid->m_textureCoords, GL_STATIC_DRAW );
+
+        glBindBuffer( GL_ARRAY_BUFFER, 0 );
     }
 
-    // init texture coords
-    m_textureCoords = ( GLfloat * )malloc( tileBufferSize );
-    m_textureCoords[0] = 0.0f;
-    m_textureCoords[1] = 1.0f;
-    m_textureCoords[2] = 1.0f;
-    m_textureCoords[3] = 1.0f;
-    m_textureCoords[4] = 1.0f;
-    m_textureCoords[5] = 0.0f;
-    m_textureCoords[6] = 0.0f;
-    m_textureCoords[7] = 0.0f;
-    m_textureCoords[8] = 0.0f;
-    m_textureCoords[9] = 1.0f;
-
-
+    size_t colorBufferSize = 4 * sizeof( GLfloat );
     // Init color BCG settings
     m_pColor = (GLfloat *) malloc( colorBufferSize );
     m_pColor[0] = initBrightness;
@@ -322,131 +410,399 @@ void GridWindow::initGridBuffers(){
     m_pColor[2] = initGamma;
     m_pColor[3] = 1.0f;
 
+    glGenTextures(1, &m_hudTextTextTexture);
+    glBindTexture(GL_TEXTURE_2D, m_hudTextTextTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
-    ///////// Bind gl buffers
-
-    glGenBuffers( rows * cols, m_tilePositionBufferGrid );
-    for(int row = 0; row < rows; row++){
-        for(int col = 0; col < cols; col++){
-            qint64 tileIndex = _tileIndex(row, col);
-            glBindBuffer( GL_ARRAY_BUFFER, m_tilePositionBufferGrid[ tileIndex ] );
-            glBufferData( GL_ARRAY_BUFFER, tileBufferSize, m_tiles[tileIndex], GL_STATIC_DRAW );
-            glBindBuffer( GL_ARRAY_BUFFER, 0 );
-        }
-    }
-
-
-    ////////// Square vertex buffer
-
-    glGenBuffers( 1, &m_squareVertexTextureCoordBuffer );
-    glBindBuffer( GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer );
-    glBufferData( GL_ARRAY_BUFFER, tileBufferSize , m_textureCoords, GL_STATIC_DRAW );
-
-    glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    glGenBuffers(1, &m_hudTextVbo);
+    glGenBuffers(1, &m_hudTextVbo);
 }
 
 // grid.js
 void GridWindow::initGridTextures(){
-    int rows = m_imagegrid->rows();
-    int cols = m_imagegrid->cols();
+    foreach( GridImage *grid, m_GridImages ){
+        int rows = grid->m_imagegrid->rows();
+        int cols = grid->m_imagegrid->cols();
 
-    size_t textureGridSize = rows * cols * sizeof( GLuint );
-    m_tileTextureGrid = ( GLuint * )malloc( textureGridSize );
-    memset( m_tileTextureGrid, 0, textureGridSize );
+        size_t textureGridSize = rows * cols * sizeof( GLuint );
+        grid->m_tileTextureGrid = ( GLuint * )malloc( textureGridSize );
+        memset( grid->m_tileTextureGrid, 0, textureGridSize );
 
-    glGenTextures(rows * cols, m_tileTextureGrid);
+        glGenTextures( rows * cols, grid->m_tileTextureGrid );
 
-    m_imagegrid->loadTiles();
+        grid->m_imagegrid->loadTiles();
+    }
 }
 
-// grid.js
-void GridWindow::drawScene(int x, int y, float w, float h){
-    drawGrid( x, y, w, h );
-    //    drawTriangle( x, y, w, h);
-}
 
-// grid.js
-void GridWindow::drawGrid(int x, int y, float w, float h){
+void GridWindow::drawOverlayText( int x, int y, float w, float h ){
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Set up overlay perspective
     QMatrix4x4 p;
-    p.perspective( 45.0f,  w / h, 0.1f, 100.0f );
+    p.setToIdentity();
+    p.perspective( m_fov,  w / h, 0.1f, 100.0f );
+    p.translate( 0, 0, -0.1 );
+
+    p.setToIdentity();
+
     m_pMatrix = p;
 
     m_mvMatrix.setToIdentity();
 
-    m_mvMatrix.rotate( m_settings.rotation * 57.2957795, 0, 0, 1 );
-    m_mvMatrix.translate( m_transX, m_transY, m_zoom);
+    //    GLuint tex;
+    //    glActiveTexture(GL_TEXTURE0);
 
-    m_mvStack.push(m_mvMatrix);
+    //    glEnableVertexAttribArray(0);
+    //    glBindBuffer(GL_ARRAY_BUFFER, m_hudTextVbo);
+    //    glVertexAttribPointer(m_hudTextVertexPositionAttribute, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    m_mvMatrix.rotate( m_rotx * 57.2957795, 1, 0, 0 );
-    m_mvMatrix.rotate( m_roty * 57.2957795, 0, 1, 0 );
-    m_mvMatrix.rotate( m_animateSquare * 57.2957795, 0.4, 0.1, 0.8 );
+    m_hudTextColor[0] = 1.0;//r
+    m_hudTextColor[1] = 1.0;//g
+    m_hudTextColor[2] = 1.0;//b
+    m_hudTextColor[3] = 1.0;//a
 
-    glBindBuffer( GL_ARRAY_BUFFER, m_squareVertexTextureCoordBuffer );
-    glVertexAttribPointer( m_textureCoordAttribute, 2 , GL_FLOAT, GL_FALSE, 0, 0 );
+    float sx = 2.0 / w;
+    float sy = 2.0 / h;
 
-    int rows = m_imagegrid->rows();
-    int cols = m_imagegrid->cols();
+    /* Set font size to 48 pixels, color to black */
+    FT_Set_Pixel_Sizes(m_face, 0, 48);
 
-    for( int row = 0; row < rows; row++ ) {
-        for( int col = 0; col < cols; col++ ) {
+    setHudTextUniforms();
 
-            int tileIndex = _tileIndex( row, col );
+    /* Effects of alignment */
+    render_text("The Quick Brown Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 50 * sy, sx, sy);
+    render_text("The Misaligned Fox Jumps Over The Lazy Dog", -1 + 8.5 * sx, 1 - 100.5 * sy, sx, sy);
 
-            GLuint tileBuffer = m_tilePositionBufferGrid[ tileIndex ];
-            glBindBuffer( GL_ARRAY_BUFFER, tileBuffer );
+    /* Scaling the texture versus changing the font size */
+    render_text("The Small Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 175 * sy, sx * 0.5, sy * 0.5);
+    FT_Set_Pixel_Sizes(m_face, 0, 24);
+    render_text("The Small Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 200 * sy, sx, sy);
+    FT_Set_Pixel_Sizes(m_face, 0, 48);
+    render_text("The Tiny Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 235 * sy, sx * 0.25, sy * 0.25);
+    FT_Set_Pixel_Sizes(m_face, 0, 12);
+    render_text("The Tiny Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 250 * sy, sx, sy);
+    FT_Set_Pixel_Sizes(m_face, 0, 48);
 
-            glVertexAttribPointer( m_vertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0 );
-            glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    //    glBindTexture( GL_TEXTURE_2D, tex );
+    //    glUniform1i( m_hudTextSamplerUniform, 0 );
 
-            GLuint tileTexture = m_tileTextureGrid[ tileIndex ];
-            glActiveTexture( GL_TEXTURE0 );
-            glBindTexture( GL_TEXTURE_2D, tileTexture );
-            glUniform1i( m_samplerUniform, 0 );
+    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
-            setMatrixUniforms();
-            setColorUniforms();
-
-            glEnableVertexAttribArray(0);
-            glEnableVertexAttribArray(1);
-
-
-            glDrawArrays( GL_TRIANGLE_STRIP, 0, 5 );
-
-            glDisableVertexAttribArray(2);
-            glDisableVertexAttribArray(1);
-
-
-            glBindBuffer( GL_ARRAY_BUFFER, 0);
-            glBindTexture( GL_TEXTURE_2D, 0);
+    //    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 
-            // For "A" animation
-            if(row * col % 2 == 0){
-                m_mvMatrix.rotate( m_animateEven * 57.2957795, 0.2, 0.4, 0.6 );
-            }else{
-                m_mvMatrix.rotate( m_animateOdd * 57.2957795,  0.3, 1.0, 0.2 );
-            }
-        }
-    }
-    m_mvMatrix = m_mvStack.pop();
+    //    glEnableVertexAttribArray(m_hudTextVertexPositionAttribute);
+    //    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    //    glVertexAttribPointer(m_hudTextVertexPositionAttribute, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+    //    GLfloat black[4] = {0, 0, 0, 1};
+    //    glUniform4fv(m_hudTextColorAttribute, 1, black);
+
+    //    glEnableVertexAttribArray( 0 );
+    //    glEnableVertexAttribArray( 1 );
+
+    //    setHudTextMatrixUniforms();
+    //    render_text("This is a test of some text", 0, 0, 10, 10);
+
+    //    glDisableVertexAttribArray(1);
+    //    glDisableVertexAttribArray(0);
 }
 
-void GridWindow::drawTriangle(int, int, float, float)
+void GridWindow::drawOverlay1( int x, int y, float w, float h ){
+    QMatrix4x4 p;
+    p.setToIdentity();
+
+    //    p.ortho(0,0,w,h,0.1,100.0);
+    p.perspective( m_fov,  w / h, 0.1f, 100.0f );
+    p.translate( 0, 0, -0.1 );
+
+    m_pMatrix = p;
+    m_mvMatrix.setToIdentity();
+
+    ////////       Circle that shows rotation
+    if( m_rotz != m_settings.rotation ){
+        m_mvStack.push( m_mvMatrix );
+
+        m_mvMatrix.setToIdentity();
+        m_mvMatrix.translate(0.0f,0.0f,-8.0f);
+        m_mvMatrix.rotate( r2d( m_rotz ) , 0.0, 0.0, 1.0 );
+        int dots = 200;
+        int radius = 1.0;
+        GLfloat centerX = 0.0;
+        GLfloat centerY = 0.0;
+        GLfloat circleVertices[ dots * 3 ];
+        float stepSize = ( (2.0 * pi) / dots );
+        int i = 0;
+        for (float d = 0; d <= ( 2.0* pi ) - stepSize ; d += stepSize ) {
+            circleVertices[ i++ ] = ( sin( d ) * radius ) + centerX;
+            circleVertices[ i++ ] = ( cos( d ) * radius ) + centerY;
+            circleVertices[ i++ ] = 0.0f;
+        }
+
+        GLfloat circleColors[dots * 4];
+        int j = 0;
+        for(i = 0; i < dots; i++){
+            circleColors[ j++ ] = 1.0;// red
+            circleColors[ j++ ] = 0.0;// green
+            circleColors[ j++ ] = 1.0;// blue
+            circleColors[ j++ ] = 1.0;// alpha
+        }
+
+        glVertexAttribPointer( m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, circleVertices );
+        glVertexAttribPointer( m_hudColorAttribute,          4, GL_FLOAT, GL_FALSE, 0, circleColors );
+
+        glEnableVertexAttribArray( 0 );
+        glEnableVertexAttribArray( 1 );
+
+        setHudMatrixUniforms();
+
+        glDrawArrays( GL_LINE_LOOP, 0, dots );
+
+        glDisableVertexAttribArray( 1 );
+        glDisableVertexAttribArray( 0 );
+        m_mvMatrix = m_mvStack.pop();
+    }
+
+    //////// Ruler
+    if( false ){ // m_zoom != m_settings.zoom ){
+
+        m_mvStack.push(m_mvMatrix);
+        m_mvMatrix.setToIdentity();
+
+        m_mvMatrix.translate(0,0,m_rulerZ);
+
+        GLfloat vertices[] = {
+            -0.5, 0.0, 0.0,
+            0.5, 0.0, 0.0,
+            0.0, -0.5, 0.0,
+            0.0, 0.5, 0.0
+        };
+
+        GLfloat colors[] = {
+            1.0, 1.0, 0.0, 1.0,
+            1.0, 1.0, 0.0, 1.0,
+            1.0, 0.0, 1.0, 1.0,
+            1.0, 0.0, 1.0, 1.0
+        };
+
+        glVertexAttribPointer(m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+        glVertexAttribPointer(m_hudColorAttribute,          4, GL_FLOAT, GL_FALSE, 0, colors);
+
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+
+        setHudMatrixUniforms();
+        glDrawArrays(GL_LINE_LOOP, 0, 4);
+
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(0);
+
+        m_mvMatrix = m_mvStack.pop();
+    }
+
+    //////// Zoom cube
+
+    if( false ) { //  m_zoom != m_settings.zoom ){
+
+        m_mvStack.push(m_mvMatrix);
+
+        m_mvMatrix.setToIdentity();
+
+        // Set up cube vertices
+        GLfloat vertices[] = {
+            // Front face
+            -1.0, -1.0,  1.0,
+            1.0, -1.0,  1.0,
+            1.0,  1.0,  1.0,
+            -1.0,  1.0,  1.0,
+
+            // Back face
+            -1.0, -1.0, -1.0,
+            -1.0,  1.0, -1.0,
+            1.0,  1.0, -1.0,
+            1.0, -1.0, -1.0,
+
+            // Top face
+            -1.0,  1.0, -1.0,
+            -1.0,  1.0,  1.0,
+            1.0,  1.0,  1.0,
+            1.0,  1.0, -1.0,
+
+            // Bottom face
+            -1.0, -1.0, -1.0,
+            1.0, -1.0, -1.0,
+            1.0, -1.0,  1.0,
+            -1.0, -1.0,  1.0,
+
+            // Right face
+            1.0, -1.0, -1.0,
+            1.0,  1.0, -1.0,
+            1.0,  1.0,  1.0,
+            1.0, -1.0,  1.0,
+
+            // Left face
+            -1.0, -1.0, -1.0,
+            -1.0, -1.0,  1.0,
+            -1.0,  1.0,  1.0,
+            -1.0,  1.0, -1.0
+        };
+
+        GLfloat colors[] = {
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f,
+            0.0f, 1.0f, 0.0f, 0.6f
+        };
+
+        glVertexAttribPointer(m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+        glVertexAttribPointer(m_hudColorAttribute,          4, GL_FLOAT, GL_FALSE, 0, colors);
+
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+
+        setHudMatrixUniforms();
+        glDrawArrays(GL_LINE_LOOP, 0, 24);
+
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(0);
+
+        m_mvMatrix = m_mvStack.pop();
+    }
+    m_frame++;
+}
+
+// grid.js
+void GridWindow::drawGrid(int x, int y, float w, float h){
+    glEnableClientState(GL_VERTEX_ARRAY);
+    QMatrix4x4 p;
+    p.setToIdentity();
+    p.perspective( m_fov,  w / h, 0.1f, 100.0f );
+    m_pMatrix = p;
+
+    foreach(GridImage *grid, m_GridImages){
+
+        m_mvMatrix.setToIdentity();
+
+        m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
+        m_mvMatrix.translate( m_transX, m_transY, m_zoom);
+
+        m_mvMatrix.rotate( grid->q.scalar(), grid->q.vector() );
+        m_mvMatrix.rotate( m_sceneRotation );
+
+        m_mvStack.push(m_mvMatrix);
+
+        if(!m_osteotomyOn){
+            grid->m_zrotation = 0.0;
+            grid->m_translate = QVector3D();
+        }else{
+            grid->m_translate = grid->translate;
+        }
+        m_mvMatrix.translate( grid->m_translate );
+        m_mvMatrix.rotate( grid->m_zrotation, 0, 0, 1 );
+
+        glBindBuffer( GL_ARRAY_BUFFER, grid->m_squareVertexTextureCoordBuffer );
+        glVertexAttribPointer( m_sceneTextureCoordAttribute, 2 , GL_FLOAT, GL_FALSE, 0, 0 );
+
+        int rows = grid->m_imagegrid->rows();
+        int cols = grid->m_imagegrid->cols();
+
+        for( int row = 0; row < rows; row++ ) {
+
+            if(grid->zrotation > 0 && row < (rows / 2.0) -1)
+                continue;
+            if(grid->zrotation < 0 && row > (rows / 2.0) -1)
+                continue;
+
+            for( int col = 0; col < cols; col++ ) {
+
+                m_mvStack.push( m_mvMatrix );
+                m_mvMatrix.rotate( r2d( m_rotx ), 1, 0, 0 );
+                m_mvMatrix.rotate( r2d( m_roty ), 0, 1, 0 );
+                m_mvMatrix.rotate( r2d( m_animateSquare ), 0.4, 0.1, 0.8 );
+
+                // For "A" animation
+                if(row * col % 2 == 0){
+                    m_mvMatrix.rotate( r2d( m_animateEven ), 0.2, 0.4, 0.6 );
+                }else{
+                    m_mvMatrix.rotate( r2d( m_animateOdd ),  0.3, 1.0, 0.2 );
+                }
+
+                int tileIndex = _tileIndex( row, col, cols );
+
+                GLuint tileBuffer = grid->m_tilePositionBufferGrid[ tileIndex ];
+                glBindBuffer( GL_ARRAY_BUFFER, tileBuffer );
+
+                glVertexAttribPointer( m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0 );
+                glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+                GLuint tileTexture = grid->m_tileTextureGrid[ tileIndex ];
+                glActiveTexture( GL_TEXTURE0 );
+                glBindTexture( GL_TEXTURE_2D, tileTexture );
+                glUniform1i( m_sceneSamplerUniform, 0 );
+
+                setSceneMatrixUniforms();
+                setSceneColorUniforms();
+
+                glEnableVertexAttribArray( 0 );
+                glEnableVertexAttribArray( 1 );
+
+                glDrawArrays( GL_TRIANGLE_STRIP, 0, 5 );
+
+                glDisableVertexAttribArray( 1 );
+                glDisableVertexAttribArray( 0 );
+
+
+                glBindBuffer( GL_ARRAY_BUFFER, 0);
+                glBindTexture( GL_TEXTURE_2D, 0);
+
+                m_mvMatrix = m_mvStack.pop();
+            }
+        }
+        m_mvMatrix = m_mvStack.pop();
+    }
+    glDisableClientState(GL_VERTEX_ARRAY);
+}
+
+void GridWindow::drawTriangle( int x, int y, float w, float h )
 {
-
-
     QMatrix4x4 matrix;
-    matrix.perspective(60.0f, 4.0f/3.0f, 0.1f, 100.0f);
-    matrix.translate(0, 0, -2);
+    matrix.perspective( m_fov, w/h, 0.1f, 100.0f);
+    matrix.translate(0, 0, m_zoom);
     matrix.rotate(100.0f * m_frame / screen()->refreshRate(), 0, 1, 0);
 
     m_pMatrix = matrix;
     m_mvMatrix.setToIdentity();
 
-    m_program->setUniformValue(m_pMatrixUniform, m_pMatrix);
+    m_sceneProgram->setUniformValue(m_scenePMatrixUniform, m_pMatrix);
 
     GLfloat vertices[] = {
         0.0f, 0.707f,
@@ -460,8 +816,8 @@ void GridWindow::drawTriangle(int, int, float, float)
         0.0f, 0.0f, 1.0f
     };
 
-    glVertexAttribPointer(m_vertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, vertices);
-    glVertexAttribPointer(m_colorAttribute,          3, GL_FLOAT, GL_FALSE, 0, colors);
+    glVertexAttribPointer(m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(m_sceneColorAttribute,          3, GL_FLOAT, GL_FALSE, 0, colors);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
@@ -473,18 +829,23 @@ void GridWindow::drawTriangle(int, int, float, float)
 }
 
 // grid.js
-void GridWindow::handleLoadedGridTexture( int row, int col ){
-    ImageTile *tile = m_imagegrid->tile(row,col);
-    handleLoadedTexture( tile->image(), m_tileTextureGrid[ _tileIndex( row, col ) ]);
+void GridWindow::handleLoadedGridTexture(int index, int row, int col ){
 
-    Q_ASSERT( m_imagegrid->dimension() > 0 &&
+    GridImage *grid = m_GridImages.at(index);
+
+    ImageGrid *imageGrid = grid->m_imagegrid;
+
+    ImageTile *tile = imageGrid->tile(row,col);
+    handleLoadedTexture(grid, tile->image(), grid->m_tileTextureGrid[ _tileIndex( row, col, imageGrid->cols() ) ]);
+
+    Q_ASSERT( grid->m_imagegrid->dimension() > 0 &&
               tile->image().width() == tile->image().height() &&
-              tile->image().width() == m_imagegrid->dimension() );
+              tile->image().width() == grid->m_imagegrid->dimension() );
 }
 
 ////////////////////////////////////////////////////////////////
 
-void GridWindow::animate() {
+void GridWindow::controlAnimate() {
     QDateTime dt;
     qint64 timeNow = dt.currentMSecsSinceEpoch();
 
@@ -516,69 +877,80 @@ void GridWindow::animate() {
             }
         }
 
+        foreach(GridImage *grid, this->m_GridImages){
+            if(grid->m_zrotation != grid->zrotation){
+                //                float step = ( grid->zrotation - grid->m_zrotation );
+                //                grid->m_zrotation += step > 0 ? 0.5 : - 0.5;
+                grid->m_zrotation = grid->zrotation;
+            }
+        }
+
+        if(m_brightness != m_settings.brightness){
+            float step = (m_settings.brightness - m_brightness) / 4.0;
+            m_brightness += step;
+            if(m_brightness > maxBrightness){
+                m_brightness = maxBrightness;
+            }
+            if(m_brightness < minBrightness){
+                m_brightness = minBrightness;
+            }
+        }
+
+        if(m_contrast != m_settings.contrast){
+            float step = (m_settings.contrast - m_contrast) / 4.0;
+            m_contrast += step;
+            if(m_contrast > maxContrast){
+                m_contrast = maxContrast;
+            }
+            if(m_contrast < minContrast){
+                m_contrast = minContrast;
+            }
+        }
+
+        if(m_gamma != m_settings.gamma){
+            float step = (m_settings.gamma - m_gamma) / 4.0;
+            m_gamma += step;
+            if(m_gamma > maxGamma){
+                m_gamma = maxGamma;
+            }
+            if(m_gamma < minGamma){
+                m_gamma = minGamma;
+            }
+        }
+
+
         if(m_settings.zoom != m_zoom){
-            if(m_settings.zoom > m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
-                m_zoom += step;
-                if(m_zoom > m_maxZ){
-                    m_zoom = m_maxZ;
-                }
+            float step = (m_settings.zoom - m_zoom) / 10.0;
+            m_zoom += step;
+            if(fabs(step) < 0.0001){
+                m_zoom = m_settings.zoom;
             }
-            if(m_settings.zoom < m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
-                m_zoom += step;
-                if(m_zoom < m_minZ){
-                    m_zoom = m_minZ;
-                }
+            if(m_zoom > m_maxZ){
+                m_zoom = m_settings.zoom = m_maxZ;
+            }
+            if(m_zoom < m_minZ){
+                m_zoom = m_settings.zoom = m_minZ;
             }
         }
 
-        if(m_settings.zoom != m_zoom){
-            if(m_settings.zoom > m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
-                m_zoom += step;
-                if(m_zoom > m_maxZ){
-                    m_zoom = m_maxZ;
-                }
-            }
-            if(m_settings.zoom < m_zoom){
-                float step = (m_settings.zoom - m_zoom) / 2.0;
-                m_zoom += step;
-                if(m_zoom < m_minZ){
-                    m_zoom = m_minZ;
-                }
-            }
+        if(m_settings.transX != m_transX ||
+                m_settings.transX > m_transX
+                || m_settings.transX < m_transX){
+            float step = (m_settings.transX - m_transX) / 6.0;
+            m_transX += step;
         }
 
-        if(m_settings.transX != m_transX){
-            if(m_settings.transX > m_transX){
-                float step = (m_settings.transX - m_transX) / 2.0;
-                m_transX += step;
-
-            }
-            if(m_settings.transX < m_transX){
-                float step = (m_settings.transX - m_transX) / 2.0;
-                m_transX += step;
-            }
-        }
-
-        if(m_settings.transY != m_transY){
-            if(m_settings.transY > m_transY){
-                float step = (m_settings.transY - m_transY) / 2.0;
-                m_transY += step;
-
-            }
-            if(m_settings.transY < m_transY){
-                float step = (m_settings.transY - m_transY) / 2.0;
-                m_transY += step;
-            }
+        if(m_settings.transY != m_transY
+                || m_settings.transY > m_transY ){
+            float step = (m_settings.transY - m_transY) / 6.0;
+            m_transY += step;
         }
 
         if(m_settings.flipH){
             // increase from 0 to pi
             m_rotx += (75 *elapsed) / m_flipfreq;
-            if(m_rotx > pi){
-                m_rotx = pi;
+            if(m_rotx > pi ){
+                m_rotx = pi ;
             }
         }else{
             // decrease from pi to 0
@@ -587,33 +959,44 @@ void GridWindow::animate() {
                 m_rotx = 0.0;
             }
         }
+
+        float flipMod = 1.0;
+        if(m_vflip90 == true){
+            flipMod = 0.5;
+        }
+
         if(m_settings.flipV){
             // increase from 0 to pi
-            m_roty += (75 * elapsed) / m_flipfreq;
-            if(m_roty > pi){
-                m_roty = pi;
+            m_roty += (75 * elapsed) / m_flipfreq ;
+            if(m_roty > (pi * flipMod)  ){
+                m_roty = (pi * flipMod) ;
             }
         }else{
             // decrease from pi to 0
-            m_roty -= (75 * elapsed) / m_flipfreq;
+            m_roty -= (75 * elapsed) / m_flipfreq ;
             if(m_roty < 0.0){
                 m_roty = 0.0;
             }
         }
 
-        if(m_rotz < m_settings.rotation){
-            m_rotz += (75 * elapsed) / m_flipfreq;
+        float step = (m_settings.rotation - m_rotz) / 20.0;
+        if(m_rotz < m_settings.rotation ){
+            m_rotz += step;
             if(m_rotz > m_settings.rotation){
                 // rotated too far
                 m_rotz = m_settings.rotation;
+            }
+        }else{
+            if( m_rotz > m_settings.rotation ){
+                m_rotz += step;
+                if(m_rotz < m_settings.rotation){
+                    // rotated too far
+                    m_rotz = m_settings.rotation;
+                }
             }
         }
-        if(m_rotz > m_settings.rotation){
-            m_rotz -= (75 * elapsed) / m_flipfreq;
-            if(m_rotz > m_settings.rotation){
-                // rotated too far
-                m_rotz = m_settings.rotation;
-            }
+        if(fabs(step) < 0.0001){
+            m_rotz = m_settings.rotation;
         }
     }
     lastTime = timeNow;
@@ -621,6 +1004,11 @@ void GridWindow::animate() {
 
 
 ////////////////////////////////////////////////////////////////////
+
+void GridWindow::toggleOsteotomy(){
+    m_osteotomyOn = !m_osteotomyOn;
+    qDebug() << "OSTEOTOMY:" << m_osteotomyOn;
+}
 
 // control.js
 void GridWindow::toggleAnimate(){
@@ -685,13 +1073,13 @@ void GridWindow::mouseMoveEvent(QMouseEvent *event){
     if (! ( buttonState & Qt::LeftButton ) ) {
         if( buttonState & Qt::RightButton){
 
-            qreal dy = deltaY / 10.0;
-            qreal dx = deltaX / 10.0;
+            qreal dy = deltaY / 30.0;
+            qreal dx = deltaX / 30.0;
 
             // Adjust BCG
             if(!isCommandKeyDown()){
                 setBrightness (m_settings.brightness - dy);
-                setContrast (m_settings.contrast - dx);
+                setContrast (m_settings.contrast + dx);
             }else{
                 setGamma(m_settings.gamma - dx);
             }
@@ -738,7 +1126,12 @@ void GridWindow::mouseReleaseEvent(QMouseEvent *e){
 // control.js
 void GridWindow::keyPressEvent(QKeyEvent *e){
     int keycode = e->key();
+    m_currentlyPressedKeys[keycode] = true;
     switch(keycode){
+    case Qt::Key_O:
+        toggleOsteotomy();
+        return;
+        break;
     case Qt::Key_A:
         toggleAnimate();
         return;
@@ -756,34 +1149,77 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
         return;
         break;
     }
-    m_currentlyPressedKeys[keycode] = true;
     handleKeys();
 }
 
 void GridWindow::render(){
     handleKeys();
-    render( m_frame );
-    animate();
+    _render( m_frame );
+    controlAnimate();
+}
+
+void GridWindow::_render( qint64 frame )
+{
+    const qreal retinaScale = devicePixelRatio();
+    int x = 0;
+    int y = 0;
+    int w = width() * retinaScale;
+    int h = height() * retinaScale;
+
+    glViewport(x, y, w, h);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    drawScene(x, y, w, h);
+    drawHud(x,y,w,h);
+    ++m_frame;
+}
+
+// grid.js
+void GridWindow::drawScene(int x, int y, float w, float h){
+    m_sceneProgram->bind();
+    drawGrid( x, y, w, h );
+    m_sceneProgram->release();
+}
+
+void GridWindow::drawHud(int x, int y, float w, float h){
+    m_hudProgram->bind();
+    drawOverlay1( x, y, w, h );
+    m_hudProgram->release();
+
+    m_hudTextProgram->bind();
+    drawOverlayText( x, y, w, h );
+    m_hudTextProgram->release();
+}
+
+void GridWindow::_dbgZoom(){
+    qreal angle = m_fov / 2.0;
+
+    qreal ruler_w = 1.0;
+    qreal dx = qAbs((m_zoom + m_rulerZ));
+    qreal dim = m_GridImages.first()->m_imagegrid->dimension();
+
+    qreal ratio = ruler_w / ((ruler_w + (dx * tan(angle)) * 2));
+
+    qDebug() <<  __FUNCTION__ <<  dim * qAbs(ratio) << dx;
 }
 
 // controls.js
 void GridWindow::zoomIn(){
-    if (m_settings.zoom >=  m_maxZ) {
+    m_zoomStep = m_settings.zoom / 10.0f;
+    m_settings.zoom += m_zoomStep;
+    if (m_settings.zoom >  m_maxZ) {
         m_settings.zoom = m_maxZ;
-    }else{
-        m_settings.zoom += 0.01;
     }
-    qDebug() << "ZOOM in:" << m_settings.zoom;
+    _dbgZoom();
 }
 
 // controls.js
 void GridWindow::zoomOut(){
-    if (m_settings.zoom <=  m_minZ) {
+    m_zoomStep = m_settings.zoom / 10.0f;
+    m_settings.zoom -= m_zoomStep;
+    if (m_settings.zoom <  m_minZ) {
         m_settings.zoom = m_minZ;
-    }else{
-        m_settings.zoom -= 0.01;
     }
-    qDebug() << "ZOOM out:" << m_settings.zoom;
+    _dbgZoom();
 }
 
 // control.js
@@ -842,16 +1278,18 @@ void GridWindow::invert() {
 
 // control.js
 void GridWindow::handleKeys() {
-    if(m_currentlyPressedKeys[Qt::Key_I]) { // i key
-        invert();
-    }
     if(m_currentlyPressedKeys[Qt::Key_R]) { // r key
-        if(isCtrlKeyDown()){
-            resetSettings();
-        }else{
-            reset();
-        }
+        reset();
     }
+
+    if(m_currentlyPressedKeys[Qt::Key_C]) {
+        resetColor();
+    }
+
+    if(m_currentlyPressedKeys[Qt::Key_W]){
+        resetOrientation();
+    }
+
     if(m_currentlyPressedKeys[Qt::Key_PageUp]) { // Page Up
         zoomIn();
     }
@@ -876,6 +1314,15 @@ void GridWindow::handleKeys() {
     if(m_currentlyPressedKeys[Qt::Key_Home]){ // HOME
         rotateLeft();
     }
+    if(isCommandKeyDown()){
+        if(QApplication::mouseButtons() & Qt::LeftButton){
+            setCursor(QCursor(Qt::ClosedHandCursor));
+        }else{
+            setCursor(QCursor(Qt::OpenHandCursor));
+        }
+    }else{
+        unsetCursor();
+    }
 }
 
 // control.js
@@ -883,27 +1330,57 @@ void GridWindow::keyReleaseEvent(QKeyEvent *e){
     m_currentlyPressedKeys[e->key()] = false;
 }
 
+void GridWindow::reset(){
+    resetColor();
+    resetAnimation();
+    resetOrientation();
+}
+
+void GridWindow::addImage(ImageGrid *imageGrid, QQuaternion &q, QVector3D translate, qreal zrotation )
+{
+    GridImage *grid = (GridImage *)malloc(sizeof(GridImage));
+    memset(grid, 0, sizeof(GridImage));
+
+    grid->m_imagegrid = imageGrid;
+    grid->q = q;
+    grid->translate = translate;
+    grid->zrotation = zrotation;
+    m_GridImages.append(grid);
+
+    int index = m_GridImages.indexOf(grid);
+    imageGrid->setIndex(index);
+
+    bool ok;
+    ok = connect(grid->m_imagegrid, SIGNAL(tileImageLoaded(int,int,int)), SLOT( handleLoadedGridTexture(int,int,int) ));Q_ASSERT(ok);
+}
+
+void GridWindow::setVFlip90(bool b)
+{
+    m_vflip90 = b;
+}
+
+void GridWindow::setSceneRotation(QQuaternion q)
+{
+    m_sceneRotation = q;
+}
 
 // controls.js
-void GridWindow::resetSettings(){
-    m_animateSquare = 0;
-    m_animateEven = 0;
-    m_animateOdd = 0;
-    m_animateOn = false;
-
+void GridWindow::resetColor(){
     m_settings.invert = false;
     m_settings.brightness = initBrightness;
     m_settings.contrast = initContrast;
     m_settings.gamma = initGamma;
+}
 
-    qDebug() << "settings reset";
+void GridWindow::resetAnimation(){
+    m_animateSquare = 0;
+    m_animateEven = 0;
+    m_animateOdd = 0;
+    m_animateOn = false;
 }
 
 // controls.js
-void GridWindow::reset(){
-
-    resetSettings();
-
+void GridWindow::resetOrientation(){
     m_settings.transY = 0.0;
     m_settings.transX = 0.0;
 
@@ -911,9 +1388,6 @@ void GridWindow::reset(){
     m_settings.zoom = m_initZ;
     m_settings.flipH = false;
     m_settings.flipV = false;
-    qDebug() << "whole reset";
-
-    m_zoom = m_settings.zoom;
 }
 
 // controls.js // Flip image over its X axis
@@ -941,7 +1415,9 @@ void GridWindow::flipY() {
 // controls.js
 bool GridWindow::isCommandKeyDown()
 {
-    return m_currentlyPressedKeys[Qt::Key_Meta];
+    return
+            m_currentlyPressedKeys[Qt::Key_Alt] ||
+            m_currentlyPressedKeys[Qt::Key_Control];
 }
 
 // controls.js
@@ -959,29 +1435,95 @@ void GridWindow::resizeEvent(QResizeEvent *)
 // controls.js
 void GridWindow::wheelEvent(QWheelEvent *e)
 {
-    float delta = e->delta() / 120.0;
+    float delta = e->delta() / 70.0;
 
-    if(isCommandKeyDown()){
-        m_settings.zoom += delta / m_stepZ;
-        if(m_settings.zoom > m_maxZ){
-            m_settings.zoom = m_maxZ;
+    if(!m_currentlyPressedKeys[Qt::Key_Shift] && isCommandKeyDown()){
+        if(delta > 0){
+            zoomIn();
         }
-        if(m_settings.zoom < m_minZ){
-            m_settings.zoom = m_minZ;
+        if(delta < 0){
+            zoomOut();
         }
-        qDebug() << "Zoom" << m_settings.zoom;
     }
-    if(isCtrlKeyDown()){
-        int amt = 0;
+    if(m_currentlyPressedKeys[Qt::Key_Shift] && isCommandKeyDown()){
+        float amt = 0.0f;
         if( delta > 0 ){
-            amt = 1;
+
+            amt = 1.0 / 90.0f;
         }
         if( delta < 0 ){
-            amt = -1;
+            amt = -1.0 / 90.0f;
         }
-        amt = amt / ( 90 );
         m_settings.rotation += ( amt ) ;
         qDebug() << "Rotation" << m_settings.rotation;
     }
     qDebug() << "Wheel" << delta;
+}
+
+void GridWindow::render_text(const char *text, float x, float y, float sx, float sy) {
+    const char *p;
+    FT_GlyphSlot g = m_glyph;
+
+    /* Create a texture that will be used to hold one "glyph" */
+    GLuint tex;
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_hudTextTextTexture);
+    glUniform1i(m_hudTextSamplerUniform, 0);
+
+//    /* We require 1 byte alignment when uploading texture data */
+//    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+//    /* Clamping to edges is important to prevent artifacts when scaling */
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+//    /* Linear filtering usually looksa best for text */
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    /* Set up the VBO for our vertex data */
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_hudTextVbo);
+    glVertexAttribPointer(m_hudTextVertexPositionAttribute, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+    FT_Error error;
+    for(p = text; *p; p++) {
+        error = FT_Load_Char(m_face, *p, FT_LOAD_RENDER);
+        if(error != 0){
+            qDebug() << __FUNCTION__ << "FT Error:" << error <<  "?";
+        }else{
+            glTexImage2D(
+                        GL_TEXTURE_2D,
+                        0,
+                        GL_RED,
+                        m_glyph->bitmap.width,
+                        m_glyph->bitmap.rows,
+                        0,
+                        GL_RED,
+                        GL_UNSIGNED_BYTE,
+                        m_glyph->bitmap.buffer
+                        );
+
+            float x2 = x + m_glyph->bitmap_left * sx;
+            float y2 = -y - m_glyph->bitmap_top * sy;
+            float w = m_glyph->bitmap.width * sx;
+            float h = m_glyph->bitmap.rows * sy;
+
+            GLfloat box[4][4] = {
+                {x2,     -y2    , 0, 0},
+                {x2 + w, -y2    , 1, 0},
+                {x2,     -y2 - h, 0, 1},
+                {x2 + w, -y2 - h, 1, 1},
+            };
+
+            glBufferData(GL_ARRAY_BUFFER, sizeof box, box, GL_DYNAMIC_DRAW);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+            x += ( m_glyph->advance.x >> 6 ) * sx;
+            y += ( m_glyph->advance.y >> 6 ) * sy;
+        }
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+//    glDisableVertexAttribArray(0);
 }

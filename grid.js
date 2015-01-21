@@ -111,7 +111,7 @@ function initTextures() {
 					tileTextureGrid[ nr ][ nc ].image.src = "tiles/tile_" + nr + "" + nc + "_" + tileImage.dimension + "." + tileImage.format;
 				}
 			}(row,col));
-			tileTextureGrid[ row ][ col ].image.src = "tiles/tile_" + row + "" + col + "_" + 256 + "." + tileImage.format ;
+			tileTextureGrid[ row ][ col ].image.src = "tiles/tile_" + row + "" + col + "_" + tileImage.dimensionSmall + "." + tileImage.format ;
 		}
 	}
 }
@@ -151,6 +151,13 @@ function drawGrid(x,y,w,h){
 		
 		for(var row = 0; row < rows; row++){
 			for(var col = 0; col < cols; col++){
+	mvPushMatrix();
+                           if(row * col %2  == 0){
+                              mat4.rotate( mvMatrix, m_animateEven, [1.0, 0.4, 0.6] );
+                           }else{
+                              mat4.rotate( mvMatrix, m_animateOdd, [0.3, 1.0, 0.2] ); 
+                           }
+
 			   gl.bindBuffer(gl.ARRAY_BUFFER, tilePositionBufferGrid[row][col]);
 			   gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, tilePositionBufferGrid[row][col].itemSize, gl.FLOAT, false, 0, 0);
 			
@@ -161,11 +168,7 @@ function drawGrid(x,y,w,h){
 			    setMatrixUniforms();
 			      gl.drawArrays(gl.TRIANGLE_STRIP, 0, tilePositionBufferGrid[row][col].numItems);
 				
-			   if(row * col %2  == 0){
-			      mat4.rotate( mvMatrix, m_animateEven, [1.0, 0.4, 0.6] );
-			   }else{
-			      mat4.rotate( mvMatrix, m_animateOdd, [0.3, 1.0, 0.2] ); 
-			   }
+	mvPopMatrix();
 			}
 		}
 		

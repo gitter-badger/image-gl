@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui opengl
+QT       += core gui opengl bluetooth
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -23,7 +23,9 @@ SOURCES += main.cpp\
     trianglewindow.cpp \
     gridwindow.cpp \
     imagetile.cpp \
-    openglfunctionsdebug.cpp
+    openglfunctionsdebug.cpp \
+    btdevice.cpp \
+    fontsheet.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
@@ -36,6 +38,15 @@ HEADERS  += mainwindow.h \
     trianglewindow.h \
     gridwindow.h \
     imagetile.h \
-    openglfunctionsdebug.h
+    openglfunctionsdebug.h \
+    btdevice.h \
+    fontsheet.h
 
 FORMS    += mainwindow.ui
+
+RESOURCES += \
+    resources.qrc
+
+# Include freetype
+INCLUDEPATH += /usr/local/include/freetype2
+LIBS += /usr/local/lib/libfreetype.a

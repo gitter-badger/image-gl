@@ -6,158 +6,279 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>432</width>
-    <height>475</height>
+    <width>673</width>
+    <height>531</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout_3">
     <item>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
-       <widget class="QLabel" name="labelImageSelected">
-        <property name="text">
-         <string>Image Selected</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="labelDimension">
-        <property name="text">
-         <string>Dimension of Tile</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QComboBox" name="comboBoxDimension">
-        <property name="currentIndex">
-         <number>2</number>
-        </property>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>Tile Creator</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <property name="text">
-          <string>256</string>
-         </property>
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelImageSelected">
+            <property name="text">
+             <string>Image Selected</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelDimension">
+            <property name="text">
+             <string>Dimension of Tile</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QComboBox" name="comboBoxDimension">
+            <property name="currentIndex">
+             <number>2</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>256</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>512</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>1024</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>2048</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>4096</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>8192</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="labelOutputFormat">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Output File Format</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QComboBox" name="comboBoxFormat">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <item>
+             <property name="text">
+              <string>png</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>jpg</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelImageLoaded">
+            <property name="text">
+             <string>Image Loaded</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QPushButton" name="pushButtonSelectImage">
+            <property name="text">
+             <string>Select Image...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QPushButton" name="pushButtonLoadImage">
+            <property name="text">
+             <string>Load Image</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1" colspan="2">
+           <widget class="QLabel" name="labelLoadedImage">
+            <property name="text">
+             <string>_</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1" colspan="2">
+           <widget class="QLabel" name="labelSelectedImage">
+            <property name="text">
+             <string>_</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="3">
+           <widget class="QPushButton" name="pushButtonSplit">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="text">
+             <string>Create Tiles</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
-         <property name="text">
-          <string>512</string>
-         </property>
+         <widget class="QPushButton" name="pushButtonDisplay">
+          <property name="text">
+           <string>Run Demo 1</string>
+          </property>
+         </widget>
         </item>
         <item>
-         <property name="text">
-          <string>1024</string>
-         </property>
+         <widget class="QPushButton" name="pushButtonOsteotomy">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="text">
+           <string>Run Osteotomy Simulation</string>
+          </property>
+         </widget>
         </item>
         <item>
-         <property name="text">
-          <string>2048</string>
-         </property>
+         <widget class="QPushButton" name="pushButton">
+          <property name="text">
+           <string> Triangle Test</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_2">
+       <attribute name="title">
+        <string>AP/Lat Grid</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <widget class="QGroupBox" name="groupBox">
+          <property name="title">
+           <string>Image Selection</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_2">
+           <item row="0" column="0">
+            <widget class="QLabel" name="labelAP">
+             <property name="text">
+              <string>AP</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QPushButton" name="pushButtonDemo2AP">
+             <property name="text">
+              <string>AP select</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="labelLAT">
+             <property name="text">
+              <string>LAT</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QPushButton" name="pushButtonDemo2LAT">
+             <property name="text">
+              <string>Lat Select</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
         </item>
         <item>
-         <property name="text">
-          <string>4096</string>
-         </property>
+         <widget class="QPushButton" name="pushButtonDemo2Run">
+          <property name="text">
+           <string>Run demo 2</string>
+          </property>
+         </widget>
         </item>
         <item>
-         <property name="text">
-          <string>8192</string>
-         </property>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>25</height>
+           </size>
+          </property>
+         </spacer>
         </item>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="labelOutputFormat">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="text">
-         <string>Output File Format</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="1">
-       <widget class="QComboBox" name="comboBoxFormat">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_3">
+       <attribute name="title">
+        <string>Bluetooth</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <property name="text">
-          <string>png</string>
-         </property>
+         <widget class="QGroupBox" name="groupBox_2">
+          <property name="title">
+           <string>Devices</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_2">
+           <item>
+            <widget class="QTableView" name="tableView"/>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButtonBTConnectSelected">
+             <property name="text">
+              <string>Connect Selected</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
         </item>
         <item>
-         <property name="text">
-          <string>jpg</string>
-         </property>
+         <widget class="QPushButton" name="pushButton_2">
+          <property name="text">
+           <string>Do Something</string>
+          </property>
+         </widget>
         </item>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="labelImageLoaded">
-        <property name="text">
-         <string>Image Loaded</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="3">
-       <widget class="QPushButton" name="pushButtonSelectImage">
-        <property name="text">
-         <string>Select Image...</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="3">
-       <widget class="QPushButton" name="pushButtonLoadImage">
-        <property name="text">
-         <string>Load Image</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1" colspan="2">
-       <widget class="QLabel" name="labelLoadedImage">
-        <property name="text">
-         <string>_</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1" colspan="2">
-       <widget class="QLabel" name="labelSelectedImage">
-        <property name="text">
-         <string>_</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="3">
-       <widget class="QPushButton" name="pushButtonSplit">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="text">
-         <string>Split</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
+       </layout>
+      </widget>
+     </widget>
     </item>
     <item>
      <widget class="QTextEdit" name="textEditLog"/>
-    </item>
-    <item>
-     <widget class="QPushButton" name="pushButtonDisplay">
-      <property name="text">
-       <string>Display</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="pushButton">
-      <property name="text">
-       <string>Test</string>
-      </property>
-     </widget>
     </item>
    </layout>
   </widget>
