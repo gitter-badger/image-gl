@@ -11,7 +11,7 @@ GLfloat m_animateSquare = 0;
 GLboolean m_animateOn = false;
 
 // zoom range & init
-const GLfloat m_maxZ = -0.1;
+const GLfloat m_maxZ = -0.01;
 const GLfloat m_minZ = -50.0;
 const GLfloat m_initZ = -8.0;
 const GLfloat m_stepZ = 5.0;
@@ -27,7 +27,7 @@ const GLfloat maxContrast = 200;
 const GLfloat minGamma = 0;
 const GLfloat maxGamma = 100;
 
-const GLfloat m_rulerZ = -6.0;
+const GLfloat m_rulerZ = -20.0;
 
 const GLfloat pi = 3.14159265359;
 
@@ -38,26 +38,45 @@ qreal d2r(qreal d){
     return d / 57.2957795;
 }
 
+// Convert surgimap pixel position to gl position
+QPointF sm2gl(QPointF pixPos, ImageGrid *grid){
+    QPointF pt;
+    float dim = grid->dimension();
+    return pt;
+}
+
+// Convert gl coord position to surgimap pixel position
+QPointF gl2sm(QPointF glPos, ImageGrid *grid){
+    QPointF pt;
+    return pt;
+}
+
 static const char *vertexShaderSourceG =
         "attribute vec2 aVertexPosition;\n"
         "attribute vec2 aTextureCoord;\n"
+        "attribute vec4 aColor;\n"
         "uniform mat4 uMVMatrix;\n"
         "uniform mat4 uPMatrix;\n"
         "varying vec2 vTextureCoord;\n"
+        "varying vec4 vColor;\n"
         "void main(void) {\n"
         "gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 0.0, 1.0);\n"
         "vTextureCoord = aTextureCoord;\n"
+        "vColor = aColor;\n"
         "}\n";
 
 //        "precision mediump float;\n"
 static const char *fragmentShaderSourceG =
         "varying vec2 vTextureCoord;\n"
         "uniform int uInvert;\n"
+        "uniform int uStencil;\n"
         "uniform sampler2D uSampler;\n"
-        "uniform vec4 color;"
+        "uniform vec4 color;\n"
+        "varying vec4 vColor;\n"
         "void main(void) {\n"
-        "vec4 vColor;\n"
-        "vColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n"
+        "vec4 oColor;\n"
+        "if(uStencil == 0 ){\n"
+        "oColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n"
         "mediump float brightness = color.x;\n"
         "mediump float contrast = color.y;\n"
         "mediump float gamma = color.z;\n"
@@ -65,31 +84,34 @@ static const char *fragmentShaderSourceG =
         "mediump float c = contrast / 100.0;\n"
         "mediump float g;\n"
         "if (gamma > 50.0) {\n"
-        "g = 1.0 + (gamma - 50.0) / 10.0;\n"
-        "} else {"
-        "g = 1.0 / (1.0 + (50.0 - gamma) / 10.0);\n"
+        "  g = 1.0 + (gamma - 50.0) / 10.0;\n"
+        "} else {\n"
+        "  g = 1.0 / (1.0 + (50.0 - gamma) / 10.0);\n"
         "}\n"
         //        "if( vColor.x < 0.2 && vColor.y < 0.2 && vColor.z < 0.2 ){\n"
-        "if( vColor.x == 0.0 && vColor.y == 0.0 && vColor.z == 0.0 ){\n"
-        "vColor.w = 0.0;\n"
-        "vColor.a = 0.0;\n"
+        "if( oColor.x == 0.0 && oColor.y == 0.0 && oColor.z == 0.0 ){\n"
+        "oColor.w = 0.0;\n"
+        "oColor.a = 0.0;\n"
         "}\n"
         "mediump float bias = (1.0 - c) / 2.0 + b * c;\n"
-        "vColor.x = (pow(((vColor.x * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
-        "vColor.y = (pow(((vColor.y * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
-        "vColor.z = (pow(((vColor.z * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
+        "oColor.x = (pow(((oColor.x * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
+        "oColor.y = (pow(((oColor.y * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
+        "oColor.z = (pow(((oColor.z * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
         "if(uInvert > 0){\n"
-        "vColor.x = 1.0 - vColor.x;\n"
-        "vColor.y = 1.0 - vColor.y;\n"
-        "vColor.z = 1.0 - vColor.z;\n"
+        "oColor.x = 1.0 - oColor.x;\n"
+        "oColor.y = 1.0 - oColor.y;\n"
+        "oColor.z = 1.0 - oColor.z;\n"
         "}\n"
-        "if(vColor.w == 0.0){\n"
-        "vColor.x = 0.0;\n"
-        "vColor.y = 0.0;\n"
-        "vColor.z = 0.0;\n"
-        "vColor.w = 0.0;\n"
+        "if(oColor.w == 0.0){\n"
+        "oColor.x = 0.0;\n"
+        "oColor.y = 0.0;\n"
+        "oColor.z = 0.0;\n"
+        "oColor.w = 0.0;\n"
         "}\n"
-        "gl_FragColor = vColor;\n"
+        "}else{\n"
+        "  oColor = vColor;\n"
+        "}\n"
+        "  gl_FragColor = oColor;\n"
         "}\n";
 
 static const char *vertexShaderSource =
@@ -215,10 +237,11 @@ void GridWindow::webGLStart() {
     //    initShadersTriangle();
     initGridBuffersAndTextures();
 
-    glClearColor(0.0, 0.0, 0.0, 1.0);
-    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.1, 0.1, 0.1, 1.0);
+
     glEnable(GL_BLEND);
-    glEnable(GL_STENCIL_TEST);
+    glEnable(GL_DEPTH_TEST);
+    //glDepthFunc(GL_LESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
@@ -230,11 +253,14 @@ void GridWindow::initShadersScene(){
     m_sceneProgram->link();
 
     m_sceneVertexPositionAttribute         = m_sceneProgram->attributeLocation( "aVertexPosition" );
-    m_sceneColorAttribute 			       = m_sceneProgram->uniformLocation( "color" );
     m_sceneTextureCoordAttribute           = m_sceneProgram->attributeLocation( "aTextureCoord" );
+    m_sceneColorAttribute                  = m_sceneProgram->attributeLocation( "aColor" );
+    m_sceneBCGUniform 			           = m_sceneProgram->uniformLocation( "color" );
+
     m_sceneMVMatrixUniform                 = m_sceneProgram->uniformLocation( "uMVMatrix" );
     m_scenePMatrixUniform                  = m_sceneProgram->uniformLocation( "uPMatrix" );
     m_sceneUInvert 			               = m_sceneProgram->uniformLocation( "uInvert" );
+    m_sceneUStencil                        = m_sceneProgram->uniformLocation( "uStencil" );
     m_sceneSamplerUniform 	               = m_sceneProgram->uniformLocation( "uSampler" );
 }
 
@@ -288,12 +314,42 @@ void GridWindow::setSceneColorUniforms(){
 
 // gl-shader.js
 void GridWindow::updateBCG() {
-    glUniform4f(m_sceneColorAttribute, m_brightness, m_contrast, m_gamma, 1.0);
+    glUniform4f(m_sceneBCGUniform, m_brightness, m_contrast, m_gamma, 1.0);
 }
 
 // gl-shader.js
 void GridWindow::updateInvert() {
     glUniform1i(m_sceneUInvert, m_settings.invert == true ? 1 : 0);
+}
+
+void GridWindow::_enableStencil(){
+    glUniform1i(m_sceneUStencil, 1);
+
+    glEnable(GL_STENCIL_TEST);
+
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    glStencilFunc(GL_ALWAYS, 1, 1);
+
+    glStencilMask(0xFF);
+
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_STENCIL_BUFFER_BIT);  // needs mask=0xFF
+
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glDepthMask(GL_FALSE);
+}
+
+void GridWindow::_disableStencil(){
+    glUniform1i(m_sceneUStencil, 0);
+
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDepthMask(GL_TRUE);
+    glStencilMask(0x00);
+    // fill 0s
+    glStencilFunc(GL_EQUAL, 0, 0xFF);
+    /* (nothing to draw) */
+    // fill 1s
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
 }
 
 // gl-bp.js
@@ -420,7 +476,6 @@ void GridWindow::initGridBuffers(){
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glGenBuffers(1, &m_hudTextVbo);
-    glGenBuffers(1, &m_hudTextVbo);
 }
 
 // grid.js
@@ -476,18 +531,18 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     setHudTextUniforms();
 
     /* Effects of alignment */
-    render_text("The Quick Brown Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 50 * sy, sx, sy);
-    render_text("The Misaligned Fox Jumps Over The Lazy Dog", -1 + 8.5 * sx, 1 - 100.5 * sy, sx, sy);
+    //    render_text("The Quick Brown Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 50 * sy, sx, sy);
+    //    render_text("The Misaligned Fox Jumps Over The Lazy Dog", -1 + 8.5 * sx, 1 - 100.5 * sy, sx, sy);
 
-    /* Scaling the texture versus changing the font size */
-    render_text("The Small Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 175 * sy, sx * 0.5, sy * 0.5);
-    FT_Set_Pixel_Sizes(m_face, 0, 24);
-    render_text("The Small Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 200 * sy, sx, sy);
-    FT_Set_Pixel_Sizes(m_face, 0, 48);
-    render_text("The Tiny Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 235 * sy, sx * 0.25, sy * 0.25);
-    FT_Set_Pixel_Sizes(m_face, 0, 12);
-    render_text("The Tiny Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 250 * sy, sx, sy);
-    FT_Set_Pixel_Sizes(m_face, 0, 48);
+    //    /* Scaling the texture versus changing the font size */
+    //    render_text("The Small Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 175 * sy, sx * 0.5, sy * 0.5);
+    //    FT_Set_Pixel_Sizes(m_face, 0, 24);
+    //    render_text("The Small Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 200 * sy, sx, sy);
+    //    FT_Set_Pixel_Sizes(m_face, 0, 48);
+    //    render_text("The Tiny Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 235 * sy, sx * 0.25, sy * 0.25);
+    //    FT_Set_Pixel_Sizes(m_face, 0, 12);
+    //    render_text("The Tiny Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 250 * sy, sx, sy);
+    //    FT_Set_Pixel_Sizes(m_face, 0, 48);
 
     //    glBindTexture( GL_TEXTURE_2D, tex );
     //    glUniform1i( m_hudTextSamplerUniform, 0 );
@@ -521,6 +576,33 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
     QMatrix4x4 p;
     p.setToIdentity();
 
+    GLfloat colors[] = {
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f
+    };
+
     //    p.ortho(0,0,w,h,0.1,100.0);
     p.perspective( m_fov,  w / h, 0.1f, 100.0f );
     p.translate( 0, 0, -0.1 );
@@ -535,30 +617,37 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         m_mvMatrix.setToIdentity();
         m_mvMatrix.translate(0.0f,0.0f,-8.0f);
         m_mvMatrix.rotate( r2d( m_rotz ) , 0.0, 0.0, 1.0 );
-        int dots = 200;
-        int radius = 1.0;
+        int dots = 12;
+        float radius = 0.25;
         GLfloat centerX = 0.0;
         GLfloat centerY = 0.0;
-        GLfloat circleVertices[ dots * 3 ];
+
+        GLfloat vertices[ dots  * 3 ];
         float stepSize = ( (2.0 * pi) / dots );
         int i = 0;
         for (float d = 0; d <= ( 2.0* pi ) - stepSize ; d += stepSize ) {
-            circleVertices[ i++ ] = ( sin( d ) * radius ) + centerX;
-            circleVertices[ i++ ] = ( cos( d ) * radius ) + centerY;
-            circleVertices[ i++ ] = 0.0f;
+            vertices[ i++ ] = ( sin( d ) * radius ) + centerX;
+            vertices[ i++ ] = ( cos( d ) * radius ) + centerY;
+            vertices[ i++ ] = 0.0f;
         }
 
-        GLfloat circleColors[dots * 4];
+        GLfloat colors[dots * 4];
         int j = 0;
         for(i = 0; i < dots; i++){
-            circleColors[ j++ ] = 1.0;// red
-            circleColors[ j++ ] = 0.0;// green
-            circleColors[ j++ ] = 1.0;// blue
-            circleColors[ j++ ] = 1.0;// alpha
+            colors[ j++ ] = 0.0;// red
+            if(i % 2) {
+                colors[ j++ ] = 1.0;// green
+                colors[ j++ ] = 0.0;// blue
+            }else{
+                colors[ j++ ] = 0.0;// green
+                colors[ j++ ] = 1.0;// blue
+            }
+
+            colors[ j++ ] = 1.0;// alpha
         }
 
-        glVertexAttribPointer( m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, circleVertices );
-        glVertexAttribPointer( m_hudColorAttribute,          4, GL_FLOAT, GL_FALSE, 0, circleColors );
+        glVertexAttribPointer( m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices );
+        glVertexAttribPointer( m_hudColorAttribute,          4, GL_FLOAT, GL_FALSE, 0, colors );
 
         glEnableVertexAttribArray( 0 );
         glEnableVertexAttribArray( 1 );
@@ -573,7 +662,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
     }
 
     //////// Ruler
-    if( false ){ // m_zoom != m_settings.zoom ){
+    if( true ){ // m_zoom != m_settings.zoom ){
 
         m_mvStack.push(m_mvMatrix);
         m_mvMatrix.setToIdentity();
@@ -588,10 +677,10 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         };
 
         GLfloat colors[] = {
-            1.0, 1.0, 0.0, 1.0,
-            1.0, 1.0, 0.0, 1.0,
-            1.0, 0.0, 1.0, 1.0,
-            1.0, 0.0, 1.0, 1.0
+            0.0, 1.0, 0.0, 0.7,
+            0.0, 1.0, 0.0, 0.7,
+            0.0, 1.0, 0.0, 0.7,
+            0.0, 1.0, 0.0, 0.7
         };
 
         glVertexAttribPointer(m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
@@ -601,7 +690,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         glEnableVertexAttribArray(1);
 
         setHudMatrixUniforms();
-        glDrawArrays(GL_LINE_LOOP, 0, 4);
+        glDrawArrays(GL_LINES, 0, 4);
 
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(0);
@@ -610,7 +699,6 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
     }
 
     //////// Zoom cube
-
     if( false ) { //  m_zoom != m_settings.zoom ){
 
         m_mvStack.push(m_mvMatrix);
@@ -656,32 +744,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
             -1.0,  1.0, -1.0
         };
 
-        GLfloat colors[] = {
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f,
-            0.0f, 1.0f, 0.0f, 0.6f
-        };
+
 
         glVertexAttribPointer(m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
         glVertexAttribPointer(m_hudColorAttribute,          4, GL_FLOAT, GL_FALSE, 0, colors);
@@ -702,10 +765,35 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
 
 // grid.js
 void GridWindow::drawGrid(int x, int y, float w, float h){
+
+    ///////// To test stencil
+    GLfloat vertices[] = {
+        -0.75f, 0.75f,
+        0.85f, 0.5f,
+        1.5f, -2.5f,
+        -1.4f, 0.0f
+    };
+
+    ///////// To test stencil
+    GLfloat verticesStencil[] = {
+        -0.25f, 0.25f,
+        0.25f, 0.2f,
+        1.5f, -1.5f,
+        -0.4f, 0.0f
+    };
+
+
+    GLfloat color[] = {
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f
+    };
+
     glEnableClientState(GL_VERTEX_ARRAY);
     QMatrix4x4 p;
     p.setToIdentity();
-    p.perspective( m_fov,  w / h, 0.1f, 100.0f );
+    p.perspective( m_fov,  w / h, 0.01f, 100.0f );
     m_pMatrix = p;
 
     foreach(GridImage *grid, m_GridImages){
@@ -729,6 +817,34 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
         m_mvMatrix.translate( grid->m_translate );
         m_mvMatrix.rotate( grid->m_zrotation, 0, 0, 1 );
 
+        glEnable(GL_STENCIL_TEST);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+
+        ///////// Tile Stencil
+        // Draw Stencil
+
+        _enableStencil();
+
+        glVertexAttribPointer(m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, verticesStencil);
+        glVertexAttribPointer(m_sceneColorAttribute, 4, GL_FLOAT, GL_FALSE, 0, color);
+
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+
+        glDrawArrays(GL_QUADS, 0, 4);
+
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(0);
+
+        _disableStencil();
+
+
+
+
+
+        ///////// Draw grid
+
         glBindBuffer( GL_ARRAY_BUFFER, grid->m_squareVertexTextureCoordBuffer );
         glVertexAttribPointer( m_sceneTextureCoordAttribute, 2 , GL_FLOAT, GL_FALSE, 0, 0 );
 
@@ -737,6 +853,7 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
 
         for( int row = 0; row < rows; row++ ) {
 
+            /// TODO: to be removed, only here to demo
             if(grid->zrotation > 0 && row < (rows / 2.0) -1)
                 continue;
             if(grid->zrotation < 0 && row > (rows / 2.0) -1)
@@ -744,6 +861,9 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
 
             for( int col = 0; col < cols; col++ ) {
 
+                int tileIndex = _tileIndex( row, col, cols );
+
+                //////// Tile matrix
                 m_mvStack.push( m_mvMatrix );
                 m_mvMatrix.rotate( r2d( m_rotx ), 1, 0, 0 );
                 m_mvMatrix.rotate( r2d( m_roty ), 0, 1, 0 );
@@ -755,9 +875,12 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
                 }else{
                     m_mvMatrix.rotate( r2d( m_animateOdd ),  0.3, 1.0, 0.2 );
                 }
+                setSceneMatrixUniforms();
+                setSceneColorUniforms();
 
-                int tileIndex = _tileIndex( row, col, cols );
+                //  Draw Tile
 
+                /////////// Tile Buffer
                 GLuint tileBuffer = grid->m_tilePositionBufferGrid[ tileIndex ];
                 glBindBuffer( GL_ARRAY_BUFFER, tileBuffer );
 
@@ -769,27 +892,31 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
                 glBindTexture( GL_TEXTURE_2D, tileTexture );
                 glUniform1i( m_sceneSamplerUniform, 0 );
 
-                setSceneMatrixUniforms();
-                setSceneColorUniforms();
-
                 glEnableVertexAttribArray( 0 );
                 glEnableVertexAttribArray( 1 );
 
+                //////////// Draw Tile
+                glEnable(GL_STENCIL_TEST);
                 glDrawArrays( GL_TRIANGLE_STRIP, 0, 5 );
+                glDisable(GL_STENCIL_TEST);
+
 
                 glDisableVertexAttribArray( 1 );
                 glDisableVertexAttribArray( 0 );
 
-
                 glBindBuffer( GL_ARRAY_BUFFER, 0);
                 glBindTexture( GL_TEXTURE_2D, 0);
 
+
                 m_mvMatrix = m_mvStack.pop();
+
             }
         }
         m_mvMatrix = m_mvStack.pop();
     }
+    glDisable(GL_STENCIL_TEST);
     glDisableClientState(GL_VERTEX_ARRAY);
+    m_frame++;
 }
 
 void GridWindow::drawTriangle( int x, int y, float w, float h )
@@ -817,7 +944,7 @@ void GridWindow::drawTriangle( int x, int y, float w, float h )
     };
 
     glVertexAttribPointer(m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, vertices);
-    glVertexAttribPointer(m_sceneColorAttribute,          3, GL_FLOAT, GL_FALSE, 0, colors);
+    glVertexAttribPointer(m_sceneBCGUniform,          3, GL_FLOAT, GL_FALSE, 0, colors);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
@@ -879,8 +1006,6 @@ void GridWindow::controlAnimate() {
 
         foreach(GridImage *grid, this->m_GridImages){
             if(grid->m_zrotation != grid->zrotation){
-                //                float step = ( grid->zrotation - grid->m_zrotation );
-                //                grid->m_zrotation += step > 0 ? 0.5 : - 0.5;
                 grid->m_zrotation = grid->zrotation;
             }
         }
@@ -917,7 +1042,6 @@ void GridWindow::controlAnimate() {
                 m_gamma = minGamma;
             }
         }
-
 
         if(m_settings.zoom != m_zoom){
             float step = (m_settings.zoom - m_zoom) / 10.0;
@@ -1167,7 +1291,7 @@ void GridWindow::_render( qint64 frame )
     int h = height() * retinaScale;
 
     glViewport(x, y, w, h);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     drawScene(x, y, w, h);
     drawHud(x,y,w,h);
     ++m_frame;
@@ -1193,13 +1317,10 @@ void GridWindow::drawHud(int x, int y, float w, float h){
 void GridWindow::_dbgZoom(){
     qreal angle = m_fov / 2.0;
 
-    qreal ruler_w = 1.0;
-    qreal dx = qAbs((m_zoom + m_rulerZ));
+    qreal dx = qAbs( m_zoom / m_rulerZ);
     qreal dim = m_GridImages.first()->m_imagegrid->dimension();
 
-    qreal ratio = ruler_w / ((ruler_w + (dx * tan(angle)) * 2));
-
-    qDebug() <<  __FUNCTION__ <<  dim * qAbs(ratio) << dx;
+    qDebug() <<  __FUNCTION__ <<  dim * dx;
 }
 
 // controls.js
@@ -1296,16 +1417,16 @@ void GridWindow::handleKeys() {
     if(m_currentlyPressedKeys[Qt::Key_PageDown]){ // Page Down
         zoomOut();
     }
-    if(m_currentlyPressedKeys[Qt::Key_Left]){ // LEft
+    if(m_currentlyPressedKeys[Qt::Key_Right]){ // LEft
         panLeft();
     }
-    if(m_currentlyPressedKeys[Qt::Key_Up]){ // UP
+    if(m_currentlyPressedKeys[Qt::Key_Down]){ // UP
         panUp();
     }
-    if(m_currentlyPressedKeys[Qt::Key_Right]){ // RIGHT
+    if(m_currentlyPressedKeys[Qt::Key_Left]){ // RIGHT
         panRight();
     }
-    if(m_currentlyPressedKeys[Qt::Key_Down]){ // DOWN
+    if(m_currentlyPressedKeys[Qt::Key_Up]){ // DOWN
         panDown();
     }
     if(m_currentlyPressedKeys[Qt::Key_End]){ // END
@@ -1345,6 +1466,7 @@ void GridWindow::addImage(ImageGrid *imageGrid, QQuaternion &q, QVector3D transl
     grid->q = q;
     grid->translate = translate;
     grid->zrotation = zrotation;
+
     m_GridImages.append(grid);
 
     int index = m_GridImages.indexOf(grid);
@@ -1471,16 +1593,16 @@ void GridWindow::render_text(const char *text, float x, float y, float sx, float
     glBindTexture(GL_TEXTURE_2D, m_hudTextTextTexture);
     glUniform1i(m_hudTextSamplerUniform, 0);
 
-//    /* We require 1 byte alignment when uploading texture data */
-//    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    //    /* We require 1 byte alignment when uploading texture data */
+    //    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-//    /* Clamping to edges is important to prevent artifacts when scaling */
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    //    /* Clamping to edges is important to prevent artifacts when scaling */
+    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-//    /* Linear filtering usually looksa best for text */
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //    /* Linear filtering usually looksa best for text */
+    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     /* Set up the VBO for our vertex data */
 
@@ -1525,5 +1647,5 @@ void GridWindow::render_text(const char *text, float x, float y, float sx, float
         }
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-//    glDisableVertexAttribArray(0);
+    //    glDisableVertexAttribArray(0);
 }

@@ -25,6 +25,9 @@ struct GLSettings {
 };
 
 struct GridImage {
+    bool bufferInitialized;
+    bool textureInitialized;
+
     qreal m_zrotation;
     QVector3D m_translate;
 
@@ -105,6 +108,8 @@ protected:
 private:
     void _dbgZoom();
     void _render(qint64 frame);
+    void _enableStencil();
+    void _disableStencil();
 
     void controlAnimate();
     bool isCtrlKeyDown();
@@ -143,11 +148,14 @@ private:
     GLuint loadShader(GLenum type, const char *source);
 
     GLint m_sceneVertexPositionAttribute;
-    GLint m_sceneColorAttribute;
     GLint m_sceneTextureCoordAttribute;
+    GLint m_sceneColorAttribute;
+    GLint m_sceneUInvert;
+    GLint m_sceneUStencil;
+
+    GLint m_sceneBCGUniform;
     GLint m_sceneMVMatrixUniform;
     GLint m_scenePMatrixUniform;
-    GLint m_sceneUInvert;
     GLint m_sceneSamplerUniform;
 
     GLint m_hudVertexPositionAttribute ;

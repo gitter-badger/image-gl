@@ -4,12 +4,6 @@
 #include <QMainWindow>
 #include <QImage>
 
-#include <QBluetoothDeviceDiscoveryAgent>
-#include <QBluetoothDeviceInfo>
-
-#include <QLowEnergyController>
-
-
 #include "gridwindow.h"
 
 namespace Ui {
@@ -53,13 +47,6 @@ private slots:
     void on_pushButtonDemo2LAT_clicked();
     void on_pushButtonDemo2Run_clicked();
     void on_pushButtonOsteotomy_clicked();
-
-    void onAddDevice(const QBluetoothDeviceInfo&);
-    void onDeviceScanError(QBluetoothDeviceDiscoveryAgent::Error error);
-    void onDeviceScanFinished();
-
-    void on_pushButtonBTConnectSelected_clicked();
-
 private:
     void updateLog(QStringList log);
     void updateErrors(QStringList errors);
@@ -70,6 +57,7 @@ private:
 
     QString m_file;
     ImageGrid *m_grid;
+    ImageGrid *m_grid2;
 
     /////////// Demo 2
 
@@ -78,10 +66,6 @@ private:
 
     ImageGrid *m_gridAP;
     ImageGrid *m_gridLAT;
-
-    bool m_isBluetoothOn;
-    QBluetoothDeviceDiscoveryAgent *  m_discoveryAgent;
-    QList<BtDevice *> m_discoveredDevices;
 };
 
 #endif // MAINWINDOW_H

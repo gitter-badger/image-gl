@@ -11,9 +11,15 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = image-gl
 TEMPLATE = app
 
+#CONFIG += has_bluetooth
+
+CONFIG(has_bluetooth){
+  DEFINES += HAS_BLUETOOTH
+  QT += bluetooth
+}
 
 SOURCES += main.cpp\
-        mainwindow.cpp \
+    mainwindow.cpp \
     glgraphicsview.cpp \
     model.cpp \
     imagegrid.cpp \
@@ -24,7 +30,6 @@ SOURCES += main.cpp\
     gridwindow.cpp \
     imagetile.cpp \
     openglfunctionsdebug.cpp \
-    btdevice.cpp \
     fontsheet.cpp
 
 HEADERS  += mainwindow.h \
@@ -39,14 +44,29 @@ HEADERS  += mainwindow.h \
     gridwindow.h \
     imagetile.h \
     openglfunctionsdebug.h \
-    btdevice.h \
     fontsheet.h
 
+
 FORMS    += mainwindow.ui
+
+CONFIG(has_bluetooth) {
+SOURCES +=     bluetoothwidget.cpp \
+    btdevice.cpp
+HEADERS +=     bluetoothwidget.h \
+    btdevice.h
+FORMS   +=     bluetoothwidget.ui
+}
 
 RESOURCES += \
     resources.qrc
 
+mac {
 # Include freetype
 INCLUDEPATH += /usr/local/include/freetype2
 LIBS += /usr/local/lib/libfreetype.a
+}
+
+linux {
+INCLUDEPATH += /usr/include/freetype2
+LIBS += -lfreetype
+}
