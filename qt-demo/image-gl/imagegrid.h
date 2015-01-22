@@ -36,14 +36,17 @@ public:
 
     void setIndex(qint64 index);
 
+    qint64 m_stretchwidth;
+    qint64 m_stretchheight;
+    QImage m_image;
+
 signals:
     void tileImageLoaded(int index, int row, int col);
 
 private:
-    void _log(const QString &message);
-    void _error(const QString &message);
-
-    bool _writeImage(QImage &img, QPoint pos, int row, int column, int dim);
+    void       _log(const QString &message);
+    void       _error(const QString &message);
+    bool       _writeImage(QImage &img, QPoint pos, int row, int column, int dim);
     const bool _writeJSON(const QJsonDocument &doc);
 
     QList< ImageTile *> m_gridTiles;
@@ -53,12 +56,9 @@ private:
     QString m_file;
 
     qint64 m_index;
-    qint64 m_stretchwidth;
-    qint64 m_stretchheight;
 
     qint64 m_rows;
     qint64 m_cols;
-    QImage m_image;
 
     QStringList m_log;
     QStringList m_error;

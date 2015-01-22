@@ -31,24 +31,51 @@ const GLfloat m_rulerZ = -20.0;
 
 const GLfloat pi = 3.14159265359;
 
-qreal r2d(qreal r){
+qreal GridWindow::r2d(qreal r){
     return r * 57.2957795;
 }
-qreal d2r(qreal d){
+qreal GridWindow::d2r(qreal d){
     return d / 57.2957795;
 }
 
+qreal GridWindow::unitToPx(ImageGrid *grid){
+    qreal val = 1.0; // Default is something crazy
+    if(grid){
+        qreal dx = qAbs( m_zoom / m_rulerZ);
+        qreal dim = grid->dimension();
+        val = dim * dx;
+    }
+    return val;
+}
+
 // Convert surgimap pixel position to gl position
-QPointF sm2gl(QPointF pixPos, ImageGrid *grid){
-    QPointF pt;
-    float dim = grid->dimension();
-    return pt;
+QPointF GridWindow::sm2gl(QPointF pixPos, ImageGrid *grid){
+
+    qreal x    = pixPos.x();
+    qreal y    = pixPos.y();
+    qreal cols = grid->cols();
+    qreal rows = grid->rows();
+    qreal dim  = grid->dimension();
+
+    x = - ( cols / 2.0) + x / dim; //Units from Left
+    y = - ( rows / 2.0) + ( grid->m_stretchheight * 1.0 - y ) / dim; // Units from Bottom
+
+    return QPointF( x, y );
 }
 
 // Convert gl coord position to surgimap pixel position
-QPointF gl2sm(QPointF glPos, ImageGrid *grid){
-    QPointF pt;
-    return pt;
+QPointF GridWindow::gl2sm(QPointF glPos, ImageGrid *grid){
+
+    qreal x    = glPos.x();
+    qreal y    = glPos.y();
+    qreal cols = grid->cols();
+    qreal rows = grid->rows();
+    qreal dim  = grid->dimension();
+
+    x = ((cols/2.0) + x) * dim;     // Units from Lefts
+    y = ((rows/2.0) - y) * dim;     // Units from top
+
+    return QPointF( x, y );
 }
 
 static const char *vertexShaderSourceG =
@@ -71,15 +98,15 @@ static const char *fragmentShaderSourceG =
         "uniform int uInvert;\n"
         "uniform int uStencil;\n"
         "uniform sampler2D uSampler;\n"
-        "uniform vec4 color;\n"
+        "uniform vec4 uBCG;\n"
         "varying vec4 vColor;\n"
         "void main(void) {\n"
         "vec4 oColor;\n"
         "if(uStencil == 0 ){\n"
         "oColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n"
-        "mediump float brightness = color.x;\n"
-        "mediump float contrast = color.y;\n"
-        "mediump float gamma = color.z;\n"
+        "mediump float brightness = uBCG.x;\n"
+        "mediump float contrast = uBCG.y;\n"
+        "mediump float gamma = uBCG.z;\n"
         "mediump float b = brightness / 100.0;\n"
         "mediump float c = contrast / 100.0;\n"
         "mediump float g;\n"
@@ -114,39 +141,54 @@ static const char *fragmentShaderSourceG =
         "  gl_FragColor = oColor;\n"
         "}\n";
 
-static const char *vertexShaderSource =
-        "attribute highp vec4 aVertexPosition;\n"
-        "attribute lowp vec4 color;\n"
-        "varying lowp vec4 col;\n"
-        "uniform highp mat4 uMVMatrix;\n"
-        "uniform highp mat4 uPMatrix;\n"
-        "void main() {\n"
-        "   col = color;\n"
-        "   gl_Position = uPMatrix * uMVMatrix * aVertexPosition;\n"
-        "}\n";
-
-static const char *fragmentShaderSource =
-        "varying lowp vec4 col;\n"
-        "void main() {\n"
-        "   gl_FragColor = col;\n"
-        "}\n";
-
 static const char *vertexShaderSourceT =
         "uniform mat4 uMVMatrix;\n"
         "uniform mat4 uPMatrix;\n"
         "attribute vec4 aVertexPosition;\n"
+        "attribute vec4 aColor;\n"
         "varying vec2 vTextureCoord;\n"
+        "varying vec4 vColor;\n"
         "void main(void) {\n"
-        "gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition.xy, 0, 1);\n"
-        "vTextureCoord = aVertexPosition.zw;\n"
+        "   gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition.xy, 0, 1);\n"
+        "   vColor = aColor;\n"
+        "   vTextureCoord = aVertexPosition.zw;\n"
         "}\n";
 
 static const char *fragmentShaderSourceT =
-        "varying vec2 vTextureCoord;\n"
-        "uniform sampler2D uSampler;\n"
-        "uniform vec4 uColor;\n"
-        "void main(void) {\n"
-        "gl_FragColor = vec4(1, 1, 1, texture2D(uSampler, vTextureCoord).r) * uColor;\n"
+        "varying lowp vec4 vColor;\n"
+        "void main() {\n"
+        "   gl_FragColor = vColor;\n"
+        "}\n";
+
+static const char *vertexShaderSourceM =
+        "attribute highp vec4 aVertexPosition;\n"
+        "attribute lowp vec4 aColor;\n"
+        "varying lowp vec4 vColor;\n"
+        "uniform highp mat4 uMVMatrix;\n"
+        "uniform highp mat4 uPMatrix;\n"
+        "void main() {\n"
+        "   vColor = aColor;\n"
+        "   gl_Position = uPMatrix * uMVMatrix * aVertexPosition;\n"
+        "}\n";
+static const char *fragmentShaderSourceM =
+        "varying lowp vec4 vColor;\n"
+        "void main() {\n"
+        "   gl_FragColor = vColor;\n"
+        "}\n";
+static const char *vertexShaderSourceH =
+        "attribute highp vec4 aVertexPosition;\n"
+        "attribute lowp vec4 aColor;\n"
+        "varying lowp vec4 vColor;\n"
+        "uniform highp mat4 uMVMatrix;\n"
+        "uniform highp mat4 uPMatrix;\n"
+        "void main() {\n"
+        "   vColor = aColor;\n"
+        "   gl_Position = uPMatrix * uMVMatrix * aVertexPosition;\n"
+        "}\n";
+static const char *fragmentShaderSourceH =
+        "varying lowp vec4 vColor;\n"
+        "void main() {\n"
+        "   gl_FragColor = vColor;\n"
         "}\n";
 
 
@@ -197,6 +239,10 @@ GridWindow::~GridWindow()
 
             free ( grid->m_tilePositionBufferGrid );
             free ( grid->m_tileTextureGrid );
+            foreach( GridLayer *layer, grid->m_gridLayers ){
+                delete layer;
+            }
+            delete grid;
         }
         glDeleteBuffers(1, &m_hudTextTextTexture);
         glDeleteBuffers(1, &m_hudTextVbo);
@@ -234,6 +280,7 @@ void GridWindow::webGLStart() {
     initShadersScene();
     initShadersHud();
     initShadersHudText();
+    initShaderMeasurements();
     //    initShadersTriangle();
     initGridBuffersAndTextures();
 
@@ -255,25 +302,13 @@ void GridWindow::initShadersScene(){
     m_sceneVertexPositionAttribute         = m_sceneProgram->attributeLocation( "aVertexPosition" );
     m_sceneTextureCoordAttribute           = m_sceneProgram->attributeLocation( "aTextureCoord" );
     m_sceneColorAttribute                  = m_sceneProgram->attributeLocation( "aColor" );
-    m_sceneBCGUniform 			           = m_sceneProgram->uniformLocation( "color" );
+    m_sceneBCGUniform 			           = m_sceneProgram->uniformLocation( "uBCG" );
 
     m_sceneMVMatrixUniform                 = m_sceneProgram->uniformLocation( "uMVMatrix" );
     m_scenePMatrixUniform                  = m_sceneProgram->uniformLocation( "uPMatrix" );
     m_sceneUInvert 			               = m_sceneProgram->uniformLocation( "uInvert" );
     m_sceneUStencil                        = m_sceneProgram->uniformLocation( "uStencil" );
     m_sceneSamplerUniform 	               = m_sceneProgram->uniformLocation( "uSampler" );
-}
-
-void GridWindow::initShadersHud(){
-    m_hudProgram = new QOpenGLShaderProgram(this);
-    m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSource );
-    m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSource );
-    m_hudProgram->link();
-
-    m_hudVertexPositionAttribute           = m_hudProgram->attributeLocation( "aVertexPosition" );
-    m_hudColorAttribute 			       = m_hudProgram->attributeLocation( "color" );
-    m_hudPMatrixUniform                    = m_hudProgram->uniformLocation( "uPMatrix" );
-    m_hudMVMatrixUniform                   = m_hudProgram->uniformLocation( "uMVMatrix" );
 }
 
 void GridWindow::initShadersHudText(){
@@ -283,10 +318,36 @@ void GridWindow::initShadersHudText(){
     m_hudTextProgram->link();
 
     m_hudTextVertexPositionAttribute       = m_hudTextProgram->attributeLocation( "aVertexPosition" );
-    m_hudTextColorAttribute 			   = m_hudTextProgram->attributeLocation( "uColor" );
+    m_hudTextColorAttribute 			   = m_hudTextProgram->attributeLocation( "aColor" );
     m_hudTextPMatrixUniform                = m_hudTextProgram->uniformLocation( "uPMatrix" );
     m_hudTextMVMatrixUniform               = m_hudTextProgram->uniformLocation( "uMVMatrix" );
     m_hudTextSamplerUniform 	           = m_hudTextProgram->uniformLocation( "uSampler" );
+}
+
+void GridWindow::initShadersHud(){
+    m_hudProgram = new QOpenGLShaderProgram(this);
+    m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceH );
+    m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceH );
+    m_hudProgram->link();
+
+    m_hudVertexPositionAttribute           = m_hudProgram->attributeLocation( "aVertexPosition" );
+    m_hudColorAttribute 			       = m_hudProgram->attributeLocation( "aColor" );
+
+    m_hudPMatrixUniform                    = m_hudProgram->uniformLocation( "uPMatrix" );
+    m_hudMVMatrixUniform                   = m_hudProgram->uniformLocation( "uMVMatrix" );
+}
+
+void GridWindow::initShaderMeasurements(){
+    m_measurementsProgram = new QOpenGLShaderProgram(this);
+    m_measurementsProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceM );
+    m_measurementsProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceM );
+    m_measurementsProgram->link();
+
+    m_measurementVertexAttribute           = m_measurementsProgram->attributeLocation( "aVertexPosition" );
+    m_measurementColorAttribute 	       = m_measurementsProgram->attributeLocation( "aColor" );
+
+    m_measurementPMatrixUniform            = m_measurementsProgram->uniformLocation( "uPMatrix" );
+    m_measurementMVMatrixUniform           = m_measurementsProgram->uniformLocation( "uMVMatrix" );
 }
 
 // gl-bp.js
@@ -305,6 +366,11 @@ void GridWindow::setHudTextUniforms(){
     m_hudTextProgram->setUniformValue(m_hudTextPMatrixUniform,  m_pMatrix);
     m_hudTextProgram->setUniformValue(m_hudTextMVMatrixUniform, m_mvMatrix);
     m_hudTextProgram->setUniformValue(m_hudTextColorAttribute,  m_hudTextColor);
+}
+
+void GridWindow::setMeasurementUniforms(){
+    m_measurementsProgram->setUniformValue(m_measurementPMatrixUniform,  m_pMatrix);
+    m_measurementsProgram->setUniformValue(m_measurementMVMatrixUniform, m_mvMatrix);
 }
 
 void GridWindow::setSceneColorUniforms(){
@@ -377,6 +443,7 @@ void GridWindow::initGridBuffers(){
 
     int index = -1;
     foreach(GridImage *grid, m_GridImages){
+
         index++;
         float rows = grid->m_imagegrid->rows();
         float cols = grid->m_imagegrid->cols();
@@ -495,88 +562,69 @@ void GridWindow::initGridTextures(){
 }
 
 
-void GridWindow::drawOverlayText( int x, int y, float w, float h ){
+void GridWindow::drawOverlayMeasurements( int x, int y, float w, float h ){
 
-    // Set up overlay perspective
     QMatrix4x4 p;
     p.setToIdentity();
+
+    //    p.ortho(0,0,w,h,0.1,100.0);
     p.perspective( m_fov,  w / h, 0.1f, 100.0f );
     p.translate( 0, 0, -0.1 );
 
-    p.setToIdentity();
-
     m_pMatrix = p;
-
     m_mvMatrix.setToIdentity();
 
-    //    GLuint tex;
-    //    glActiveTexture(GL_TEXTURE0);
 
-    //    glEnableVertexAttribArray(0);
-    //    glBindBuffer(GL_ARRAY_BUFFER, m_hudTextVbo);
-    //    glVertexAttribPointer(m_hudTextVertexPositionAttribute, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    m_hudTextColor[0] = 1.0;//r
-    m_hudTextColor[1] = 1.0;//g
-    m_hudTextColor[2] = 1.0;//b
-    m_hudTextColor[3] = 1.0;//a
-
-    float sx = 2.0 / w;
-    float sy = 2.0 / h;
-
-    /* Set font size to 48 pixels, color to black */
-    FT_Set_Pixel_Sizes(m_face, 0, 48);
-
-    setHudTextUniforms();
-
-    /* Effects of alignment */
-    //    render_text("The Quick Brown Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 50 * sy, sx, sy);
-    //    render_text("The Misaligned Fox Jumps Over The Lazy Dog", -1 + 8.5 * sx, 1 - 100.5 * sy, sx, sy);
-
-    //    /* Scaling the texture versus changing the font size */
-    //    render_text("The Small Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 175 * sy, sx * 0.5, sy * 0.5);
-    //    FT_Set_Pixel_Sizes(m_face, 0, 24);
-    //    render_text("The Small Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 200 * sy, sx, sy);
-    //    FT_Set_Pixel_Sizes(m_face, 0, 48);
-    //    render_text("The Tiny Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 235 * sy, sx * 0.25, sy * 0.25);
-    //    FT_Set_Pixel_Sizes(m_face, 0, 12);
-    //    render_text("The Tiny Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 250 * sy, sx, sy);
-    //    FT_Set_Pixel_Sizes(m_face, 0, 48);
-
-    //    glBindTexture( GL_TEXTURE_2D, tex );
-    //    glUniform1i( m_hudTextSamplerUniform, 0 );
-
-    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-    //    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    qreal zratio = qAbs( m_zoom / m_rulerZ);
+    zratio = 1.0 / zratio;
 
 
-    //    glEnableVertexAttribArray(m_hudTextVertexPositionAttribute);
-    //    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    //    glVertexAttribPointer(m_hudTextVertexPositionAttribute, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    /// Draw measurement overlay
 
-    //    GLfloat black[4] = {0, 0, 0, 1};
-    //    glUniform4fv(m_hudTextColorAttribute, 1, black);
+    m_mvStack.push(m_mvMatrix);
+    m_mvMatrix.setToIdentity();
 
-    //    glEnableVertexAttribArray( 0 );
-    //    glEnableVertexAttribArray( 1 );
+    m_mvMatrix.translate(0,0,m_rulerZ);
 
-    //    setHudTextMatrixUniforms();
-    //    render_text("This is a test of some text", 0, 0, 10, 10);
+    m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
+    m_mvMatrix.translate( m_transX * zratio, m_transY * zratio, 0.0);
 
-    //    glDisableVertexAttribArray(1);
-    //    glDisableVertexAttribArray(0);
+    ImageGrid * grid = m_GridImages.first()->m_imagegrid;
+
+    QPointF topLeft = sm2gl( QPointF( 0,0 ), grid );
+    QPointF BottomRight = sm2gl( QPointF( grid->m_stretchwidth, grid->m_stretchheight ), grid);
+
+    GLfloat vertices[] = {
+        zratio * topLeft.x(),     zratio * topLeft.y(), 0.0,
+        zratio * topLeft.x(),     zratio * BottomRight.y(), 0.0,
+        zratio * BottomRight.x(), zratio * BottomRight.y(), 0.0,
+        zratio * BottomRight.x(), zratio * topLeft.y(), 0.0,
+    };
+
+    GLfloat colors[] = {
+        1.0, 1.0, 0.0, 0.7,
+        1.0, 1.0, 0.0, 0.7,
+        1.0, 1.0, 0.0, 0.7,
+        1.0, 1.0, 0.0, 0.7
+    };
+
+    glVertexAttribPointer(m_measurementVertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(m_measurementColorAttribute,  4, GL_FLOAT, GL_FALSE, 0, colors);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    setMeasurementUniforms();
+    glDrawArrays(GL_QUADS, 0, 4);
+
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(0);
+
+    m_mvMatrix = m_mvStack.pop();
 }
 
 void GridWindow::drawOverlay1( int x, int y, float w, float h ){
-    QMatrix4x4 p;
-    p.setToIdentity();
-
-    GLfloat colors[] = {
+    GLfloat cubeColors[] = {
         0.0f, 1.0f, 0.0f, 0.6f,
         0.0f, 1.0f, 0.0f, 0.6f,
         0.0f, 1.0f, 0.0f, 0.6f,
@@ -602,6 +650,48 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         0.0f, 1.0f, 0.0f, 0.6f,
         0.0f, 1.0f, 0.0f, 0.6f
     };
+
+    GLfloat cubeVertices[] = {
+        // Front face
+        -1.0, -1.0,  1.0,
+        1.0, -1.0,  1.0,
+        1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,
+
+        // Back face
+        -1.0, -1.0, -1.0,
+        -1.0,  1.0, -1.0,
+        1.0,  1.0, -1.0,
+        1.0, -1.0, -1.0,
+
+        // Top face
+        -1.0,  1.0, -1.0,
+        -1.0,  1.0,  1.0,
+        1.0,  1.0,  1.0,
+        1.0,  1.0, -1.0,
+
+        // Bottom face
+        -1.0, -1.0, -1.0,
+        1.0, -1.0, -1.0,
+        1.0, -1.0,  1.0,
+        -1.0, -1.0,  1.0,
+
+        // Right face
+        1.0, -1.0, -1.0,
+        1.0,  1.0, -1.0,
+        1.0,  1.0,  1.0,
+        1.0, -1.0,  1.0,
+
+        // Left face
+        -1.0, -1.0, -1.0,
+        -1.0, -1.0,  1.0,
+        -1.0,  1.0,  1.0,
+        -1.0,  1.0, -1.0
+    };
+
+
+    QMatrix4x4 p;
+    p.setToIdentity();
 
     //    p.ortho(0,0,w,h,0.1,100.0);
     p.perspective( m_fov,  w / h, 0.1f, 100.0f );
@@ -706,48 +796,9 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         m_mvMatrix.setToIdentity();
 
         // Set up cube vertices
-        GLfloat vertices[] = {
-            // Front face
-            -1.0, -1.0,  1.0,
-            1.0, -1.0,  1.0,
-            1.0,  1.0,  1.0,
-            -1.0,  1.0,  1.0,
 
-            // Back face
-            -1.0, -1.0, -1.0,
-            -1.0,  1.0, -1.0,
-            1.0,  1.0, -1.0,
-            1.0, -1.0, -1.0,
-
-            // Top face
-            -1.0,  1.0, -1.0,
-            -1.0,  1.0,  1.0,
-            1.0,  1.0,  1.0,
-            1.0,  1.0, -1.0,
-
-            // Bottom face
-            -1.0, -1.0, -1.0,
-            1.0, -1.0, -1.0,
-            1.0, -1.0,  1.0,
-            -1.0, -1.0,  1.0,
-
-            // Right face
-            1.0, -1.0, -1.0,
-            1.0,  1.0, -1.0,
-            1.0,  1.0,  1.0,
-            1.0, -1.0,  1.0,
-
-            // Left face
-            -1.0, -1.0, -1.0,
-            -1.0, -1.0,  1.0,
-            -1.0,  1.0,  1.0,
-            -1.0,  1.0, -1.0
-        };
-
-
-
-        glVertexAttribPointer(m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
-        glVertexAttribPointer(m_hudColorAttribute,          4, GL_FLOAT, GL_FALSE, 0, colors);
+        glVertexAttribPointer(m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, cubeVertices);
+        glVertexAttribPointer(m_hudColorAttribute,          4, GL_FLOAT, GL_FALSE, 0, cubeColors);
 
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
@@ -766,29 +817,89 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
 // grid.js
 void GridWindow::drawGrid(int x, int y, float w, float h){
 
-    ///////// To test stencil
-    GLfloat vertices[] = {
-        -0.75f, 0.75f,
-        0.85f, 0.5f,
-        1.5f, -2.5f,
-        -1.4f, 0.0f
-    };
+    ////////////// Osteotomy test demo
+    if(this->m_osteotomyOn){
+        int testLayerCount = 100;
+        /// two layers for first image only
+        GridImage *grid = m_GridImages.first();
+        if(grid){
+            if(grid->m_gridLayers.count() == testLayerCount){
+                //
+            }else{
+                /// create testLayerCount layers
+                foreach(GridLayer *layer, grid->m_gridLayers){
+                    delete layer;
+                }
+                grid->m_gridLayers.clear();
+
+                srand(QDateTime::currentMSecsSinceEpoch());
+
+                int random = rand();
+
+                for(int i = 0; i < testLayerCount; i++){
+
+                    GridLayer * layer = new GridLayer;
+
+                    if( i < testLayerCount / 2 ) {
+                        layer->translate = QVector3D(
+                                    3.0 / ( rand() %3 ) * 1.0,
+                                    testLayerCount % 3 ?
+                                        3.0 / ( rand() %3 ) * 1.0 :
+                                        -3.0 / ( rand() %3 ) * 1.0,
+                                    0);
+                        layer->zrotation = (rand() * 1.0);
+                        layer->gridImage = grid;
+                    }else{
+                        layer->translate = QVector3D(
+                                    -3.0 / (rand() %3 ) * 1.0,
+                                    testLayerCount % 3 ?
+                                        3.0 / ( rand() %3 ) * 1.0 :
+                                        -3.0 / ( rand() %3 ) * 1.0,
+                                    0);
+                        layer->zrotation = (rand() * 1.0);
+                        layer->gridImage = grid;
+                    }
+                    grid->m_gridLayers << layer;
+                }
+            }
+        }else{
+            Q_ASSERT(false);
+        }
+    }else{
+        /// one layer
+        GridImage *grid = m_GridImages.first();
+        if(grid){
+            if(grid->m_gridLayers.count() == 1){
+                //
+            }else{
+                /// create 1 layer
+                foreach(GridLayer *layer, grid->m_gridLayers){
+                    delete layer;
+                }
+                grid->m_gridLayers.clear();
+
+                GridLayer * layer1 = new GridLayer;
+
+                layer1->translate = QVector3D(0,0,0);
+                layer1->zrotation = 0.0;
+                layer1->gridImage = grid;
+
+
+                grid->m_gridLayers << layer1;
+            }
+        }else{
+            Q_ASSERT(false);
+        }
+    }
+
+    if( m_layerDemoOn && ! m_osteotomyOn ){
+        /// DO layer demo
+    }
 
     ///////// To test stencil
-    GLfloat verticesStencil[] = {
-        -0.25f, 0.25f,
-        0.25f, 0.2f,
-        1.5f, -1.5f,
-        -0.4f, 0.0f
-    };
-
-
-    GLfloat color[] = {
-        0.0f,
-        0.0f,
-        0.0f,
-        1.0f
-    };
+    GLfloat vertices[]        = { -0.75f, 0.75f, 0.85f, 0.5f, 1.5f, -2.5f, -1.4f, 0.0f };
+    GLfloat verticesStencil[] = { -0.25f, 0.25f, 0.25f, 0.2f, 1.5f, -1.5f, -0.4f, 0.0f };
+    GLfloat color[]           = { 0.0f, 0.0f, 0.0f, 1.0f };
 
     glEnableClientState(GL_VERTEX_ARRAY);
     QMatrix4x4 p;
@@ -797,122 +908,117 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
     m_pMatrix = p;
 
     foreach(GridImage *grid, m_GridImages){
+        foreach(GridLayer *layer, grid->m_gridLayers){
+            m_mvMatrix.setToIdentity();
 
-        m_mvMatrix.setToIdentity();
+            m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
+            m_mvMatrix.translate( m_transX, m_transY, m_zoom);
 
-        m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
-        m_mvMatrix.translate( m_transX, m_transY, m_zoom);
+            m_mvMatrix.rotate( grid->q.scalar(), grid->q.vector() );
+            m_mvMatrix.rotate( m_sceneRotation );
 
-        m_mvMatrix.rotate( grid->q.scalar(), grid->q.vector() );
-        m_mvMatrix.rotate( m_sceneRotation );
-
-        m_mvStack.push(m_mvMatrix);
-
-        if(!m_osteotomyOn){
-            grid->m_zrotation = 0.0;
-            grid->m_translate = QVector3D();
-        }else{
-            grid->m_translate = grid->translate;
-        }
-        m_mvMatrix.translate( grid->m_translate );
-        m_mvMatrix.rotate( grid->m_zrotation, 0, 0, 1 );
-
-        glEnable(GL_STENCIL_TEST);
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
-
-        ///////// Tile Stencil
-        // Draw Stencil
-
-        _enableStencil();
-
-        glVertexAttribPointer(m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, verticesStencil);
-        glVertexAttribPointer(m_sceneColorAttribute, 4, GL_FLOAT, GL_FALSE, 0, color);
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-
-        glDrawArrays(GL_QUADS, 0, 4);
-
-        glDisableVertexAttribArray(1);
-        glDisableVertexAttribArray(0);
-
-        _disableStencil();
+            m_mvStack.push(m_mvMatrix);
 
 
+            m_mvMatrix.translate( layer->m_translate );
+            m_mvMatrix.rotate( layer->m_zrotation, 0, 0, 1 );
 
 
+            layer->m_translate = layer->translate;
 
-        ///////// Draw grid
+            //            glEnable(GL_STENCIL_TEST);
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LEQUAL);
 
-        glBindBuffer( GL_ARRAY_BUFFER, grid->m_squareVertexTextureCoordBuffer );
-        glVertexAttribPointer( m_sceneTextureCoordAttribute, 2 , GL_FLOAT, GL_FALSE, 0, 0 );
 
-        int rows = grid->m_imagegrid->rows();
-        int cols = grid->m_imagegrid->cols();
+            ///////// Draw grid
 
-        for( int row = 0; row < rows; row++ ) {
+            glBindBuffer( GL_ARRAY_BUFFER, grid->m_squareVertexTextureCoordBuffer );
+            glVertexAttribPointer( m_sceneTextureCoordAttribute, 2 , GL_FLOAT, GL_FALSE, 0, 0 );
 
-            /// TODO: to be removed, only here to demo
-            if(grid->zrotation > 0 && row < (rows / 2.0) -1)
-                continue;
-            if(grid->zrotation < 0 && row > (rows / 2.0) -1)
-                continue;
+            int rows = grid->m_imagegrid->rows();
+            int cols = grid->m_imagegrid->cols();
 
-            for( int col = 0; col < cols; col++ ) {
+            for( int row = 0; row < rows; row++ ) {
 
-                int tileIndex = _tileIndex( row, col, cols );
-
-                //////// Tile matrix
                 m_mvStack.push( m_mvMatrix );
                 m_mvMatrix.rotate( r2d( m_rotx ), 1, 0, 0 );
                 m_mvMatrix.rotate( r2d( m_roty ), 0, 1, 0 );
                 m_mvMatrix.rotate( r2d( m_animateSquare ), 0.4, 0.1, 0.8 );
 
-                // For "A" animation
-                if(row * col % 2 == 0){
-                    m_mvMatrix.rotate( r2d( m_animateEven ), 0.2, 0.4, 0.6 );
-                }else{
-                    m_mvMatrix.rotate( r2d( m_animateOdd ),  0.3, 1.0, 0.2 );
+                for( int col = 0; col < cols; col++ ) {
+
+                    int tileIndex = _tileIndex( row, col, cols );
+
+                    //////// Tile matrix
+
+                    // For "A" animation
+                    if(row * col % 2 == 0){
+                        m_mvMatrix.rotate( r2d( m_animateEven ), 0.2, 0.4, 0.6 );
+                    }else{
+                        m_mvMatrix.rotate( r2d( m_animateOdd ),  0.3, 1.0, 0.2 );
+                    }
+                    setSceneMatrixUniforms();
+                    setSceneColorUniforms();
+
+
+                    ///////// Tile Stencil
+                    // Draw Stencil
+
+                    //  _enableStencil();
+                    //  glUniform1i(m_sceneUStencil, 1);
+
+                    //  glVertexAttribPointer(m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, verticesStencil);
+                    //  glVertexAttribPointer(m_sceneColorAttribute, 4, GL_FLOAT, GL_FALSE, 0, color);
+
+                    //  glEnableVertexAttribArray(0);
+                    //  glEnableVertexAttribArray(1);
+
+                    //  glUniform1i(m_sceneUStencil, 1);
+                    //  glDrawArrays(GL_QUADS, 0, 4);
+                    //  glUniform1i(m_sceneUStencil, 0);
+
+                    //  glDisableVertexAttribArray(1);
+                    //  glDisableVertexAttribArray(0);
+
+                    //  glUniform1i(m_sceneUStencil, 0);
+                    //  _disableStencil();
+
+                    ///////////  Draw Tile
+
+                    //  Tile Buffer
+                    GLuint tileBuffer = grid->m_tilePositionBufferGrid[ tileIndex ];
+                    glBindBuffer( GL_ARRAY_BUFFER, tileBuffer );
+
+                    glVertexAttribPointer( m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0 );
+                    glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+                    GLuint tileTexture = grid->m_tileTextureGrid[ tileIndex ];
+                    glActiveTexture( GL_TEXTURE0 );
+                    glBindTexture( GL_TEXTURE_2D, tileTexture );
+                    glUniform1i( m_sceneSamplerUniform, 0 );
+
+                    glEnableVertexAttribArray( 0 );
+                    glEnableVertexAttribArray( 1 );
+
+                    //  Draw Arrays w stencil test
+                    glDrawArrays( GL_TRIANGLE_STRIP, 0, 5 );
+
+                    glDisableVertexAttribArray( 1 );
+                    glDisableVertexAttribArray( 0 );
+
+                    glBindBuffer( GL_ARRAY_BUFFER, 0);
+                    glBindTexture( GL_TEXTURE_2D, 0);
+
+                    glDisable(GL_STENCIL_TEST);
                 }
-                setSceneMatrixUniforms();
-                setSceneColorUniforms();
-
-                //  Draw Tile
-
-                /////////// Tile Buffer
-                GLuint tileBuffer = grid->m_tilePositionBufferGrid[ tileIndex ];
-                glBindBuffer( GL_ARRAY_BUFFER, tileBuffer );
-
-                glVertexAttribPointer( m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0 );
-                glBindBuffer( GL_ARRAY_BUFFER, 0 );
-
-                GLuint tileTexture = grid->m_tileTextureGrid[ tileIndex ];
-                glActiveTexture( GL_TEXTURE0 );
-                glBindTexture( GL_TEXTURE_2D, tileTexture );
-                glUniform1i( m_sceneSamplerUniform, 0 );
-
-                glEnableVertexAttribArray( 0 );
-                glEnableVertexAttribArray( 1 );
-
-                //////////// Draw Tile
-                glEnable(GL_STENCIL_TEST);
-                glDrawArrays( GL_TRIANGLE_STRIP, 0, 5 );
-                glDisable(GL_STENCIL_TEST);
-
-
-                glDisableVertexAttribArray( 1 );
-                glDisableVertexAttribArray( 0 );
-
-                glBindBuffer( GL_ARRAY_BUFFER, 0);
-                glBindTexture( GL_TEXTURE_2D, 0);
-
-
                 m_mvMatrix = m_mvStack.pop();
-
             }
+            m_mvMatrix = m_mvStack.pop();
         }
-        m_mvMatrix = m_mvStack.pop();
+
+
+
     }
     glDisable(GL_STENCIL_TEST);
     glDisableClientState(GL_VERTEX_ARRAY);
@@ -970,6 +1076,83 @@ void GridWindow::handleLoadedGridTexture(int index, int row, int col ){
               tile->image().width() == grid->m_imagegrid->dimension() );
 }
 
+void GridWindow::drawOverlayText( int x, int y, float w, float h ){
+
+    // Set up overlay perspective
+    QMatrix4x4 p;
+    p.setToIdentity();
+    p.perspective( m_fov,  w / h, 0.1f, 100.0f );
+    p.translate( 0, 0, -0.1 );
+
+    p.setToIdentity();
+
+    m_pMatrix = p;
+
+    m_mvMatrix.setToIdentity();
+
+    //    GLuint tex;
+    //    glActiveTexture(GL_TEXTURE0);
+
+    //    glEnableVertexAttribArray(0);
+    //    glBindBuffer(GL_ARRAY_BUFFER, m_hudTextVbo);
+    //    glVertexAttribPointer(m_hudTextVertexPositionAttribute, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    m_hudTextColor[0] = 1.0;//r
+    m_hudTextColor[1] = 1.0;//g
+    m_hudTextColor[2] = 1.0;//b
+    m_hudTextColor[3] = 1.0;//a
+
+    float sx = 2.0 / w;
+    float sy = 2.0 / h;
+
+    /* Set font size to 48 pixels, color to black */
+    FT_Set_Pixel_Sizes(m_face, 0, 48);
+
+    setHudTextUniforms();
+
+    /* Effects of alignment */
+    //    render_text("The Quick Brown Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 50 * sy, sx, sy);
+    //    render_text("The Misaligned Fox Jumps Over The Lazy Dog", -1 + 8.5 * sx, 1 - 100.5 * sy, sx, sy);
+
+    //    /* Scaling the texture versus changing the font size */
+    //    render_text("The Small Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 175 * sy, sx * 0.5, sy * 0.5);
+    //    FT_Set_Pixel_Sizes(m_face, 0, 24);
+    //    render_text("The Small Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 200 * sy, sx, sy);
+    //    FT_Set_Pixel_Sizes(m_face, 0, 48);
+    //    render_text("The Tiny Texture Scaled Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 235 * sy, sx * 0.25, sy * 0.25);
+    //    FT_Set_Pixel_Sizes(m_face, 0, 12);
+    //    render_text("The Tiny Font Sized Fox Jumps Over The Lazy Dog", -1 + 8 * sx, 1 - 250 * sy, sx, sy);
+    //    FT_Set_Pixel_Sizes(m_face, 0, 48);
+
+    //    glBindTexture( GL_TEXTURE_2D, tex );
+    //    glUniform1i( m_hudTextSamplerUniform, 0 );
+
+    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    //    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+    //    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+
+    //    glEnableVertexAttribArray(m_hudTextVertexPositionAttribute);
+    //    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    //    glVertexAttribPointer(m_hudTextVertexPositionAttribute, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+    //    GLfloat black[4] = {0, 0, 0, 1};
+    //    glUniform4fv(m_hudTextColorAttribute, 1, black);
+
+    //    glEnableVertexAttribArray( 0 );
+    //    glEnableVertexAttribArray( 1 );
+
+    //    setHudTextMatrixUniforms();
+    //    render_text("This is a test of some text", 0, 0, 10, 10);
+
+    //    glDisableVertexAttribArray(1);
+    //    glDisableVertexAttribArray(0);
+}
+
 ////////////////////////////////////////////////////////////////
 
 void GridWindow::controlAnimate() {
@@ -1004,9 +1187,11 @@ void GridWindow::controlAnimate() {
             }
         }
 
-        foreach(GridImage *grid, this->m_GridImages){
-            if(grid->m_zrotation != grid->zrotation){
-                grid->m_zrotation = grid->zrotation;
+        foreach( GridImage *image, m_GridImages ){
+            foreach( GridLayer *layer, image->m_gridLayers ){
+                if( layer->m_zrotation != layer->zrotation ){
+                    layer->m_zrotation = layer->zrotation;
+                }
             }
         }
 
@@ -1128,6 +1313,11 @@ void GridWindow::controlAnimate() {
 
 
 ////////////////////////////////////////////////////////////////////
+
+void GridWindow::toggleLayerDemo(){
+    m_layerDemoOn = !m_layerDemoOn;
+    qDebug() << "m_layerDemoOn:" << m_layerDemoOn;
+}
 
 void GridWindow::toggleOsteotomy(){
     m_osteotomyOn = !m_osteotomyOn;
@@ -1252,6 +1442,9 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
     int keycode = e->key();
     m_currentlyPressedKeys[keycode] = true;
     switch(keycode){
+    case Qt::Key_L:
+        toggleLayerDemo();
+        break;
     case Qt::Key_O:
         toggleOsteotomy();
         return;
@@ -1294,6 +1487,7 @@ void GridWindow::_render( qint64 frame )
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     drawScene(x, y, w, h);
     drawHud(x,y,w,h);
+    drawMeasurements(x, y, w, h);
     ++m_frame;
 }
 
@@ -1310,12 +1504,17 @@ void GridWindow::drawHud(int x, int y, float w, float h){
     m_hudProgram->release();
 
     m_hudTextProgram->bind();
-    drawOverlayText( x, y, w, h );
+//    drawOverlayText( x, y, w, h );
     m_hudTextProgram->release();
 }
 
+void GridWindow::drawMeasurements(int x, int y, int w, int h){
+    m_measurementsProgram->bind();
+    drawOverlayMeasurements(x, y, w, h);
+    m_measurementsProgram->release();
+}
+
 void GridWindow::_dbgZoom(){
-    qreal angle = m_fov / 2.0;
 
     qreal dx = qAbs( m_zoom / m_rulerZ);
     qreal dim = m_GridImages.first()->m_imagegrid->dimension();
@@ -1457,20 +1656,21 @@ void GridWindow::reset(){
     resetOrientation();
 }
 
-void GridWindow::addImage(ImageGrid *imageGrid, QQuaternion &q, QVector3D translate, qreal zrotation )
+void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
 {
-    GridImage *grid = (GridImage *)malloc(sizeof(GridImage));
-    memset(grid, 0, sizeof(GridImage));
-
+    GridImage *grid = new GridImage;
     grid->m_imagegrid = imageGrid;
     grid->q = q;
-    grid->translate = translate;
-    grid->zrotation = zrotation;
 
-    m_GridImages.append(grid);
+    GridLayer *defaultLayer = new GridLayer;
+    defaultLayer->gridImage = grid;
 
-    int index = m_GridImages.indexOf(grid);
-    imageGrid->setIndex(index);
+    grid->m_gridLayers.append( defaultLayer );
+
+    m_GridImages.append( grid );
+
+    int index = m_GridImages.indexOf( grid );
+    imageGrid->setIndex( index );
 
     bool ok;
     ok = connect(grid->m_imagegrid, SIGNAL(tileImageLoaded(int,int,int)), SLOT( handleLoadedGridTexture(int,int,int) ));Q_ASSERT(ok);

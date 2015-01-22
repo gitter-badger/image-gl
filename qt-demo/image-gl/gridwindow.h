@@ -6,6 +6,8 @@
 #include <QTimer>
 #include <QStack>
 #include <ft2build.h>
+#include <QMatrix4x4>
+
 #include FT_FREETYPE_H
 
 class ImageGrid;
@@ -24,18 +26,16 @@ struct GLSettings {
     GLfloat transY ;
 };
 
-struct GridImage {
-    bool bufferInitialized;
-    bool textureInitialized;
 
-    qreal m_zrotation;
-    QVector3D m_translate;
+struct GridLayer;
+struct GridImage;
 
-    QQuaternion q;
-    QVector3D translate;
-    qreal zrotation;
+class GridImage {
 
+public:
+    QList< GridLayer *> m_gridLayers;
 
+    QQuaternion q; // Position of image
     ImageGrid *m_imagegrid;
     GLuint m_squareVertexTextureCoordBuffer;
     GLuint *m_tilePositionBufferGrid;
@@ -43,6 +43,21 @@ struct GridImage {
     GLfloat **m_tiles;
     GLfloat *m_textureCoords;
 };
+
+class GridLayer {
+public:
+    GridImage *gridImage;
+
+    /// TODO: These to be removed, instead use matrix in GridLayer
+    qreal m_zrotation;
+    QVector3D m_translate;
+    QVector3D translate;
+    qreal zrotation;
+
+    QMatrix4x4 transformationMatrix;
+    QPolygonF stencilPolygon;
+};
+
 
 class GridWindow : public OpenGLWindow
 {
@@ -56,8 +71,14 @@ public:
 
     virtual void reset();
 
-    void addImage(ImageGrid *grid, QQuaternion &q, QVector3D translate = QVector3D(), qreal zrotation = 0);
-//    void setGrid(ImageGrid *grid);
+    void addImage(ImageGrid *grid , QQuaternion q = QQuaternion());
+
+
+    qreal r2d(qreal r);
+    qreal d2r(qreal d);
+    QPointF sm2gl(QPointF pixPos, ImageGrid *grid);
+    QPointF gl2sm(QPointF glPos, ImageGrid *grid);
+    qreal unitToPx(ImageGrid *grid);
 
 public slots:
     void setVFlip90(bool);
@@ -92,12 +113,16 @@ public slots:
     void zoomOut();
     void toggleAnimate();
     void toggleOsteotomy();
+    void toggleLayerDemo();
 
 protected:
-    void handleLoadedTexture(GridImage *grid, QImage image, GLuint texture);
     virtual void drawScene(int x, int y, float w, float h);
     virtual void drawHud(int x, int y, float w, float h);
+    virtual void drawMeasurements(int x, int y, int w, int h);
 
+    void handleLoadedTexture(GridImage *grid, QImage image, GLuint texture);
+
+    void drawOverlayMeasurements(int, int, float, float);
     void drawOverlay1(int, int, float, float);
     void drawOverlayText(int x, int y, float w, float h);
     void drawGrid(int, int, float, float);
@@ -133,6 +158,7 @@ private:
     void initShadersHud();
     void initShadersHudText();
     void initShadersTriangle();
+    void initShaderMeasurements();
     void initGridBuffersAndTextures();
     void initGridBuffers();
     void initGridTextures();
@@ -142,6 +168,7 @@ private:
     void setSceneMatrixUniforms();
     void setHudMatrixUniforms();
     void setHudTextUniforms();
+    void setMeasurementUniforms();
 
     void setSceneColorUniforms();
 
@@ -169,6 +196,11 @@ private:
     GLint m_hudTextMVMatrixUniform;
     GLint m_hudTextSamplerUniform;
 
+    GLint m_measurementPMatrixUniform;
+    GLint m_measurementMVMatrixUniform;
+    GLint m_measurementVertexAttribute;
+    GLint m_measurementColorAttribute;
+
     GLuint m_hudTextTextTexture;
     GLuint m_hudTextVbo;
     QVector4D m_hudTextColor;
@@ -178,6 +210,7 @@ private:
     QOpenGLShaderProgram *m_sceneProgram;
     QOpenGLShaderProgram *m_hudProgram;
     QOpenGLShaderProgram *m_hudTextProgram;
+    QOpenGLShaderProgram *m_measurementsProgram;
 
     int m_frame;
 
@@ -186,6 +219,7 @@ private:
     GLuint m_animateSquare;
     GLboolean m_animateOn = false;
     GLboolean m_osteotomyOn = false;
+    GLboolean m_layerDemoOn = false;
 
     // Animation
     // Variables used for animating flips & rotation
@@ -220,7 +254,6 @@ private:
     QQuaternion m_sceneRotation;
 
     QList< GridImage * > m_GridImages;
-
     GLfloat m_fov;
 
     bool m_vflip90;

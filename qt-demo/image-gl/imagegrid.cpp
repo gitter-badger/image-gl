@@ -91,6 +91,11 @@ bool ImageGrid::initTiles(qint64 dim)
         }
     }
     ok = true;
+
+    qDebug() << __FUNCTION__
+             << ((m_stretchwidth - origwidth)* 1.0) / (dim * 1.0)
+             << ((m_stretchheight - origheight)* 1.0) / (dim * 1.0);
+
     return ok;
 }
 

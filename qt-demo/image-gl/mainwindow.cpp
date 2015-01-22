@@ -232,8 +232,8 @@ void MainWindow::on_pushButtonOsteotomy_clicked()
     qreal zrotation0 = 12.0f;
     qreal zrotation1 = -12.0f;
 
-    m_gridWindow->addImage(m_gridAP, q, translate0, zrotation0 );
-    m_gridWindow->addImage(m_gridLAT, q, translate1, zrotation1 );
+    m_gridWindow->addImage( m_gridAP );
+    m_gridWindow->addImage( m_gridLAT );
 
     QSurfaceFormat format;
     format.setSamples(16);
@@ -263,7 +263,9 @@ void MainWindow::on_pushButtonDisplay_clicked()
 
     QQuaternion q1 = QQuaternion(0,0,0,0);
 
-    m_gridWindow->addImage(m_grid,q1);
+    m_gridWindow->addImage( m_grid );
+
+
 
     QSurfaceFormat format;
     format.setSamples(16);
