@@ -2,7 +2,6 @@
  * This file contains all mouse and keyboard controls
  */
 
-
 // constant rotation around y axis at m_flipfreq * 10
 var m_animateSquare = 0;
 var m_animateOn = false;
@@ -23,6 +22,10 @@ var minContrast = 0;
 var maxContrast = 200;
 var minGamma = 0;
 var maxGamma = 100;
+
+var m_brightness = initBrightness;
+var m_contrast = initContrast;
+var m_gamma = initGamma;
 
 var settings = {
     zoom: m_initZ,
@@ -73,6 +76,16 @@ function resetSettings() {
  	
  	updateBCG(settings.brightness, settings.contrast, settings.gamma);
  	updateInvert(settings.invert);
+}
+
+function toggleOsteotomy() {
+    alert('Osteotomy not available');
+}
+
+function resetColor() {
+    settings.brightness = initBrightness;
+    settings.contrast = initContrast;
+    settings.gamma = initGamma;
 }
 
 // Reset all control vars
@@ -374,6 +387,14 @@ function handleKeys() {
 			reset();
 		}
 	}
+
+    if(currentlyPressedKeys[79]){ // O key
+        toggleOsteotomy();
+    }
+
+    if(currentlyPressedKeys[67]){ // C key
+        resetColor();
+    }
 	if(currentlyPressedKeys[33]) { // Page Up
    		zoomIn();
 	}

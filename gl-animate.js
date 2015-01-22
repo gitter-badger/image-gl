@@ -39,85 +39,98 @@ function animate() {
 				}
 			}
 		}
-		
-        if(settings.zoom != zoomZ){
-            if(settings.zoom > zoomZ){
-                var step = (settings.zoom - zoomZ) / 16.0;
-                zoomZ += step;
-                if(zoomZ > m_maxZ){
-                    zoomZ = m_maxZ;
-                }
+
+        if(m_brightness != settings.brightness){
+            var step = ( settings.brightness - m_brightness ) / 4.0;
+            m_brightness += step;
+            if(m_brightness > maxBrightness){
+                m_brightness = maxBrightness;
             }
-            if(settings.zoom < zoomZ){
-                var step = (settings.zoom - zoomZ) / 16.0;
-                zoomZ += step;
-                if(zoomZ < m_minZ){
-                    zoomZ = m_minZ;
-                }
+            if(m_brightness < minBrightness){
+                m_brightness = minBrightness;
+            }
+        }
+
+        if(m_contrast != settings.contrast){
+            var step = ( settings.contrast - m_contrast ) / 4.0;
+            m_contrast += step;
+            if(m_contrast > maxContrast){
+                m_contrast = maxContrast;
+            }
+            if(m_contrast < minContrast){
+                m_contrast = minContrast;
+            }
+        }
+
+        if(m_gamma != settings.gamma){
+            var step = ( settings.gamma - m_gamma ) / 4.0;
+            m_gamma += step;
+            if( m_gamma > maxGamma ){
+                m_gamma = maxGamma;
+            }
+            if( m_gamma < minGamma ){
+                m_gamma = minGamma;
+            }
+        }
+
+        if(settings.zoom != zoomZ) {
+            var step = ( settings.zoom - zoomZ ) / 16.0;
+            zoomZ += step;
+
+            if (zoomZ < m_minZ) {
+                zoomZ = m_minZ;
+            }
+            if (zoomZ > m_maxZ) {
+                zoomZ = m_maxZ;
             }
         }
 		
-		
 	    if(settings.transX != transX){
-            if(settings.transX > transX){
-                var step = (settings.transX - transX) / 5.0;
-                transX += step;
-
-            }
-            if(settings.transX < transX){
-                var step = (settings.transX - transX) / 5.0;
-                transX += step;
-            }
+            var step = ( settings.transX - transX ) / 5.0;
+            transX += step;
         }
 
         if(settings.transY != transY){
-            if(settings.transY > transY){
-                var step = (settings.transY - transY) / 5.0;
-                transY += step;
-
-            }
-            if(settings.transY < transY){
-                var step = (settings.transY - transY) / 5.0;
-                transY += step;
-            }
+            var step = ( settings.transY - transY ) / 5.0;
+            transY += step;
         }
 
 		if(settings.flipH){
 			// increase from 0 to pi
-			m_rotx += (75 *elapsed) / m_flipfreq;
+			m_rotx += ( 75 *elapsed ) / m_flipfreq;
 			if(m_rotx > pi){
 				m_rotx = pi;
 			}
 		}else{
 			// decrease from pi to 0
-			m_rotx -= (75 * elapsed) / m_flipfreq;
+			m_rotx -= ( 75 * elapsed ) / m_flipfreq;
 			if(m_rotx < 0.0){
 				m_rotx = 0.0 
 			}
 		}
 		if(settings.flipV){
 			// increase from 0 to pi
-			m_roty += (75 * elapsed) / m_flipfreq;
+			m_roty += ( 75 * elapsed ) / m_flipfreq;
 			if(m_roty > pi){
 				m_roty = pi;
 			}
 		}else{
 			// decrease from pi to 0
-			m_roty -= (75 * elapsed) / m_flipfreq;
+			m_roty -= ( 75 * elapsed ) / m_flipfreq;
 			if(m_roty < 0.0){
 				m_roty = 0.0;
 			}
 		}
 
 		if(m_rotz < settings.rotation){
-			m_rotz += (75 * elapsed) / m_flipfreq;
+			m_rotz += ( 75 * elapsed ) / m_flipfreq;
 			if(m_rotz > settings.rotation){
 				// rotated too far
 				m_rotz = settings.rotation;
 			}
 		}
 		if(m_rotz > settings.rotation){
-			m_rotz -= (75 * elapsed) / m_flipfreq;
+			m_rotz -= ( 75 * elapsed ) / m_flipfreq;
 			if(m_rotz > settings.rotation){
 				// rotated too far
 				m_rotz = settings.rotation;
