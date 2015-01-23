@@ -92,9 +92,9 @@ bool ImageGrid::initTiles(qint64 dim)
     }
     ok = true;
 
-    qDebug() << __FUNCTION__
-             << ((m_stretchwidth - origwidth)* 1.0) / (dim * 1.0)
-             << ((m_stretchheight - origheight)* 1.0) / (dim * 1.0);
+//    qDebug() << __FUNCTION__
+//             << ((m_stretchwidth - origwidth)* 1.0) / (dim * 1.0)
+//             << ((m_stretchheight - origheight)* 1.0) / (dim * 1.0);
 
     return ok;
 }
@@ -282,7 +282,6 @@ QString ImageGrid::filePath(){
 void ImageGrid::setIndex(qint64 index)
 {
     m_index = index;
-    qDebug() << __FUNCTION__ << index;
 }
 
 bool ImageGrid::_writeImage(QImage &img, QPoint pos, int row, int column, int dim){

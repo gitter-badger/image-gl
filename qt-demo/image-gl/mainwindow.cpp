@@ -269,6 +269,7 @@ void MainWindow::on_pushButtonDisplay_clicked()
 
     QSurfaceFormat format;
     format.setSamples(16);
+    format.setStencilBufferSize(8);
 //    format.setRenderableType(QSurfaceFormat::OpenGLES);
 
     m_gridWindow->setFormat(format);

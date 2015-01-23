@@ -8,6 +8,7 @@
 #include <ft2build.h>
 #include <QMatrix4x4>
 
+#include <ft2build.h>
 #include FT_FREETYPE_H
 
 class ImageGrid;
@@ -126,12 +127,12 @@ protected:
     void drawOverlay1(int, int, float, float);
     void drawOverlayText(int x, int y, float w, float h);
     void drawGrid(int, int, float, float);
-    void drawTriangle(int, int, float, float);
 
     void render_text(const char *text, float x, float y, float sx, float sy);
 
 private:
-    void _dbgZoom();
+    int  _initTextResources();
+    qreal _dbgZoom();
     void _render(qint64 frame);
     void _enableStencil();
     void _disableStencil();
@@ -157,8 +158,8 @@ private:
     void initShadersScene();
     void initShadersHud();
     void initShadersHudText();
-    void initShadersTriangle();
     void initShaderMeasurements();
+
     void initGridBuffersAndTextures();
     void initGridBuffers();
     void initGridTextures();
@@ -191,7 +192,7 @@ private:
     GLint m_hudMVMatrixUniform;
 
     GLint m_hudTextVertexPositionAttribute;
-    GLint m_hudTextColorAttribute;
+    GLint m_hudTextColorUniform;
     GLint m_hudTextPMatrixUniform;
     GLint m_hudTextMVMatrixUniform;
     GLint m_hudTextSamplerUniform;
@@ -211,8 +212,6 @@ private:
     QOpenGLShaderProgram *m_hudProgram;
     QOpenGLShaderProgram *m_hudTextProgram;
     QOpenGLShaderProgram *m_measurementsProgram;
-
-    int m_frame;
 
     GLSettings m_settings;
 
@@ -244,6 +243,7 @@ private:
 
     QMatrix4x4 m_pMatrix;
     QMatrix4x4 m_mvMatrix;
+
     QStack<QMatrix4x4> m_mvStack;
 
     GLfloat m_brightness;

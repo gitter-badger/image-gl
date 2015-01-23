@@ -23,7 +23,7 @@ OpenGLFunctionsDebug::OpenGLFunctionsDebug(QOpenGLContext * context):
 }
 
 void	OpenGLFunctionsDebug::glActiveTexture(GLenum texture){
-    QOpenGLFunctions::glActiveTexture(texture);{ GLenum error = glGetError(); if(error != GL_NO_ERROR){ qDebug() << __FUNCTION__ << error;  } }
+    QOpenGLFunctions::glActiveTexture(texture);GL_DEBUG
 }
 
 void	OpenGLFunctionsDebug::glAttachShader(GLuint program, GLuint shader){
