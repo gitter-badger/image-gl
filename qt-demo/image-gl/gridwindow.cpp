@@ -284,11 +284,11 @@ void GridWindow::webGLStart() {
     //    initShadersTriangle();
     initGridBuffersAndTextures();
 
-    glClearColor(0.1, 0.1, 0.1, 1.0);
+    glClearColor(0.2, 0.2, 0.2, 1.0);
 
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-    //glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
@@ -567,9 +567,9 @@ void GridWindow::drawOverlayMeasurements( int x, int y, float w, float h ){
     QMatrix4x4 p;
     p.setToIdentity();
 
-    //    p.ortho(0,0,w,h,0.1,100.0);
-    p.perspective( m_fov,  w / h, 0.1f, 100.0f );
-    p.translate( 0, 0, -0.1 );
+//    p.ortho(0,0,w,h,0.01,100.0);
+    p.perspective( m_fov,  w / h, 0.01f, 100.0f );
+    p.translate( 0, 0, -0.01 );
 
     m_pMatrix = p;
     m_mvMatrix.setToIdentity();
@@ -602,23 +602,24 @@ void GridWindow::drawOverlayMeasurements( int x, int y, float w, float h ){
     };
 
     GLfloat colors[] = {
-        1.0, 1.0, 0.0, 0.7,
-        1.0, 1.0, 0.0, 0.7,
-        1.0, 1.0, 0.0, 0.7,
-        1.0, 1.0, 0.0, 0.7
+        1.0, 1.0, 0.0, 0.2,
+        1.0, 1.0, 0.0, 0.2,
+        1.0, 1.0, 0.0, 0.2,
+        1.0, 1.0, 0.0, 0.2
     };
 
-    glVertexAttribPointer(m_measurementVertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
-    glVertexAttribPointer(m_measurementColorAttribute,  4, GL_FLOAT, GL_FALSE, 0, colors);
+//    glVertexAttribPointer(m_measurementVertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+//    glVertexAttribPointer(m_measurementColorAttribute,  4, GL_FLOAT, GL_FALSE, 0, colors);
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
+//    glEnableVertexAttribArray(0);
+//    glEnableVertexAttribArray(1);
 
-    setMeasurementUniforms();
-    glDrawArrays(GL_QUADS, 0, 4);
+//    setMeasurementUniforms();
 
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(0);
+//    glDrawArrays(GL_QUADS, 0, 4);
+
+//    glDisableVertexAttribArray(1);
+//    glDisableVertexAttribArray(0);
 
     m_mvMatrix = m_mvStack.pop();
 }
@@ -694,8 +695,8 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
     p.setToIdentity();
 
     //    p.ortho(0,0,w,h,0.1,100.0);
-    p.perspective( m_fov,  w / h, 0.1f, 100.0f );
-    p.translate( 0, 0, -0.1 );
+    p.perspective( m_fov,  w / h, 0.01f, 100.0f );
+    p.translate( 0, 0, -0.01 );
 
     m_pMatrix = p;
     m_mvMatrix.setToIdentity();
@@ -712,7 +713,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         GLfloat centerX = 0.0;
         GLfloat centerY = 0.0;
 
-        GLfloat vertices[ dots  * 3 ];
+        GLfloat vertices[ (dots  * 3) + ( 6 ) ];
         float stepSize = ( (2.0 * pi) / dots );
         int i = 0;
         for (float d = 0; d <= ( 2.0* pi ) - stepSize ; d += stepSize ) {
@@ -721,7 +722,16 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
             vertices[ i++ ] = 0.0f;
         }
 
-        GLfloat colors[dots * 4];
+        vertices[ i++ ] = 0.0f;
+        vertices[ i++ ] = 0.0f;
+        vertices[ i++ ] = 0.0f;
+
+        vertices[ i++ ] = 0.0f;
+        vertices[ i++ ] = 0.5f;
+        vertices[ i++ ] = 0.0f;
+
+
+        GLfloat colors[dots * 4 + 8];
         int j = 0;
         for(i = 0; i < dots; i++){
             colors[ j++ ] = 0.0;// red
@@ -735,6 +745,15 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
 
             colors[ j++ ] = 1.0;// alpha
         }
+        colors[ j++ ] = 1.0;// r
+        colors[ j++ ] = 0.0;// g
+        colors[ j++ ] = 0.0;// b
+        colors[ j++ ] = 1.0;// a
+
+        colors[ j++ ] = 1.0;// r
+        colors[ j++ ] = 0.0;// g
+        colors[ j++ ] = 0.0;// b
+        colors[ j++ ] = 1.0;// a
 
         glVertexAttribPointer( m_hudVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices );
         glVertexAttribPointer( m_hudColorAttribute,          4, GL_FLOAT, GL_FALSE, 0, colors );
@@ -745,6 +764,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         setHudMatrixUniforms();
 
         glDrawArrays( GL_LINE_LOOP, 0, dots );
+        glDrawArrays( GL_LINES, dots , 2 );
 
         glDisableVertexAttribArray( 1 );
         glDisableVertexAttribArray( 0 );
@@ -1010,17 +1030,13 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
                     glBindBuffer( GL_ARRAY_BUFFER, 0);
                     glBindTexture( GL_TEXTURE_2D, 0);
 
-                    glDisable(GL_STENCIL_TEST);
+//                    glDisable(GL_STENCIL_TEST);
                 }
                 m_mvMatrix = m_mvStack.pop();
             }
             m_mvMatrix = m_mvStack.pop();
         }
-
-
-
     }
-    glDisable(GL_STENCIL_TEST);
     glDisableClientState(GL_VERTEX_ARRAY);
     m_frame++;
 }
@@ -1028,7 +1044,7 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
 void GridWindow::drawTriangle( int x, int y, float w, float h )
 {
     QMatrix4x4 matrix;
-    matrix.perspective( m_fov, w/h, 0.1f, 100.0f);
+    matrix.perspective( m_fov, w/h, 0.01f, 100.0f);
     matrix.translate(0, 0, m_zoom);
     matrix.rotate(100.0f * m_frame / screen()->refreshRate(), 0, 1, 0);
 
@@ -1081,8 +1097,8 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     // Set up overlay perspective
     QMatrix4x4 p;
     p.setToIdentity();
-    p.perspective( m_fov,  w / h, 0.1f, 100.0f );
-    p.translate( 0, 0, -0.1 );
+    p.perspective( m_fov,  w / h, 0.01f, 100.0f );
+    p.translate( 0, 0, -0.01 );
 
     p.setToIdentity();
 
