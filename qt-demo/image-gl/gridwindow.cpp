@@ -12,7 +12,7 @@ GLboolean m_animateOn = false;
 
 // zoom range & init
 const GLfloat m_maxZ = -0.01;
-const GLfloat m_minZ = -50.0;
+const GLfloat m_minZ = -100.0;
 const GLfloat m_initZ = -8.0;
 const GLfloat m_stepZ = 5.0;
 
@@ -58,7 +58,7 @@ QPointF GridWindow::sm2gl(QPointF pixPos, ImageGrid *grid){
     qreal dim  = grid->dimension();
 
     x = - ( cols / 2.0) + x / dim; //Units from Left
-    y = - ( rows / 2.0) + ( grid->m_stretchheight * 1.0 - y ) / dim; // Units from Bottom
+    y = - ( rows / 2.0) + (y / dim); // Units from Bottom
 
     return QPointF( x, y );
 }
@@ -85,7 +85,7 @@ struct point {
     GLfloat t;
 };
 
-
+//// Grid shaders
 static const char *vertexShaderSourceG =
         "attribute vec2 aVertexPosition;\n"
         "attribute vec2 aTextureCoord;\n"
@@ -111,7 +111,7 @@ static const char *fragmentShaderSourceG =
         "void main(void) {\n"
         "vec4 oColor;\n"
         "if(uStencil == 0 ){\n"
-        "oColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n"
+          "oColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n"
         "mediump float brightness = uBCG.x;\n"
         "mediump float contrast = uBCG.y;\n"
         "mediump float gamma = uBCG.z;\n"
@@ -149,6 +149,8 @@ static const char *fragmentShaderSourceG =
         "  gl_FragColor = oColor;\n"
         "}\n";
 
+
+/// Hud text shaders
 static const char *vertexShaderSourceT =
         "uniform mat4 uMVMatrix;\n"
         "uniform mat4 uPMatrix;\n"
@@ -167,6 +169,8 @@ static const char *fragmentShaderSourceT =
         "   gl_FragColor = vec4( 1,1,1, texture2D( uSampler, vTextureCoord ).a) * uColor;\n"
         "}\n";
 
+
+/// Measurement shaders
 static const char *vertexShaderSourceM =
         "attribute highp vec4 aVertexPosition;\n"
         "attribute lowp vec4 aColor;\n"
@@ -182,6 +186,9 @@ static const char *fragmentShaderSourceM =
         "void main() {\n"
         "   gl_FragColor = vColor;\n"
         "}\n";
+
+
+/// Hud shaders
 static const char *vertexShaderSourceH =
         "attribute highp vec4 aVertexPosition;\n"
         "attribute lowp vec4 aColor;\n"
@@ -218,7 +225,7 @@ GridWindow::GridWindow()
       m_roty(0),
       m_rotz(0),
       lastTime(0),
-      m_panBase(0.002),
+      m_panBase(0.001),
       m_animateSquare(0),
       m_animateEven(0),
       m_animateOdd(0),
@@ -258,7 +265,8 @@ GridWindow::~GridWindow()
 
 // Initialize FreeType
 int GridWindow::_initTextResources(){
-    const char *fontfilename = "/Users/Jon/Downloads/FreeSans/FreeSans.ttf";
+//    const char *fontfilename = "/Users/Jon/Downloads/FreeSans/FreeSans.ttf";
+    const char *fontfilename = "/home/jsuppe/Developer/github.com/image-gl/qt-demo/image-gl/FreeSans.ttf";
     /* Initialize the FreeType2 library */
     if (FT_Init_FreeType(&m_ft)) {
         qDebug() << "Could not init freetype library";
@@ -288,7 +296,6 @@ void GridWindow::initialize()
     webGLStart();
 }
 
-// gl-bp.js
 void GridWindow::webGLStart() {
 
     initShadersScene();
@@ -301,7 +308,6 @@ void GridWindow::webGLStart() {
     glClearColor(0.0, 0.0, 0.0, 1.0);
 }
 
-// gl-shader.js
 void GridWindow::initShadersScene(){
     m_sceneProgram = new QOpenGLShaderProgram(this);
     m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceG );
@@ -359,13 +365,11 @@ void GridWindow::initShaderMeasurements(){
     m_measurementMVMatrixUniform           = m_measurementsProgram->uniformLocation( "uMVMatrix" );
 }
 
-// gl-bp.js
 void GridWindow::setSceneMatrixUniforms(){
     m_sceneProgram->setUniformValue(m_scenePMatrixUniform, m_pMatrix);
     m_sceneProgram->setUniformValue(m_sceneMVMatrixUniform, m_mvMatrix);
 }
 
-// gl-bp.js
 void GridWindow::setHudMatrixUniforms(){
     m_hudProgram->setUniformValue(m_hudPMatrixUniform, m_pMatrix);
     m_hudProgram->setUniformValue(m_hudMVMatrixUniform, m_mvMatrix);
@@ -387,12 +391,10 @@ void GridWindow::setSceneColorUniforms(){
     updateInvert();
 }
 
-// gl-shader.js
 void GridWindow::updateBCG() {
     glUniform4f(m_sceneBCGUniform, m_brightness, m_contrast, m_gamma, 1.0);
 }
 
-// gl-shader.js
 void GridWindow::updateInvert() {
     glUniform1i(m_sceneUInvert, m_settings.invert == true ? 1 : 0);
 }
@@ -407,8 +409,8 @@ void GridWindow::_enableStencil(){
 
     glStencilMask(0xFF);
 
-    glClear(GL_DEPTH_BUFFER_BIT);
-    glClear(GL_STENCIL_BUFFER_BIT);  // needs mask=0xFF
+//    glClear(GL_DEPTH_BUFFER_BIT);
+//    glClear(GL_STENCIL_BUFFER_BIT);  // needs mask=0xFF
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     glDepthMask(GL_FALSE);
@@ -842,16 +844,15 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
     }
 }
 
-// grid.js
 void GridWindow::drawGrid(int x, int y, float w, float h){
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     ////////////// Osteotomy test demo
     if(this->m_osteotomyOn){
-        int testLayerCount = 100;
+        int testLayerCount = 10;
         /// two layers for first image only
         GridImage *grid = m_GridImages.first();
         if(grid){
@@ -871,6 +872,16 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
                 for(int i = 0; i < testLayerCount; i++){
 
                     GridLayer * layer = new GridLayer;
+
+                    QPolygonF poly = QPolygonF();
+
+                    int width = grid->m_imagegrid->m_image.width();
+                    int height = grid->m_imagegrid->m_image.height();
+
+                    poly << QPointF(0,0) << QPointF(width, 0) <<  QPointF(width,height) << QPointF(0,height) << QPointF(0,0);
+
+                    layer->stencilPolygon = poly;
+
 
                     if( i < testLayerCount / 2 ) {
                         layer->translate = QVector3D(
@@ -912,10 +923,17 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
 
                 GridLayer * layer1 = new GridLayer;
 
+                QPolygonF poly = QPolygonF();
+
+                int width = grid->m_imagegrid->m_image.width();
+                int height = grid->m_imagegrid->m_image.height();
+
+                poly << QPointF(0,0) << QPointF(width, 0) <<  QPointF(width,height) << QPointF(0,height) << QPointF(0,0);
+
+                layer1->stencilPolygon = poly;
                 layer1->translate = QVector3D(0,0,0);
                 layer1->zrotation = 0.0;
                 layer1->gridImage = grid;
-
 
                 grid->m_gridLayers << layer1;
             }
@@ -931,7 +949,11 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
 
     ///////// To test stencil
     GLfloat vertices[]        = { -0.75f, 0.75f, 0.85f, 0.5f, 1.5f, -2.5f, -1.4f, 0.0f };
-    GLfloat verticesStencil[] = { -0.25f, 0.25f, 0.25f, 0.2f, 1.5f, -1.5f, -0.4f, 0.0f };
+    GLfloat verticesStencil[] = {
+        -2.25f, 2.25f,
+        2.25f, 2.2f,
+        2.5f, -2.5f,
+        -2.4f, -2.0f };
     GLfloat color[]           = { 0.0f, 0.0f, 0.0f, 1.0f };
 
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -942,6 +964,17 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
 
     foreach(GridImage *grid, m_GridImages){
         foreach(GridLayer *layer, grid->m_gridLayers){
+
+            ///// SEt up stencil vertices from layer polygon
+            GLfloat stencilVertices[ layer->stencilPolygon.count() * 2 ];
+            int stencilVerticesCount = 0;
+            foreach(QPointF point, layer->stencilPolygon){
+
+                QPointF pt = sm2gl(point,grid->m_imagegrid);
+
+                stencilVertices[stencilVerticesCount++] = pt.x();
+                stencilVertices[stencilVerticesCount++] = pt.y();
+            }
 
             m_mvStack.push(m_mvMatrix);
 
@@ -960,11 +993,6 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
 
             layer->m_translate = layer->translate;
 
-            //            glEnable(GL_STENCIL_TEST);
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LEQUAL);
-
-
             ///////// Draw grid
 
             glBindBuffer( GL_ARRAY_BUFFER, grid->m_squareVertexTextureCoordBuffer );
@@ -973,12 +1001,38 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
             int rows = grid->m_imagegrid->rows();
             int cols = grid->m_imagegrid->cols();
 
+
+            /////// Tile Stencil
+            ///
+            glClear(GL_STENCIL_BUFFER_BIT);
+//            setSceneMatrixUniforms();
+//            setSceneColorUniforms();
+
+//            _enableStencil();
+//            glUniform1i(m_sceneUStencil, 1);
+//            glVertexAttribPointer(m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, stencilVertices);
+//            glVertexAttribPointer(m_sceneColorAttribute, 4, GL_FLOAT, GL_FALSE, 0, color);
+
+//            glEnableVertexAttribArray(0);
+//            glEnableVertexAttribArray(1);
+
+//            glDrawArrays(GL_POLYGON, 0, stencilVerticesCount / 2);
+
+//            glDisableVertexAttribArray(1);
+//            glDisableVertexAttribArray(0);
+
+//            glUniform1i(m_sceneUStencil, 0);
+//            _disableStencil();
+
+//            glClear(GL_STENCIL_BUFFER_BIT);
+
             for( int row = 0; row < rows; row++ ) {
 
                 m_mvStack.push( m_mvMatrix );
                 m_mvMatrix.rotate( r2d( m_rotx ), 1, 0, 0 );
                 m_mvMatrix.rotate( r2d( m_roty ), 0, 1, 0 );
                 m_mvMatrix.rotate( r2d( m_animateSquare ), 0.4, 0.1, 0.8 );
+
 
                 for( int col = 0; col < cols; col++ ) {
 
@@ -992,31 +1046,30 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
                     }else{
                         m_mvMatrix.rotate( r2d( m_animateOdd ),  0.3, 1.0, 0.2 );
                     }
+
+
                     setSceneMatrixUniforms();
                     setSceneColorUniforms();
-
 
                     ///////// Tile Stencil
                     // Draw Stencil
 
-//                      _enableStencil();
-//                      glUniform1i(m_sceneUStencil, 1);
+//                    _enableStencil();
+//                    glUniform1i(m_sceneUStencil, 1);
+//                    glVertexAttribPointer(m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, stencilVertices);
+//                    glVertexAttribPointer(m_sceneColorAttribute, 4, GL_FLOAT, GL_FALSE, 0, color);
 
-//                      glVertexAttribPointer(m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, verticesStencil);
-//                      glVertexAttribPointer(m_sceneColorAttribute, 4, GL_FLOAT, GL_FALSE, 0, color);
+//                    glEnableVertexAttribArray(0);
+//                    glEnableVertexAttribArray(1);
 
-//                      glEnableVertexAttribArray(0);
-//                      glEnableVertexAttribArray(1);
+//                    glDrawArrays(GL_POLYGON, 0, stencilVerticesCount / 2);
 
-//                      glUniform1i(m_sceneUStencil, 1);
-//                      glDrawArrays(GL_QUADS, 0, 4);
-//                      glUniform1i(m_sceneUStencil, 0);
+//                    glDisableVertexAttribArray(1);
+//                    glDisableVertexAttribArray(0);
 
-//                      glDisableVertexAttribArray(1);
-//                      glDisableVertexAttribArray(0);
+//                    glUniform1i(m_sceneUStencil, 0);
+//                    _disableStencil();
 
-//                      glUniform1i(m_sceneUStencil, 0);
-//                      _disableStencil();
 
                     ///////////  Draw Tile
 
@@ -1036,6 +1089,10 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
                     glEnableVertexAttribArray( 1 );
 
                     //  Draw Arrays w stencil test
+
+                    setSceneMatrixUniforms();
+                    setSceneColorUniforms();
+
                     glDrawArrays( GL_TRIANGLE_STRIP, 0, 5 );
 
                     glDisableVertexAttribArray( 1 );
@@ -1044,7 +1101,6 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
                     glBindBuffer( GL_ARRAY_BUFFER, 0);
                     glBindTexture( GL_TEXTURE_2D, 0);
 
-                    //                    glDisable(GL_STENCIL_TEST);
                 }
                 m_mvMatrix = m_mvStack.pop();
             }
@@ -1052,6 +1108,8 @@ void GridWindow::drawGrid(int x, int y, float w, float h){
         }
     }
     glDisableClientState(GL_VERTEX_ARRAY);
+
+    glDisable(GL_STENCIL_TEST);
     glDisable(GL_DEPTH_TEST);
 }
 
@@ -1071,28 +1129,9 @@ void GridWindow::handleLoadedGridTexture(int index, int row, int col ){
 }
 
 void GridWindow::drawOverlayText( int x, int y, float w, float h ){
-
-    //    // Set up overlay perspective
-    //    QMatrix4x4 p;
-    //    p.setToIdentity();
-
-    ////    p.perspective( m_fov,  w / h, 0.01f, 100.0f );
-    //        p.ortho(0,0,w,h,0.01,100.0);
-    ////    p.translate( 0, 0, -0.01 );
-
-    //    m_pMatrix = p;
-
-    //    m_mvStack.push( m_mvMatrix );
-
-    //    m_mvMatrix.setToIdentity();
-    ////    m_mvMatrix.translate(0.0f,0.0f,-8.0f);
-
-
-
     QMatrix4x4 p;
     p.setToIdentity();
 
-    //    p.ortho(0,0,w,h,0.1,100.0);
     p.perspective( m_fov,  w / h, 0.01f, 100.0f );
     p.translate( 0, 0, -0.01 );
 
@@ -1103,10 +1142,6 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     m_mvMatrix.setToIdentity();
     m_mvMatrix.translate(0.0f,0.0f,-1.0f);
 
-
-
-
-
     /* Enable blending, necessary for our alpha texture */
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
@@ -1116,9 +1151,6 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     m_hudTextColor[2] = 1.0;//b
     m_hudTextColor[3] = 1.0;//a
 
-    //    float sx = 2.0 / ( w  * 1.0 );
-    //    float sy = 2.0 / ( h * 1.0 );
-
     float sx = 2.0 / ( w  * 1.0 );
     float sy = 2.0 / ( h * 1.0 );
 
@@ -1127,9 +1159,10 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
 
     setHudTextUniforms();
     QString px = QString("%1px").arg(_dbgZoom());
+    QString sfps = QString("FPS: %1 ").arg(fps());
 
-    render_text(px.toLatin1(), 0.40, -0.4, sx, sy);
-
+//    render_text(px.toLatin1(), 0.40, -0.4, sx, sy);
+    render_text(sfps.toLatin1(), 0.20, -0.4, sx, sy);
 
     if(m_rotz != m_settings.rotation){
         QString rot = QString( "Rotation: %1" ).arg(r2d( m_rotz ));
@@ -1147,8 +1180,27 @@ void GridWindow::controlAnimate() {
     QDateTime dt;
     qint64 timeNow = dt.currentMSecsSinceEpoch();
 
+
+
     if (lastTime != 0) {
         qint64 elapsed = timeNow - lastTime;
+
+
+        int samples = 5;
+
+        /// Calculate FPS
+        m_frameTime.push_back(elapsed);
+        if(m_frameTime.count() > samples){
+            m_frameTime.pop_front();
+        }
+
+        qreal sum = 0;
+        foreach(int val, m_frameTime){
+            sum +=val;
+        }
+
+        qreal avgFrameTime = sum / m_frameTime.count();
+        m_fps  = 1000.0 / avgFrameTime ;
 
         if(m_animateOn){
             m_animateSquare += (75 * elapsed) / (m_flipfreq * 50) ;
@@ -1217,7 +1269,7 @@ void GridWindow::controlAnimate() {
         }
 
         if(m_settings.zoom != m_zoom){
-            float step = (m_settings.zoom - m_zoom) / 10.0;
+            float step = (m_settings.zoom - m_zoom) / (fps() / 7.0);
             m_zoom += step;
             if(fabs(step) < 0.0001){
                 m_zoom = m_settings.zoom;
@@ -1233,13 +1285,13 @@ void GridWindow::controlAnimate() {
         if(m_settings.transX != m_transX ||
                 m_settings.transX > m_transX
                 || m_settings.transX < m_transX){
-            float step = (m_settings.transX - m_transX) / 6.0;
+            float step = (m_settings.transX - m_transX) / (fps() / 7.0);
             m_transX += step;
         }
 
         if(m_settings.transY != m_transY
                 || m_settings.transY > m_transY ){
-            float step = (m_settings.transY - m_transY) / 6.0;
+            float step = (m_settings.transY - m_transY) / (fps() / 7.0);
             m_transY += step;
         }
 
@@ -1390,7 +1442,6 @@ void GridWindow::mouseMoveEvent(QMouseEvent *event){
     }
 
     if(isCommandKeyDown() || isCtrlKeyDown()){
-
         if(deltaX > 0){
             for(int i = 0; i < deltaX; i++){
                 panRight();
@@ -1472,20 +1523,24 @@ void GridWindow::_render( qint64 frame )
     int h = height() * retinaScale;
 
     glViewport(x, y, w, h);
+    glStencilMask(0xFF);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+//    glFrontFace(GL_CW);
+//    glCullFace(GL_BACK);
+//    glEnable(GL_CULL_FACE);
     drawScene(x, y, w, h);
     drawMeasurements(x, y, w, h);
     drawHud(x,y,w,h);
 }
 
 // grid.js
-void GridWindow::drawScene(int x, int y, float w, float h){
+void GridWindow::drawScene( int x, int y, float w, float h ){
     m_sceneProgram->bind();
     drawGrid( x, y, w, h );
     m_sceneProgram->release();
 }
 
-void GridWindow::drawHud(int x, int y, float w, float h){
+void GridWindow::drawHud( int x, int y, float w, float h ){
     m_hudProgram->bind();
     drawOverlay1( x, y, w, h );
     m_hudProgram->release();
@@ -1495,10 +1550,14 @@ void GridWindow::drawHud(int x, int y, float w, float h){
     m_hudTextProgram->release();
 }
 
-void GridWindow::drawMeasurements(int x, int y, int w, int h){
+void GridWindow::drawMeasurements( int x, int y, int w, int h ){
     m_measurementsProgram->bind();
-    drawOverlayMeasurements(x, y, w, h);
+    drawOverlayMeasurements( x, y, w, h );
     m_measurementsProgram->release();
+}
+
+qreal GridWindow::fps(){
+    return m_fps;
 }
 
 qreal GridWindow::_dbgZoom(){
@@ -1513,7 +1572,7 @@ qreal GridWindow::_dbgZoom(){
 void GridWindow::zoomIn(){
     m_zoomStep = m_settings.zoom / 10.0f;
     m_settings.zoom += m_zoomStep;
-    if (m_settings.zoom >  m_maxZ) {
+    if ( m_settings.zoom >  m_maxZ ) {
         m_settings.zoom = m_maxZ;
     }
     //    _dbgZoom();
@@ -1523,7 +1582,7 @@ void GridWindow::zoomIn(){
 void GridWindow::zoomOut(){
     m_zoomStep = m_settings.zoom / 10.0f;
     m_settings.zoom -= m_zoomStep;
-    if (m_settings.zoom <  m_minZ) {
+    if ( m_settings.zoom <  m_minZ ) {
         m_settings.zoom = m_minZ;
     }
     _dbgZoom();
@@ -1533,8 +1592,8 @@ void GridWindow::zoomOut(){
 void GridWindow::panUp()   {
     qreal y = -m_settings.zoom * m_panBase;
     qreal x = 0.0;
-    m_settings.transX += x * cos(m_settings.rotation) + y * sin(m_settings.rotation);
-    m_settings.transY += y * cos(m_settings.rotation) - x * sin(m_settings.rotation);
+    m_settings.transX += x * cos( m_settings.rotation ) + y * sin( m_settings.rotation );
+    m_settings.transY += y * cos( m_settings.rotation ) - x * sin( m_settings.rotation );
     //    qDebug() << "PAN UP:" << m_settings.transX << m_settings.transY;
 }
 
@@ -1542,8 +1601,8 @@ void GridWindow::panUp()   {
 void GridWindow::panDown() {
     qreal y = m_settings.zoom * m_panBase;
     qreal x = 0.0;
-    m_settings.transX += x * cos(m_settings.rotation) + y * sin(m_settings.rotation);
-    m_settings.transY += y * cos(m_settings.rotation) - x * sin(m_settings.rotation);
+    m_settings.transX += x * cos( m_settings.rotation ) + y * sin( m_settings.rotation );
+    m_settings.transY += y * cos( m_settings.rotation ) - x * sin( m_settings.rotation );
     //    qDebug() << "PAN DOWN:" << m_settings.transX << m_settings.transY;
 }
 
@@ -1551,8 +1610,8 @@ void GridWindow::panDown() {
 void GridWindow::panLeft() {
     qreal x = m_settings.zoom * m_panBase;
     qreal y = 0.0;
-    m_settings.transX += x * cos(m_settings.rotation) + y * sin(m_settings.rotation);
-    m_settings.transY += y * cos(m_settings.rotation) - x * sin(m_settings.rotation);
+    m_settings.transX += x * cos( m_settings.rotation ) + y * sin( m_settings.rotation );
+    m_settings.transY += y * cos( m_settings.rotation ) - x * sin( m_settings.rotation );
     //    qDebug() << "PAN LEFT:" << m_settings.transX << m_settings.transY;
 }
 
@@ -1560,8 +1619,8 @@ void GridWindow::panLeft() {
 void GridWindow::panRight() {
     qreal x = -m_settings.zoom * m_panBase;
     qreal y = 0.0;;
-    m_settings.transX += x * cos(m_settings.rotation) + y * sin(m_settings.rotation);
-    m_settings.transY += y * cos(m_settings.rotation) - x * sin(m_settings.rotation);
+    m_settings.transX += x * cos( m_settings.rotation ) + y * sin( m_settings.rotation );
+    m_settings.transY += y * cos( m_settings.rotation ) - x * sin( m_settings.rotation );
     //    qDebug() << "PAN RIGHT:" << m_settings.transX << m_settings.transY;
 }
 
@@ -1585,40 +1644,40 @@ void GridWindow::invert() {
 
 // control.js
 void GridWindow::handleKeys() {
-    if(m_currentlyPressedKeys[Qt::Key_R]) { // r key
+    if(m_currentlyPressedKeys[Qt::Key_R]) {       // RESET
         reset();
     }
 
-    if(m_currentlyPressedKeys[Qt::Key_C]) {
+    if(m_currentlyPressedKeys[Qt::Key_C]) {       // COLOR RESET
         resetColor();
     }
 
-    if(m_currentlyPressedKeys[Qt::Key_W]){
+    if(m_currentlyPressedKeys[Qt::Key_W]){        // ORIENTATION RESET
         resetOrientation();
     }
 
-    if(m_currentlyPressedKeys[Qt::Key_PageUp]) { // Page Up
+    if(m_currentlyPressedKeys[Qt::Key_PageUp]) {  // ZOOM IN
         zoomIn();
     }
-    if(m_currentlyPressedKeys[Qt::Key_PageDown]){ // Page Down
+    if(m_currentlyPressedKeys[Qt::Key_PageDown]){ // ZOOM OUT
         zoomOut();
     }
-    if(m_currentlyPressedKeys[Qt::Key_Right]){ // LEft
+    if(m_currentlyPressedKeys[Qt::Key_Right]){    // PAN LEFT
         panLeft();
     }
-    if(m_currentlyPressedKeys[Qt::Key_Down]){ // UP
+    if(m_currentlyPressedKeys[Qt::Key_Down]){     // PAN UP
         panUp();
     }
-    if(m_currentlyPressedKeys[Qt::Key_Left]){ // RIGHT
+    if(m_currentlyPressedKeys[Qt::Key_Left]){     // PAN RIGHT
         panRight();
     }
-    if(m_currentlyPressedKeys[Qt::Key_Up]){ // DOWN
+    if(m_currentlyPressedKeys[Qt::Key_Up]){       // PAN DOWN
         panDown();
     }
-    if(m_currentlyPressedKeys[Qt::Key_End]){ // END
+    if(m_currentlyPressedKeys[Qt::Key_End]){      // ROT RIGHT
         rotateRight();
     }
-    if(m_currentlyPressedKeys[Qt::Key_Home]){ // HOME
+    if(m_currentlyPressedKeys[Qt::Key_Home]){     // ROT LEFT
         rotateLeft();
     }
     if(isCommandKeyDown()){
@@ -1652,7 +1711,17 @@ void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
     GridLayer *defaultLayer = new GridLayer;
     defaultLayer->gridImage = grid;
 
+    qreal width = imageGrid->m_image.width();
+    qreal height = imageGrid->m_image.height();
+
+    QPolygonF poly ;
+    poly << QPointF(0,0) << QPointF(width, 0) <<  QPointF(width,height) << QPointF(0,height) << QPointF(0,0);
+
+    defaultLayer->stencilPolygon = poly;
+
     grid->m_gridLayers.append( defaultLayer );
+
+
 
     m_GridImages.append( grid );
 

@@ -7,7 +7,7 @@
 #include <QStack>
 #include <ft2build.h>
 #include <QMatrix4x4>
-
+#include <QQueue>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
@@ -81,6 +81,7 @@ public:
     QPointF gl2sm(QPointF glPos, ImageGrid *grid);
     qreal unitToPx(ImageGrid *grid);
 
+    qreal fps();
 public slots:
     void setVFlip90(bool);
     void setSceneRotation(QQuaternion);
@@ -261,6 +262,9 @@ private:
     FT_Library m_ft;
     FT_Face m_face;
     FT_GlyphSlot m_glyph;
+
+    QQueue<qreal> m_frameTime;
+    qreal m_fps;
 };
 
 #endif // GRIDWINDOW_H
