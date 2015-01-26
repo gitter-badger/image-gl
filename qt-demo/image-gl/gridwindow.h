@@ -116,6 +116,7 @@ public slots:
     void toggleAnimate();
     void toggleOsteotomy();
     void toggleLayerDemo();
+    void toggleWireframe();
 
 protected:
     virtual void drawScene(int x, int y, float w, float h);
@@ -220,6 +221,7 @@ private:
     GLboolean m_animateOn = false;
     GLboolean m_osteotomyOn = false;
     GLboolean m_layerDemoOn = false;
+    GLboolean m_wireframe = true;
 
     // Animation
     // Variables used for animating flips & rotation
@@ -265,6 +267,7 @@ private:
 
     QQueue<qreal> m_frameTime;
     qreal m_fps;
+    int m_frame;
 };
 
 #endif // GRIDWINDOW_H

@@ -274,7 +274,7 @@ void MainWindow::on_pushButtonDisplay_clicked()
 
     m_gridWindow->setFormat(format);
 
-    m_gridWindow->resize(768, 1000);
+    m_gridWindow->resize(1280, 1024);
     m_gridWindow->setAnimating(true);
     m_gridWindow->show();
 }
