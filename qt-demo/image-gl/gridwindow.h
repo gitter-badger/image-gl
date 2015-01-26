@@ -82,6 +82,7 @@ public:
     qreal unitToPx(ImageGrid *grid);
 
     qreal fps();
+
 public slots:
     void setVFlip90(bool);
     void setSceneRotation(QQuaternion);
@@ -125,19 +126,23 @@ protected:
 
     void handleLoadedTexture(GridImage *grid, QImage image, GLuint texture);
 
-    void drawOverlayMeasurements(int, int, float, float);
-    void drawOverlay1(int, int, float, float);
-    void drawOverlayText(int x, int y, float w, float h);
-    void drawGrid(int, int, float, float);
+
+    void drawOverlayMeasurements( int, int, float, float );
+    void drawOverlay1( int, int, float, float );
+    void drawOverlayText( int x, int y, float w, float h );
+    void drawStencil( GridLayer *layer );
+    void drawGrid( GridLayer *layer );
 
     void render_text(const char *text, float x, float y, float sx, float sy);
 
 private:
-    int  _initTextResources();
+
+    void  _updateLayers();
+    int   _initTextResources();
     qreal _dbgZoom();
-    void _render(qint64 frame);
-    void _enableStencil();
-    void _disableStencil();
+    void  _render(qint64 frame);
+    void  _enableStencil();
+    void  _disableStencil();
 
     void controlAnimate();
     bool isCtrlKeyDown();
@@ -161,6 +166,7 @@ private:
     void initShadersHud();
     void initShadersHudText();
     void initShaderMeasurements();
+    void initShadersStencil();
 
     void initGridBuffersAndTextures();
     void initGridBuffers();
@@ -172,48 +178,62 @@ private:
     void setHudMatrixUniforms();
     void setHudTextUniforms();
     void setMeasurementUniforms();
-
     void setSceneColorUniforms();
+    void setStencilMatrixUniforms();
 
     GLuint loadShader(GLenum type, const char *source);
 
+
+    /// SCENE
+    QOpenGLShaderProgram *m_sceneProgram;
     GLint m_sceneVertexPositionAttribute;
     GLint m_sceneTextureCoordAttribute;
     GLint m_sceneColorAttribute;
     GLint m_sceneUInvert;
     GLint m_sceneUStencil;
-
     GLint m_sceneBCGUniform;
     GLint m_sceneMVMatrixUniform;
     GLint m_scenePMatrixUniform;
     GLint m_sceneSamplerUniform;
 
+    /// STENCIL
+    QOpenGLShaderProgram *m_stencilProgram;
+    GLint m_stencilVertexPositionAttribute;
+    GLint m_stencilMVMatrixUniform;
+    GLint m_stencilPMatrixUniform;
+
+    /// HUD
+    QOpenGLShaderProgram *m_hudProgram;
     GLint m_hudVertexPositionAttribute ;
     GLint m_hudColorAttribute;
     GLint m_hudPMatrixUniform;
     GLint m_hudMVMatrixUniform;
 
+
+    /// HUD TEXT
+    QOpenGLShaderProgram *m_hudTextProgram;
     GLint m_hudTextVertexPositionAttribute;
     GLint m_hudTextColorUniform;
     GLint m_hudTextPMatrixUniform;
     GLint m_hudTextMVMatrixUniform;
     GLint m_hudTextSamplerUniform;
-
-    GLint m_measurementPMatrixUniform;
-    GLint m_measurementMVMatrixUniform;
-    GLint m_measurementVertexAttribute;
-    GLint m_measurementColorAttribute;
-
     GLuint m_hudTextTextTexture;
     GLuint m_hudTextVbo;
     QVector4D m_hudTextColor;
+    FT_Library m_ft;
+    FT_Face m_face;
+    FT_GlyphSlot m_glyph;
+
+    /// MEAUREMENT
+    QOpenGLShaderProgram *m_measurementsProgram;
+    GLint m_measurementPMatrixUniform;
+    GLint m_measurementMVMatrixUniform;
+    GLint m_measurementVertexPositionAttribute;
+    GLint m_measurementColorAttribute;
+
 
     bool m_gridInitialized;
 
-    QOpenGLShaderProgram *m_sceneProgram;
-    QOpenGLShaderProgram *m_hudProgram;
-    QOpenGLShaderProgram *m_hudTextProgram;
-    QOpenGLShaderProgram *m_measurementsProgram;
 
     GLSettings m_settings;
 
@@ -240,34 +260,36 @@ private:
     GLfloat m_transX;
     GLfloat m_transY;
 
-    GLfloat *m_pColor;
-    bool m_currentlyPressedKeys[Qt::Key_unknown];
-    QPoint m_lastMouse;
+//    GLfloat *m_pColor;
+    bool m_currentlyPressedKeys[Qt::Key_unknown]; // currently pressed keys
+    QPoint m_lastMouse; // Last mouse recorded position
 
-    QMatrix4x4 m_pMatrix;
-    QMatrix4x4 m_mvMatrix;
+    QMatrix4x4 m_pMatrix; // Current perspective matrix
+    QMatrix4x4 m_mvMatrix; // Current ModelView matrix
 
-    QStack<QMatrix4x4> m_mvStack;
+    QStack<QMatrix4x4> m_mvStack; // ModelView matrix stack
 
     GLfloat m_brightness;
     GLfloat m_contrast;
     GLfloat m_gamma;
-    GLfloat m_zoomStep;
 
-    QQuaternion m_sceneRotation;
+    GLfloat m_zoomStep; // The calculated amount of zoom for the next zoom operation
+
+    QQuaternion m_sceneRotation; // Used to set an rotation on the MV matrix
 
     QList< GridImage * > m_GridImages;
+
+    // The field of View
     GLfloat m_fov;
 
+    // This is used for a 90 degree rotate over the Y axis. In one of the Demo's
+    // I showed how the 2 images can both be present in the scene concurrently but
+    // at 90 degree angle from eachother- for example: AP and Lateral images
     bool m_vflip90;
 
-    FT_Library m_ft;
-    FT_Face m_face;
-    FT_GlyphSlot m_glyph;
-
-    QQueue<qreal> m_frameTime;
-    qreal m_fps;
-    int m_frame;
+    QQueue<qreal> m_frameTime; // Used to calculate FPS
+    qreal m_fps; // Set to the calculated FPS
+    int m_frame; // Frame counter
 };
 
 #endif // GRIDWINDOW_H
