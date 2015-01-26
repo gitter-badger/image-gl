@@ -456,7 +456,7 @@ void GridWindow::_enableStencil(){
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     glDepthMask(GL_FALSE);
     glStencilFunc(GL_NEVER, 1, 0xFF);
-    glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);  // draw 1s on test fail (always)
+    glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);  // draw 1s on test fail (always)
 
     // draw stencil pattern
     glStencilMask(0xFF);
@@ -1009,19 +1009,17 @@ void GridWindow::drawStencil( GridLayer *layer ){
 
         QPointF pt = sm2gl(point,layer->gridImage->m_imagegrid);
 
-        stencilVertices[ stencilVerticesCount++ ] = pt.x() * 50.0 ;
-        stencilVertices[ stencilVerticesCount++ ] = pt.y() * 50.0 ;
+        stencilVertices[ stencilVerticesCount++ ] = pt.x();
+        stencilVertices[ stencilVerticesCount++ ] = pt.y();
     }
 
-    ////  Draw stencil to stencil buffer
-
-
+    /////  Draw stencil to stencil buffer
     glEnableVertexAttribArray( 0 );
 
     glVertexAttribPointer( m_stencilVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, stencilVertices );
 
     setStencilMatrixUniforms();
-    glDrawArrays(GL_QUAD_STRIP, 0, stencilVerticesCount / 2);
+    glDrawArrays(GL_POLYGON, 0, stencilVerticesCount / 2);
 
     glDisableVertexAttribArray( 0 );
 
@@ -1591,24 +1589,24 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
 
 
     /// Scene Transform
-    m_mvStack.push(m_mvMatrix);
+    m_mvStack.push( m_mvMatrix );
     m_mvMatrix.setToIdentity();
     m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
-    m_mvMatrix.translate( m_transX, m_transY, m_zoom);
+    m_mvMatrix.translate( m_transX, m_transY, m_zoom );
 //    m_mvMatrix.rotate( grid->q.scalar(), grid->q.vector() );
     m_mvMatrix.rotate( m_sceneRotation );
 
-    foreach(GridImage *grid, m_GridImages){
-        foreach(GridLayer *layer, grid->m_gridLayers){
+    foreach( GridImage *grid, m_GridImages ){
+        foreach( GridLayer *layer, grid->m_gridLayers ){
 
             //// Layer transform
-            m_mvStack.push(m_mvMatrix);
+            m_mvStack.push( m_mvMatrix );
 
-            m_mvMatrix.translate( layer->m_translate );
+            m_mvMatrix.translate( layer->translate );
             m_mvMatrix.rotate( layer->m_zrotation, 0, 0, 1 );
 
             m_stencilProgram->bind();
-            drawStencil(layer);
+            drawStencil( layer );
             m_stencilProgram->release();
 
             m_sceneProgram->bind();
@@ -1622,21 +1620,21 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
 
 void GridWindow::_updateLayers(){
     ////////////// Osteotomy test demo
-    if(m_osteotomyOn){
+    if( m_osteotomyOn ){
         int testLayerCount = 10;
         /// two layers for first image only
         GridImage *grid = m_GridImages.first();
-        if(grid){
-            if(grid->m_gridLayers.count() == testLayerCount){
+        if( grid ){
+            if( grid->m_gridLayers.count() == testLayerCount ){
                 //
             }else{
                 /// create testLayerCount layers
-                foreach(GridLayer *layer, grid->m_gridLayers){
+                foreach( GridLayer *layer, grid->m_gridLayers ){
                     delete layer;
                 }
                 grid->m_gridLayers.clear();
 
-                srand(QDateTime::currentMSecsSinceEpoch());
+                srand( QDateTime::currentMSecsSinceEpoch() );
 
                 int random = rand();
 
@@ -1649,7 +1647,14 @@ void GridWindow::_updateLayers(){
                     int width = grid->m_imagegrid->m_image.width();
                     int height = grid->m_imagegrid->m_image.height();
 
-                    poly << QPointF(0,0) << QPointF(width, 0) <<  QPointF(width,height) << QPointF(0,height) << QPointF(0,0);
+//                    poly << QPointF(0,0) << QPointF(width, 0) <<  QPointF(width,height) << QPointF(0,height) << QPointF(0,0);
+
+                    QPointF pt1 = QPointF( width /  ((rand() % 10) * 1.0), 0);
+                    QPointF pt2 = QPointF( width                          , height /  ((rand() % 10) * 1.0));
+                    QPointF pt3 = QPointF( width /  ((rand() % 10) * 1.0), height);
+                    QPointF pt4 = QPointF( 0                              , height /  ((rand() % 10) * 1.0));
+
+                    poly << pt1 << pt2 << pt3 << pt4 << pt1;
 
                     layer->stencilPolygon = poly;
 
@@ -1699,7 +1704,14 @@ void GridWindow::_updateLayers(){
                 int width = grid->m_imagegrid->m_image.width();
                 int height = grid->m_imagegrid->m_image.height();
 
-                poly << QPointF(0,0) << QPointF(width, 0) <<  QPointF(width,height) << QPointF(0,height) << QPointF(0,0);
+//                    poly << QPointF(0,0) << QPointF(width, 0) <<  QPointF(width,height) << QPointF(0,height) << QPointF(0,0);
+
+                QPointF pt1 = QPointF( width /  ((rand() % 10) * 1.0), 0);
+                QPointF pt2 = QPointF( width                          , height /  ((rand() % 10) * 1.0));
+                QPointF pt3 = QPointF( width /  ((rand() % 10) * 1.0), height);
+                QPointF pt4 = QPointF( 0                              , height /  ((rand() % 10) * 1.0));
+
+                poly << pt1 << pt2 << pt3 << pt4 << pt1;
 
                 layer1->stencilPolygon = poly;
                 layer1->translate = QVector3D(0,0,0);

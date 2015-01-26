@@ -51,7 +51,7 @@ public:
 
     /// TODO: These to be removed, instead use matrix in GridLayer
     qreal m_zrotation;
-    QVector3D m_translate;
+
     QVector3D translate;
     qreal zrotation;
 
