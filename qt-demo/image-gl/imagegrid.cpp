@@ -57,9 +57,6 @@ bool ImageGrid::initTiles(qint64 dim)
 
     m_dimension = dim;
 
-    QFileInfo fileinfo ( m_file );
-    QString filePath = fileinfo.absoluteDir().absolutePath();
-
     /// Create tiles
     QSize origsize   = m_image.size();
 
@@ -235,7 +232,7 @@ const QString ImageGrid::format() const
     return m_format;
 }
 
-const qint64 ImageGrid::dimension() const
+const float ImageGrid::dimension() const
 {
     return m_dimension;
 }

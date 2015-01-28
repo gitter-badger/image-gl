@@ -79,11 +79,11 @@ qreal GridWindow::unitToPx(ImageGrid *grid){
 QPointF GridWindow::sm2gl( QPointF pixPos, ImageGrid *grid ){
 
 //    Q_ASSERT(false);
-    qreal x    = pixPos.x();
-    qreal y    = pixPos.y();
-    qreal cols = grid->cols();
-    qreal rows = grid->rows();
-    qreal dim  = grid->dimension();
+    float x    = pixPos.x();
+    float y    = pixPos.y();
+    float cols = grid->cols();
+    float rows = grid->rows();
+    float dim  = grid->dimension();
 
     x  = x / dim;
     y  = y / dim;
@@ -98,11 +98,11 @@ QPointF GridWindow::sm2gl( QPointF pixPos, ImageGrid *grid ){
 // Convert gl coord position to surgimap pixel position
 QPointF GridWindow::gl2sm( QPointF glPos, ImageGrid *grid ){
 
-    qreal x    = glPos.x();
-    qreal y    = glPos.y();
-    qreal cols = grid->cols();
-    qreal rows = grid->rows();
-    qreal dim  = grid->dimension();
+    float x    = glPos.x();
+    float y    = glPos.y();
+    float cols = grid->cols();
+    float rows = grid->rows();
+    float dim  = grid->dimension();
 
     if( y > 0 ){
         y = (( rows / 2.0) - y );
@@ -1028,7 +1028,7 @@ void GridWindow::drawStencil( GridLayer *layer ){
                 .arg(stencilVertices[j++])
                 .arg(stencilVertices[j++]));
     }
-    qDebug() << __FUNCTION__ << dbg;
+//    qDebug() << __FUNCTION__ << dbg;
 
     /////  Draw stencil to stencil buffer
     glEnableVertexAttribArray( 0 );
@@ -1097,14 +1097,20 @@ void GridWindow::drawGrid( GridLayer *layer ){
 
             ///////////  Draw Tile
             //  Tile Buffer
-            GLuint tileBuffer = grid->m_tilePositionBufferGrid[ tileIndex ];
+            GLuint tileBuffer;
+            tileBuffer = grid->m_tilePositionBufferGrid[ tileIndex ];
+
             glBindBuffer( GL_ARRAY_BUFFER, tileBuffer );
 
             glVertexAttribPointer( m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0 );
             glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
             GLuint tileTexture;
-            tileTexture = grid->m_tileTextureGrid[ tileIndex ];
+            if(m_zoom < -3.0){
+                tileTexture = grid->m_tileTextureGrid2[ tileIndex ];
+            }else{
+                tileTexture = grid->m_tileTextureGrid[ tileIndex ];
+            }
 
             glActiveTexture( GL_TEXTURE0 );
             glBindTexture( GL_TEXTURE_2D, tileTexture );
@@ -1295,6 +1301,7 @@ void GridWindow::controlAnimate() {
                 m_zoom = m_settings.zoom = m_minZ;
             }
         }
+
 
         if(m_settings.transX != m_transX ||
                 m_settings.transX > m_transX
@@ -1501,6 +1508,10 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
     m_currentlyPressedKeys[keycode] = true;
     switch(keycode){
 
+    case Qt::Key_F:
+        fitToView();
+        return;
+        break;
     case Qt::Key_W:
         toggleWireframe();
         break;
@@ -1581,7 +1592,7 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
     m_mvStack.push( m_mvMatrix );
     m_mvMatrix.setToIdentity();
     m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
-    m_mvMatrix.translate( m_transX, m_transY, m_zoom );
+    m_mvMatrix.translate( m_transX - m_centerX, m_transY - m_centerY, m_zoom );
 //    m_mvMatrix.rotate( grid->q.scalar(), grid->q.vector() );
     m_mvMatrix.rotate( m_sceneRotation );
 
@@ -1606,9 +1617,9 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
             m_mvMatrix.translate( layer->translate );
             m_mvMatrix.rotate( layer->m_zrotation, 0, 0, 1 );
 
-            m_stencilProgram->bind();
-            drawStencil( layer );
-            m_stencilProgram->release();
+//            m_stencilProgram->bind();
+//            drawStencil( layer );
+//            m_stencilProgram->release();
 
             m_sceneProgram->bind();
             drawGrid( layer );
@@ -1743,7 +1754,23 @@ void GridWindow::drawMeasurements( int x, int y, int w, int h ){
 }
 
 qreal GridWindow::fps(){
+    GridImage *grid;
+
     return m_fps;
+}
+
+// Uses first grid image to fit
+void GridWindow::fitToView()
+{
+    if(GridImage *grid = this->m_GridImages.first()){
+        if(ImageGrid *image = grid->m_imagegrid){
+            int cols = image->cols();
+            int rows = image->rows();
+
+            float aspect = (this->width() / this->height());
+
+        }
+    }
 }
 
 qreal GridWindow::_dbgZoom(){
@@ -1908,8 +1935,15 @@ void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
          << QPointF(0,0);
 
     defaultLayer->stencilPolygon = poly;
-
     grid->m_gridLayers.append( defaultLayer );
+
+    if(m_GridImages.count() == 0){
+        /// This is the first image, so center on its dimension
+        m_centerX = -( ( grid->m_imagegrid->m_stretchwidth  - grid->m_imagegrid->m_image.width() )  / grid->m_imagegrid->dimension() ) / 2.0;
+        m_centerY = +( ( grid->m_imagegrid->m_stretchheight - grid->m_imagegrid->m_image.height() ) / grid->m_imagegrid->dimension() ) / 2.0 ;
+        qDebug() << __FUNCTION__ << m_centerX << m_centerY;
+    }
+
 
     m_GridImages.append( grid );
 

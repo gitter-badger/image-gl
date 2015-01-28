@@ -21,7 +21,7 @@ public:
     bool writeJSON(QString path);
 
     const QString format() const;
-    const qint64 dimension() const;
+    const float dimension() const;
 
     QStringList errors() const;
     QStringList logs() const;
@@ -36,8 +36,8 @@ public:
 
     void setIndex(qint64 index);
 
-    qint64 m_stretchwidth;
-    qint64 m_stretchheight;
+    float m_stretchwidth;
+    float m_stretchheight;
     QImage m_image;
 
 signals:
@@ -51,7 +51,7 @@ private:
 
     QList< ImageTile *> m_gridTiles;
 
-    int m_dimension;
+    float m_dimension;
     QString m_format;
     QString m_file;
 

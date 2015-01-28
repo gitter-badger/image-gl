@@ -85,6 +85,7 @@ public:
     qreal fps();
 
 public slots:
+    void fitToView();
     void setVFlip90(bool);
     void setSceneRotation(QQuaternion);
 
@@ -257,8 +258,10 @@ private:
     GLfloat m_panBase;
 
     GLfloat m_zoom;
-    GLfloat m_transX;
-    GLfloat m_transY;
+    GLfloat m_transX = 0.0f;
+    GLfloat m_transY = 0.0f;
+    GLfloat m_centerX = 0.0f;
+    GLfloat m_centerY = 0.0f;
 
 //    GLfloat *m_pColor;
     bool m_currentlyPressedKeys[Qt::Key_unknown]; // currently pressed keys
