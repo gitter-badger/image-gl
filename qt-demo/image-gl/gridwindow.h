@@ -42,6 +42,7 @@ public:
     GLuint *m_tilePositionBufferGrid;
     GLuint *m_tileTextureGrid;
     GLuint *m_tileTextureGrid2;
+    GLuint *m_tileTextureGrid3;
     GLfloat **m_tiles;
     GLfloat *m_textureCoords;
 };

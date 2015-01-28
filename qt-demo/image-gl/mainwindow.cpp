@@ -63,7 +63,7 @@ void MainWindow::saveSettings(){
 
 MainWindow::~MainWindow()
 {
-    delete m_gridWindow;
+//    delete m_gridWindow;
     delete ui;
 }
 
@@ -249,27 +249,30 @@ void MainWindow::on_pushButtonDisplay_clicked()
 {
     on_pushButtonLoadImage_clicked();
 
-    if(m_gridWindow){
-        delete m_gridWindow;
-        m_gridWindow = NULL;
-    }
-
     if(!m_grid){
         return;
     }
 
-    m_gridWindow = new GridWindow();
-    m_gridWindow->addImage( m_grid );
+    GridWindow *gridWindow = new GridWindow();
+    gridWindow->addImage( m_grid );
 
     QSurfaceFormat format;
     format.setSamples(16);
     format.setStencilBufferSize(1);
 
-    m_gridWindow->setFormat(format);
+    gridWindow->setFormat(format);
 
-    m_gridWindow->resize(800, 1024);
-    m_gridWindow->setAnimating(true);
-    m_gridWindow->show();
+    gridWindow->resize(800, 800);
+    gridWindow->setAnimating(true);
+    gridWindow->show();
+
+//    QDialog dlg;
+//    dlg.setLayout(new QVBoxLayout());
+//    QWidget *widget = QWidget::createWindowContainer(gridWindow, &dlg);
+//    dlg.resize(800, 800);
+//    dlg.layout()->addWidget(widget);
+//    gridWindow->fitToView();
+//    dlg.exec();
 }
 
 void MainWindow::on_pushButtonDemo2Run_clicked()

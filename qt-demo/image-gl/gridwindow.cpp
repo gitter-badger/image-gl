@@ -88,7 +88,7 @@ QPointF GridWindow::sm2gl( QPointF pixPos, ImageGrid *grid ){
     x  = x / dim;
     y  = y / dim;
 
-    x = x - (cols / 2.0);
+    x = -(cols / 2.0) + x;
 
     y = (rows / 2.0) - y;
 
@@ -295,11 +295,13 @@ GridWindow::~GridWindow()
             glDeleteBuffers( count, grid->m_tilePositionBufferGrid);
             glDeleteBuffers( count, grid->m_tileTextureGrid);
             glDeleteBuffers( count, grid->m_tileTextureGrid2);
+            glDeleteBuffers( count, grid->m_tileTextureGrid3);
             glDeleteBuffers( 1, &grid->m_squareVertexTextureCoordBuffer );
 
             free ( grid->m_tilePositionBufferGrid );
             free ( grid->m_tileTextureGrid );
             free ( grid->m_tileTextureGrid2 );
+            free ( grid->m_tileTextureGrid3 );
             foreach( GridLayer *layer, grid->m_gridLayers ){
                 delete layer;
             }
@@ -472,7 +474,7 @@ void GridWindow::_enableStencil(){
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     glDepthMask(GL_FALSE);
     glStencilFunc(GL_NEVER, 1, 0xFF);
-    glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);  // draw 1s on test fail (always)
+    glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);  // draw 1s on test fail (always)
 
     // draw stencil pattern
     glStencilMask(0xFF);
@@ -486,6 +488,8 @@ void GridWindow::_disableStencil(){
     glStencilMask(0x00);
     // draw where stencil's value is 0
     glStencilFunc(GL_EQUAL, 0, 0xFF);
+    // draw only where stencil's value is 1
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
 }
 
 // gl-bp.js
@@ -618,6 +622,11 @@ void GridWindow::initGridTextures(){
         grid->m_tileTextureGrid2 = ( GLuint * )malloc( textureGridSize );
         memset( grid->m_tileTextureGrid2, 0, textureGridSize );
         glGenTextures( rows * cols, grid->m_tileTextureGrid2 );
+
+        grid->m_tileTextureGrid3 = ( GLuint * )malloc( textureGridSize );
+        memset( grid->m_tileTextureGrid3, 0, textureGridSize );
+        glGenTextures( rows * cols, grid->m_tileTextureGrid3 );
+
 
         grid->m_imagegrid->loadTiles();
     }
@@ -1020,14 +1029,13 @@ void GridWindow::drawStencil( GridLayer *layer ){
         stencilVertices[ stencilVerticesCount++ ] = (float)pt.y();
     }
 
-
-    QString dbg;
-    int j = 0;
-    for(int i = 0; i < stencilVerticesCount /2; i++){
-        dbg.append(QString("(%1, %2)")
-                .arg(stencilVertices[j++])
-                .arg(stencilVertices[j++]));
-    }
+//    QString dbg;
+//    int j = 0;
+//    for(int i = 0; i < stencilVerticesCount /2; i++){
+//        dbg.append(QString("(%1, %2)")
+//                .arg(stencilVertices[j++])
+//                .arg(stencilVertices[j++]));
+//    }
 //    qDebug() << __FUNCTION__ << dbg;
 
     /////  Draw stencil to stencil buffer
@@ -1056,16 +1064,12 @@ void GridWindow::drawGrid( GridLayer *layer ){
 
         /////// Animated tiles ( Press A to toggle )
         m_mvStack.push( m_mvMatrix );
-        m_mvMatrix.rotate( r2d( m_rotx ), 1, 0, 0 );
-        m_mvMatrix.rotate( r2d( m_roty ), 0, 1, 0 );
         m_mvMatrix.rotate( r2d( m_animateSquare ), 0.4, 0.1, 0.8 );
 
         for( int col = 0; col < cols; col++ ) {
             int tileIndex = _tileIndex( row, col, cols );
 
             GLfloat *tile = grid->m_tiles[tileIndex];
-
-
 
             int j = 0;
             for(int i = 0; i < 8; i++){
@@ -1080,10 +1084,10 @@ void GridWindow::drawGrid( GridLayer *layer ){
             poly << gl2sm( QPointF( tile[ 0 ], tile[ 1 ] ), grid->m_imagegrid );
 
             if(
-                    layer->stencilPolygon.containsPoint( poly.at(0), Qt::OddEvenFill ) &&
-                    layer->stencilPolygon.containsPoint( poly.at(1), Qt::OddEvenFill ) &&
-                    layer->stencilPolygon.containsPoint( poly.at(2), Qt::OddEvenFill ) &&
-                    layer->stencilPolygon.containsPoint( poly.at(3), Qt::OddEvenFill ) ){
+                    !layer->stencilPolygon.containsPoint( poly.at(0), Qt::OddEvenFill ) &&
+                    !layer->stencilPolygon.containsPoint( poly.at(1), Qt::OddEvenFill ) &&
+                    !layer->stencilPolygon.containsPoint( poly.at(2), Qt::OddEvenFill ) &&
+                    !layer->stencilPolygon.containsPoint( poly.at(3), Qt::OddEvenFill ) ){
                 continue;
             }
 
@@ -1106,10 +1110,14 @@ void GridWindow::drawGrid( GridLayer *layer ){
             glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
             GLuint tileTexture;
-            if(m_zoom < -3.0){
-                tileTexture = grid->m_tileTextureGrid2[ tileIndex ];
+            if(m_zoom < -8.0){
+                tileTexture = grid->m_tileTextureGrid3[ tileIndex ];
             }else{
-                tileTexture = grid->m_tileTextureGrid[ tileIndex ];
+                if(m_zoom < -3.0){
+                    tileTexture = grid->m_tileTextureGrid2[ tileIndex ];
+                }else{
+                    tileTexture = grid->m_tileTextureGrid[ tileIndex ];
+                }
             }
 
             glActiveTexture( GL_TEXTURE0 );
@@ -1142,8 +1150,9 @@ void GridWindow::handleLoadedGridTexture(int index, int row, int col ){
     ImageGrid *imageGrid = grid->m_imagegrid;
 
     ImageTile *tile = imageGrid->tile(row,col);
-    handleLoadedTexture(grid, tile->image(),       grid->m_tileTextureGrid [ _tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() );
-    handleLoadedTexture(grid, tile->lowresImage(), grid->m_tileTextureGrid2[ _tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() * ( 1.0 / 4.0 ));
+    handleLoadedTexture(grid, tile->image(),          grid->m_tileTextureGrid [ _tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() );
+    handleLoadedTexture(grid, tile->mediumresImage(), grid->m_tileTextureGrid2[ _tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() * ( 1.0 / 4.0 ));
+    handleLoadedTexture(grid, tile->lowresImage(),    grid->m_tileTextureGrid3[ _tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() * ( 1.0 / 8.0 ));
 
     Q_ASSERT( grid->m_imagegrid->dimension() > 0 &&
               tile->image().width() == tile->image().height() &&
@@ -1184,7 +1193,7 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     QString sfps = QString("FPS: %1 ").arg(fps());
 
     //    render_text(px.toLatin1(), 0.40, -0.4, sx, sy);
-    render_text(sfps.toLatin1(), -0.20, -0.4, sx, sy);
+//    render_text(sfps.toLatin1(), -0.20, -0.4, sx, sy);
 
     if(m_rotz != m_settings.rotation){
         QString rot = QString( "Rotation: %1" ).arg(r2d( m_rotz ));
@@ -1564,9 +1573,7 @@ void GridWindow::_render( qint64 frame )
     glViewport(x, y, w, h);
     glStencilMask(0xFF);
     glClear( GL_COLOR_BUFFER_BIT );
-    //    glFrontFace(GL_CW);
-    //    glCullFace(GL_BACK);
-    //    glEnable(GL_CULL_FACE);
+
     drawScene(x, y, w, h);
     drawMeasurements(x, y, w, h);
 
@@ -1580,6 +1587,7 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
     Q_UNUSED(x)
     Q_UNUSED(y)
 
+    /// TEST layers
     _updateLayers();
 
     QMatrix4x4 p;
@@ -1609,6 +1617,34 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
 
     foreach( GridImage *grid, m_GridImages ){
         gcount++;
+
+        GridLayer *layer = grid->m_gridLayers.first();
+
+        m_mvStack.push( m_mvMatrix );
+        m_mvMatrix.rotate( r2d( m_rotx ), 1, 0, 0 );
+        m_mvMatrix.rotate( r2d( m_roty ), 0, 1, 0 );
+        m_mvMatrix.translate( layer->translate );
+        m_mvMatrix.rotate( layer->m_zrotation, 0, 0, 1 );
+
+        if(m_osteotomyOn){
+            m_stencilProgram->bind();
+            drawStencil( layer );
+            m_stencilProgram->release();
+        }
+
+        m_sceneProgram->bind();
+        drawGrid( layer );
+        m_sceneProgram->release();
+
+        glDisable( GL_STENCIL_TEST );
+        glDisable( GL_DEPTH_TEST );
+
+        m_mvMatrix = m_mvStack.pop();
+
+        if(grid->m_gridLayers.count() == 1){
+            continue;
+        }
+
         foreach( GridLayer *layer, grid->m_gridLayers ){
             lcount++;
             //// Layer transform
@@ -1617,9 +1653,11 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
             m_mvMatrix.translate( layer->translate );
             m_mvMatrix.rotate( layer->m_zrotation, 0, 0, 1 );
 
-//            m_stencilProgram->bind();
-//            drawStencil( layer );
-//            m_stencilProgram->release();
+            if(m_osteotomyOn){
+                m_stencilProgram->bind();
+                drawStencil( layer );
+                m_stencilProgram->release();
+            }
 
             m_sceneProgram->bind();
             drawGrid( layer );
@@ -1629,16 +1667,14 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
             glDisable( GL_DEPTH_TEST );
 
             m_mvMatrix = m_mvStack.pop();
-
         }
     }
-//    qDebug() << __FUNCTION__ << "Grid:" << gcount << "Layers:" << lcount;
 }
 
 void GridWindow::_updateLayers(){
     ////////////// Osteotomy test demo
     if( m_osteotomyOn ){
-        int testLayerCount = 4;
+        int testLayerCount = 2;
         /// two layers for first image only
         GridImage *grid = m_GridImages.first();
         if( grid ){
@@ -1674,21 +1710,21 @@ void GridWindow::_updateLayers(){
 
                     if( i < testLayerCount / 2 ) {
                         layer->translate = QVector3D(
-                                    3.0 / ( rand() %3 ) * 1.0,
-                                    testLayerCount % 3 ?
-                                        3.0 / ( rand() %3 ) * 1.0 :
-                                        -3.0 / ( rand() %3 ) * 1.0,
+                                    3.0 / ( rand() % 16 ) * 1.0,
+                                    testLayerCount % 2 ?
+                                        3.0 / ( rand() % 16 ) * 1.0 :
+                                        -3.0 / ( rand() % 16 ) * 1.0,
                                     0);
-                        layer->zrotation = (rand() * 1.0);
+                        layer->zrotation = (rand()%360 * 1.0);
                         layer->gridImage = grid;
                     }else{
                         layer->translate = QVector3D(
-                                    -3.0 / (rand() %3 ) * 1.0,
-                                    testLayerCount % 3 ?
-                                        3.0 / ( rand() %3 ) * 1.0 :
-                                        -3.0 / ( rand() %3 ) * 1.0,
+                                    -3.0 / (rand() %6 ) * 1.0,
+                                    testLayerCount % 2 ?
+                                        3.0 / ( rand() % 16 ) * 1.0 :
+                                        -3.0 / ( rand() % 16 ) * 1.0,
                                     0);
-                        layer->zrotation = (rand() * 1.0);
+                        layer->zrotation = (rand() % 360 * 1.0);
                         layer->gridImage = grid;
                     }
                     grid->m_gridLayers << layer;
@@ -1717,10 +1753,10 @@ void GridWindow::_updateLayers(){
                 int width = grid->m_imagegrid->m_image.width();
                 int height = grid->m_imagegrid->m_image.height();
 
-                QPointF pt1 = QPointF( width /  ((rand() % 10) * 1.0), 0);
-                QPointF pt2 = QPointF( width                          , height /  ((rand() % 10) * 1.0));
-                QPointF pt3 = QPointF( width /  ((rand() % 10) * 1.0), height);
-                QPointF pt4 = QPointF( 0                              , height /  ((rand() % 10) * 1.0));
+                QPointF pt1 = QPointF( -width, -height);
+                QPointF pt2 = QPointF( width*2, -height );
+                QPointF pt3 = QPointF( width*2, height*2 );
+                QPointF pt4 = QPointF( -width, height*2 );
 
                 poly << pt1 << pt2 << pt3 << pt4 << pt1;
 
@@ -1762,13 +1798,27 @@ qreal GridWindow::fps(){
 // Uses first grid image to fit
 void GridWindow::fitToView()
 {
-    if(GridImage *grid = this->m_GridImages.first()){
-        if(ImageGrid *image = grid->m_imagegrid){
-            int cols = image->cols();
-            int rows = image->rows();
+    if(this->m_GridImages.count() > 0){
+        if(GridImage *grid = this->m_GridImages.first()){
+            if(ImageGrid *image = grid->m_imagegrid){
+                int cols = image->cols();
+                int rows = image->rows();
 
-            float aspect = (this->width() / this->height());
+                float imgAspect = cols / rows;
+                float wAspect = (this->width() / this->height());
 
+                QPointF topLeft = sm2gl(QPointF(0,0),image);
+
+                float wwidth = width() / image->dimension();
+                float wheight = height() / image->dimension();
+
+                m_settings.transX = 0.0;
+                m_settings.transY = 0.0;
+
+                int ctrl = imgAspect > wAspect ? cols : rows;
+
+                m_settings.zoom  = - 2 * (tan( m_fov / 2.0 ) * (ctrl));
+            }
         }
     }
 }
@@ -1778,6 +1828,7 @@ qreal GridWindow::_dbgZoom(){
     qreal dx = qAbs( m_zoom / m_rulerZ);
     qreal dim = m_GridImages.first()->m_imagegrid->dimension();
 
+//    qDebug() << "ZOOM:" << m_zoom;
     return  dim * dx;
 }
 
@@ -1788,7 +1839,7 @@ void GridWindow::zoomIn(){
     if ( m_settings.zoom >  m_maxZ ) {
         m_settings.zoom = m_maxZ;
     }
-    //    _dbgZoom();
+    _dbgZoom();
 }
 
 // controls.js
@@ -1935,6 +1986,17 @@ void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
          << QPointF(0,0);
 
     defaultLayer->stencilPolygon = poly;
+
+
+    float rows = grid->m_imagegrid->rows();
+    float cols = grid->m_imagegrid->cols();
+
+    QPointF test0 = sm2gl(poly.at(0),imageGrid);
+    QPointF test2 = sm2gl(poly.at(2),imageGrid);
+
+    Q_ASSERT(test0.x() == -(cols / 2.0));
+    Q_ASSERT(test0.y() ==  (rows / 2.0));
+
     grid->m_gridLayers.append( defaultLayer );
 
     if(m_GridImages.count() == 0){
@@ -1943,7 +2005,6 @@ void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
         m_centerY = +( ( grid->m_imagegrid->m_stretchheight - grid->m_imagegrid->m_image.height() ) / grid->m_imagegrid->dimension() ) / 2.0 ;
         qDebug() << __FUNCTION__ << m_centerX << m_centerY;
     }
-
 
     m_GridImages.append( grid );
 
@@ -1988,6 +2049,8 @@ void GridWindow::resetOrientation(){
     m_settings.zoom = m_initZ;
     m_settings.flipH = false;
     m_settings.flipV = false;
+
+    fitToView();
 }
 
 // controls.js // Flip image over its X axis
