@@ -11,12 +11,14 @@ public:
     ~ImageTile();
 
     QImage image();
-    void setImage(QImage image);
+    QImage lowresImage();
 
+    void setImage(QImage image);
 signals:
 
 public slots:
 private:
+    QImage m_lowresImage;
     QImage m_image;
 };
 

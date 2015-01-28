@@ -41,6 +41,7 @@ public:
     GLuint m_squareVertexTextureCoordBuffer;
     GLuint *m_tilePositionBufferGrid;
     GLuint *m_tileTextureGrid;
+    GLuint *m_tileTextureGrid2;
     GLfloat **m_tiles;
     GLfloat *m_textureCoords;
 };
@@ -124,7 +125,7 @@ protected:
     virtual void drawHud(int x, int y, float w, float h);
     virtual void drawMeasurements(int x, int y, int w, int h);
 
-    void handleLoadedTexture(GridImage *grid, QImage image, GLuint texture);
+    void handleLoadedTexture(GridImage *grid, QImage image, GLuint texture, float dimension);
 
 
     void drawOverlayMeasurements( int, int, float, float );
@@ -190,7 +191,6 @@ private:
     GLint m_sceneTextureCoordAttribute;
     GLint m_sceneColorAttribute;
     GLint m_sceneUInvert;
-    GLint m_sceneUStencil;
     GLint m_sceneBCGUniform;
     GLint m_sceneMVMatrixUniform;
     GLint m_scenePMatrixUniform;
@@ -241,7 +241,7 @@ private:
     GLboolean m_animateOn = false;
     GLboolean m_osteotomyOn = false;
     GLboolean m_layerDemoOn = false;
-    GLboolean m_wireframe = true;
+    GLboolean m_wireframe = false;
 
     // Animation
     // Variables used for animating flips & rotation

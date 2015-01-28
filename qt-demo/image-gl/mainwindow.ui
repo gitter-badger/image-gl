@@ -44,7 +44,7 @@
           <item row="3" column="1">
            <widget class="QComboBox" name="comboBoxDimension">
             <property name="currentIndex">
-             <number>4</number>
+             <number>0</number>
             </property>
             <item>
              <property name="text">

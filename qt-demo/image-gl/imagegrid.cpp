@@ -198,10 +198,8 @@ bool ImageGrid::writeTiles(){
 
 bool ImageGrid::loadTiles(){
     bool ok = true;
-    QImage input = m_image.scaled( m_stretchwidth, m_stretchheight, Qt::KeepAspectRatio, Qt::SmoothTransformation );
-
+    QImage input = m_image;
     qint64 dim = dimension();
-
     QPoint offset = QPoint( 0,0 );
 
 //     Full Size image

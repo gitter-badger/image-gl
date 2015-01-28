@@ -237,7 +237,6 @@ void MainWindow::on_pushButtonOsteotomy_clicked()
 
     QSurfaceFormat format;
     format.setSamples(16);
-//    format.setRenderableType(QSurfaceFormat::OpenGLES);
 
     m_gridWindow->setFormat(format);
 
@@ -260,21 +259,15 @@ void MainWindow::on_pushButtonDisplay_clicked()
     }
 
     m_gridWindow = new GridWindow();
-
-    QQuaternion q1 = QQuaternion(0,0,0,0);
-
     m_gridWindow->addImage( m_grid );
-
-
 
     QSurfaceFormat format;
     format.setSamples(16);
-    format.setStencilBufferSize(8);
-//    format.setRenderableType(QSurfaceFormat::OpenGLES);
+    format.setStencilBufferSize(1);
 
     m_gridWindow->setFormat(format);
 
-    m_gridWindow->resize(1280, 1024);
+    m_gridWindow->resize(800, 1024);
     m_gridWindow->setAnimating(true);
     m_gridWindow->show();
 }
@@ -331,6 +324,8 @@ void MainWindow::on_pushButtonDemo2Run_clicked()
 
     QSurfaceFormat format;
     format.setSamples(16);
+    format.setStencilBufferSize(8);
+
 //    format.setRenderableType(QSurfaceFormat::OpenGLES);
 
     m_gridWindow->setVFlip90(true);
