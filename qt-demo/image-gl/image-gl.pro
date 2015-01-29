@@ -30,7 +30,8 @@ SOURCES += main.cpp\
     gridwindow.cpp \
     imagetile.cpp \
     openglfunctionsdebug.cpp \
-    fontsheet.cpp
+    fontsheet.cpp \
+    gridimage.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
@@ -44,7 +45,8 @@ HEADERS  += mainwindow.h \
     gridwindow.h \
     imagetile.h \
     openglfunctionsdebug.h \
-    fontsheet.h
+    fontsheet.h \
+    gridimage.h
 
 
 FORMS    += mainwindow.ui

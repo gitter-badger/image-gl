@@ -1,4 +1,5 @@
 #include "gridwindow.h"
+#include "gridimage.h"
 #include "imagegrid.h"
 #include "imagetile.h"
 #include <QScreen>
@@ -6,10 +7,6 @@
 #include <math.h>
 #include <QApplication>
 #include <iostream>
-
-// constant rotation around y axis at m_flipfreq * 10
-GLfloat m_animateSquare = 0;
-GLboolean m_animateOn = false;
 
 // zoom range & init
 const GLfloat m_maxZ = -0.01;
@@ -39,13 +36,12 @@ qreal GridWindow::d2r(qreal d){
     return d / 57.2957795;
 }
 
-GLfloat *rdColors;
 
-void delRdColors(){
+void GridWindow::delRdColors(){
     free( rdColors );
 }
 
-void initRdColors(){
+void GridWindow::initRdColors(){
 
     int nVertices = 48;
     rdColors = ( GLfloat *) malloc( sizeof (GLfloat ) * nVertices * 4 );
@@ -53,15 +49,18 @@ void initRdColors(){
     int j = 0;
 
     srand(QDateTime::currentMSecsSinceEpoch());
-    for(float i = 0; i < nVertices; i++){
+    for(float i = 0; i < nVertices  / 4; i++){
+
         float red =  1.0 / (rand() % 20);
         float green =  1.0 / (rand() % 20);
         float blue =  1.0 / (rand() % 20);
 
-        rdColors[j++] = red;
-        rdColors[j++] = green;
-        rdColors[j++] = blue;
-        rdColors[j++] = 0.6;
+        for( int k = 0; k < 4; k++ ){
+            rdColors[ j++ ] = red + 0.1;
+            rdColors[ j++ ] = green + 0.1;
+            rdColors[ j++ ] = blue;
+            rdColors[ j++ ] = 0.7;
+        }
     }
 }
 
@@ -280,6 +279,7 @@ GridWindow::GridWindow()
       m_contrast(initContrast),
       m_gamma(initGamma)
 {
+    initRdColors();
     reset();
     m_mvMatrix = QMatrix4x4();
     m_pMatrix  = QMatrix4x4();
@@ -289,8 +289,8 @@ GridWindow::~GridWindow()
 {
     delRdColors();
     if(m_gridInitialized){
-
-        foreach(GridImage *grid, m_GridImages){
+        m_gridInitialized = false;
+        foreach( GridImage *grid, m_GridImages ){
             qint64 count = grid->m_imagegrid->rows() * grid->m_imagegrid->cols();
             glDeleteBuffers( count, grid->m_tilePositionBufferGrid);
             glDeleteBuffers( count, grid->m_tileTextureGrid);
@@ -305,15 +305,22 @@ GridWindow::~GridWindow()
             foreach( GridLayer *layer, grid->m_gridLayers ){
                 delete layer;
             }
+            grid->m_imagegrid->unloadImage();
             delete grid;
         }
         glDeleteBuffers(1, &m_hudTextTextTexture);
         glDeleteBuffers(1, &m_hudTextVbo);
-        //        free ( m_pColor );
     }
+
+    delete m_measurementsProgram;
+    delete m_sceneProgram;
+    delete m_stencilProgram;
+    delete m_hudProgram;
+    delete m_hudTextProgram;
+    m_gridInitialized = false;
 }
 
-// Initialize FreeType
+/// Initialize FreeType
 int GridWindow::_initTextResources(){
 #ifdef Q_OS_OSX
     const char *fontfilename = "/Users/Jon/Downloads/FreeSans/FreeSans.ttf";
@@ -349,7 +356,6 @@ void GridWindow::initialize()
 {
     _initTextResources();
     webGLStart();
-    initRdColors();
 }
 
 void GridWindow::webGLStart() {
@@ -363,6 +369,7 @@ void GridWindow::webGLStart() {
     initGridBuffersAndTextures();
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
+    m_initialized = true;
 }
 
 void GridWindow::initShadersScene(){
@@ -516,7 +523,9 @@ void GridWindow::initGridBuffersAndTextures(){
 void GridWindow::initGridBuffers(){
 
     int index = -1;
-    foreach(GridImage *grid, m_GridImages){
+    foreach( GridImage *grid, m_GridImages ){
+
+        Q_ASSERT(!grid->m_initialized);
 
         index++;
         float rows = grid->m_imagegrid->rows();
@@ -595,6 +604,8 @@ void GridWindow::initGridBuffers(){
         glBufferData( GL_ARRAY_BUFFER, tileBufferSize , grid->m_textureCoords, GL_STATIC_DRAW );
 
         glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+        grid->m_initialized = true;
     }
 
     glGenTextures(1, &m_hudTextTextTexture);
@@ -803,7 +814,13 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         3.0, 0.0, 0.0,
         1.5, -1.5, 1.5,
         0.0, -3.0, 0.0,
-        1.5, -1.5 -1.5,
+        1.5, -1.5, -1.5,
+
+        // F
+//        3.0, 0.0, 0.0,
+//        1.5, -1.5, 1.5,
+//        0.0, -3.0, 0.0,
+//        1.5, -1.5 -1.5,
 
         // G
         0.0, 0.0, -3.0,
@@ -824,10 +841,10 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         1.5, 1.5, -1.5,
 
         // J
-        0.0,  0.0,  -3.0,
-        -1.5,  1.5,  -1.5,
-        0.0, 3.0, 0.0,
-        1.5, 1.5, -1.5,
+         0.0,  0.0, -3.0,
+        -1.5,  1.5, -1.5,
+         0.0,  3.0,  0.0,
+         1.5,  1.5, -1.5,
 
         // K
         -3.0, 0.0, 0.0,
@@ -960,7 +977,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
 
     //////// Rhombic dodecahedron
     ///
-    if( false ){
+    if( true ){
         m_mvStack.push(m_mvMatrix);
 
         m_mvMatrix.setToIdentity();
@@ -980,8 +997,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
 
-        glDrawArrays(GL_QUADS, 0, 24);
-        //        glDrawArrays(GL_QUADS, 44, 4);
+        glDrawArrays(GL_QUADS, 0, 48);
 
         glDisable(GL_DEPTH_TEST);
 
@@ -1052,7 +1068,6 @@ void GridWindow::drawStencil( GridLayer *layer ){
 void GridWindow::drawGrid( GridLayer *layer ){
 
     GridImage * grid = layer->gridImage;
-
 
     ///////// Draw grid
     glBindBuffer( GL_ARRAY_BUFFER, grid->m_squareVertexTextureCoordBuffer );
@@ -1146,7 +1161,6 @@ void GridWindow::drawGrid( GridLayer *layer ){
 void GridWindow::handleLoadedGridTexture(int index, int row, int col ){
 
     GridImage *grid = m_GridImages.at(index);
-
     ImageGrid *imageGrid = grid->m_imagegrid;
 
     ImageTile *tile = imageGrid->tile(row,col);
@@ -1193,7 +1207,7 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     QString sfps = QString("FPS: %1 ").arg(fps());
 
     //    render_text(px.toLatin1(), 0.40, -0.4, sx, sy);
-//    render_text(sfps.toLatin1(), -0.20, -0.4, sx, sy);
+    render_text(sfps.toLatin1(), -0.20, -0.4, sx, sy);
 
     if(m_rotz != m_settings.rotation){
         QString rot = QString( "Rotation: %1" ).arg(r2d( m_rotz ));
@@ -1399,23 +1413,19 @@ void GridWindow::toggleOsteotomy(){
     qDebug() << "OSTEOTOMY:" << m_osteotomyOn;
 }
 
-// control.js
 void GridWindow::toggleAnimate(){
     m_animateOn = !m_animateOn;
     //    qDebug() << "ANIMATION:" << m_animateOn;
 }
 
-// control.js
 void GridWindow::rotLeft90(){
     m_settings.rotation = pi / 2;
 }
 
-// control.js
 void GridWindow::rotRight90(){
     m_settings.rotation = 3 *( pi / 2 );
 }
 
-// control.js
 void GridWindow::setContrast ( qreal val ){
     m_settings.contrast = val;
     if(m_settings.contrast < minContrast){
@@ -1427,7 +1437,6 @@ void GridWindow::setContrast ( qreal val ){
     qDebug() << "CONTRAST:" << m_settings.contrast;
 }
 
-// control.js
 void GridWindow::setBrightness( qreal val ){
     m_settings.brightness = val;
     if(m_settings.brightness < minBrightness){
@@ -1439,7 +1448,6 @@ void GridWindow::setBrightness( qreal val ){
     qDebug() << "BRIGHTNESS:" << m_settings.brightness;
 }
 
-// control.js
 void GridWindow::setGamma( qreal val ){
     m_settings.gamma = val;
     if(m_settings.gamma < minGamma){
@@ -1451,7 +1459,6 @@ void GridWindow::setGamma( qreal val ){
     qDebug() << "GAMMA:" << m_settings.gamma;
 }
 
-// control.js
 void GridWindow::mouseMoveEvent(QMouseEvent *event){
     QPoint pos = event->pos();
 
@@ -1551,7 +1558,61 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
     handleKeys();
 }
 
+
+void GridWindow::handleKeys() {
+    if( m_currentlyPressedKeys[ Qt::Key_R ]) {       // RESET
+         reset();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_C ]) {       // COLOR RESET
+         resetColor();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_T ]){        // ORIENTATION RESET
+         resetOrientation();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_PageUp ]) {  // ZOOM IN
+        zoomIn();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_PageDown ] ){ // ZOOM OUT
+         zoomOut();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_Right ] ){    // PAN LEFT
+         panLeft();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_Down ] ){     // PAN UP
+         panUp();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_Left ] ){     // PAN RIGHT
+         panRight();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_Up ] ){       // PAN DOWN
+         panDown();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_End ] ){      // ROT RIGHT
+         rotateRight();
+    }
+    if( m_currentlyPressedKeys[ Qt::Key_Home ] ){     // ROT LEFT
+        rotateLeft();
+    }
+    if(isCommandKeyDown()){
+        if( QApplication::mouseButtons() & Qt::LeftButton ){
+            setCursor( QCursor( Qt::ClosedHandCursor ) );
+        }else{
+            setCursor( QCursor( Qt::OpenHandCursor ) );
+        }
+    }else{
+        unsetCursor();
+    }
+}
+
+void GridWindow::keyReleaseEvent(QKeyEvent *e){
+    m_currentlyPressedKeys[ e->key() ] = false;
+}
+
+
 void GridWindow::render(){
+    if(!m_initialized){
+        return;
+    }
     handleKeys();
     _render( 0 );
     controlAnimate();
@@ -1674,7 +1735,7 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
 void GridWindow::_updateLayers(){
     ////////////// Osteotomy test demo
     if( m_osteotomyOn ){
-        int testLayerCount = 2;
+        int testLayerCount = 128;
         /// two layers for first image only
         GridImage *grid = m_GridImages.first();
         if( grid ){
@@ -1790,8 +1851,6 @@ void GridWindow::drawMeasurements( int x, int y, int w, int h ){
 }
 
 qreal GridWindow::fps(){
-    GridImage *grid;
-
     return m_fps;
 }
 
@@ -1870,7 +1929,6 @@ void GridWindow::panDown() {
     //    qDebug() << "PAN DOWN:" << m_settings.transX << m_settings.transY;
 }
 
-// control.js
 void GridWindow::panLeft() {
     qreal x = m_settings.zoom * m_panBase;
     qreal y = 0.0;
@@ -1879,7 +1937,6 @@ void GridWindow::panLeft() {
     //    qDebug() << "PAN LEFT:" << m_settings.transX << m_settings.transY;
 }
 
-// control.js
 void GridWindow::panRight() {
     qreal x = -m_settings.zoom * m_panBase;
     qreal y = 0.0;;
@@ -1888,82 +1945,36 @@ void GridWindow::panRight() {
     //    qDebug() << "PAN RIGHT:" << m_settings.transX << m_settings.transY;
 }
 
-// control.js
 void GridWindow::rotateLeft() {
     m_settings.rotation -= pi / 180.0;
     //    qDebug() << "Rot Left" << m_settings.rotation ;
 }
 
-// control.js
 void GridWindow::rotateRight() {
     m_settings.rotation += pi / 180.0;
     //    qDebug() << "Rot Right" << m_settings.rotation ;
 }
 
-// control.js
 void GridWindow::invert() {
     m_settings.invert = !m_settings.invert;
     //    qDebug() << "Invert" << m_settings.invert ;
-}
-
-// control.js
-void GridWindow::handleKeys() {
-    if(m_currentlyPressedKeys[Qt::Key_R]) {       // RESET
-        reset();
-    }
-
-    if(m_currentlyPressedKeys[Qt::Key_C]) {       // COLOR RESET
-        resetColor();
-    }
-
-    if(m_currentlyPressedKeys[Qt::Key_T]){        // ORIENTATION RESET
-        resetOrientation();
-    }
-
-    if(m_currentlyPressedKeys[Qt::Key_PageUp]) {  // ZOOM IN
-        zoomIn();
-    }
-    if(m_currentlyPressedKeys[Qt::Key_PageDown]){ // ZOOM OUT
-        zoomOut();
-    }
-    if(m_currentlyPressedKeys[Qt::Key_Right]){    // PAN LEFT
-        panLeft();
-    }
-    if(m_currentlyPressedKeys[Qt::Key_Down]){     // PAN UP
-        panUp();
-    }
-    if(m_currentlyPressedKeys[Qt::Key_Left]){     // PAN RIGHT
-        panRight();
-    }
-    if(m_currentlyPressedKeys[Qt::Key_Up]){       // PAN DOWN
-        panDown();
-    }
-    if(m_currentlyPressedKeys[Qt::Key_End]){      // ROT RIGHT
-        rotateRight();
-    }
-    if(m_currentlyPressedKeys[Qt::Key_Home]){     // ROT LEFT
-        rotateLeft();
-    }
-    if(isCommandKeyDown()){
-        if(QApplication::mouseButtons() & Qt::LeftButton){
-            setCursor(QCursor(Qt::ClosedHandCursor));
-        }else{
-            setCursor(QCursor(Qt::OpenHandCursor));
-        }
-    }else{
-        unsetCursor();
-    }
-}
-
-// control.js
-void GridWindow::keyReleaseEvent(QKeyEvent *e){
-    m_currentlyPressedKeys[e->key()] = false;
 }
 
 void GridWindow::reset(){
     resetColor();
     resetAnimation();
     resetOrientation();
+}
+
+void GridWindow::removeImage( ImageGrid *imageGrid ){
+    foreach( GridImage *g, m_GridImages ){
+        if( g->m_imagegrid == imageGrid ){
+
+            delete g;
+            m_GridImages.removeOne( g );
+            break;
+        }
+    }
 }
 
 void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
@@ -1979,11 +1990,11 @@ void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
     qreal height = imageGrid->m_image.height();
 
     QPolygonF poly ;
-    poly << QPointF(0,0)
-         << QPointF(0, height)
-         << QPointF(width,height)
-         << QPointF(width, 0)
-         << QPointF(0,0);
+    poly << QPointF( 0, 0 )
+         << QPointF( 0, height )
+         << QPointF( width, height )
+         << QPointF( width, 0 )
+         << QPointF( 0, 0 );
 
     defaultLayer->stencilPolygon = poly;
 
@@ -2065,17 +2076,6 @@ void GridWindow::flipV() {
     //    qDebug() << "FlipV" << m_settings.flipV;
 }
 
-// controls.js // Flip over X axis relative to view
-void GridWindow::flipX() {
-    /// TODO:
-}
-
-// controls.js // Flip over X axis relative to view
-void GridWindow::flipY() {
-    /// TODO:
-}
-
-// controls.js
 bool GridWindow::isCommandKeyDown()
 {
     return
@@ -2083,42 +2083,64 @@ bool GridWindow::isCommandKeyDown()
             m_currentlyPressedKeys[ Qt::Key_Control ];
 }
 
-// controls.js
+void GridWindow::hideEvent(QHideEvent *event)
+{
+    setAnimating(false);
+    m_initialized = false;
+    deleteLater();
+}
+
+bool GridWindow::event(QEvent *event){
+    if(event->type() == QEvent::UpdateRequest){
+        if(m_initialized == false){
+            return true;
+        }
+    }
+    return OpenGLWindow::event(event);
+}
+
 bool GridWindow::isCtrlKeyDown()
 {
     return m_currentlyPressedKeys[ Qt::Key_Control ];
 }
 
-// controls.js
-void GridWindow::resizeEvent( QResizeEvent * )
+void GridWindow::resizeEvent( QResizeEvent *e )
 {
-
+    OpenGLWindow::resizeEvent(e);
 }
 
-// controls.js
 void GridWindow::wheelEvent( QWheelEvent *e )
 {
+    OpenGLWindow::wheelEvent(e);
     float delta = e->delta() / 70.0;
 
-    if( !m_currentlyPressedKeys[ Qt::Key_Shift ] && isCommandKeyDown() ){
-        if(delta > 0){
-            zoomIn();
-        }
-        if(delta < 0){
-            zoomOut();
-        }
-    }
-    if( m_currentlyPressedKeys[ Qt::Key_Shift ] && isCommandKeyDown() ){
-        float amt = 0.0f;
-        if( delta > 0 ){
+    if(isCommandKeyDown()){
+        if( !m_currentlyPressedKeys[ Qt::Key_Shift ]){
+            if(delta > 0){
+                zoomIn();
+            }
+            if(delta < 0){
+                zoomOut();
+            }
+        }else{
+            float amt = 0.0f;
+            if( delta > 0 ){
 
-            amt = 1.0 / 90.0f;
+                amt = 1.0 / 90.0f;
+            }
+            if( delta < 0 ){
+                amt = -1.0 / 90.0f;
+            }
+            m_settings.rotation += ( amt ) ;
+            //        qDebug() << "Rotation" << m_settings.rotation;
         }
-        if( delta < 0 ){
-            amt = -1.0 / 90.0f;
+    }else{
+        /// Scroll to next image
+        if(delta < 0){
+            qDebug() << "Next Image";
+        }else{
+            qDebug() << "Prev Image";
         }
-        m_settings.rotation += ( amt ) ;
-        //        qDebug() << "Rotation" << m_settings.rotation;
     }
     //    qDebug() << "WHEEL:" << delta;
 }

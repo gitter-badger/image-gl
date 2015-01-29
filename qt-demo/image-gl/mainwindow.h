@@ -27,6 +27,8 @@ public:
     bool loadImage(const QString &file);
     bool writeImage(QImage &img, QPoint pos, int row, int column, int dim);
 
+    bool loadMultiple(const QString &path);
+
     int dimension();
     bool writeJSON(QJsonDocument &doc, QString path);
 
@@ -47,6 +49,10 @@ private slots:
     void on_pushButtonDemo2LAT_clicked();
     void on_pushButtonDemo2Run_clicked();
     void on_pushButtonOsteotomy_clicked();
+    void on_pushButtonSearch_clicked();
+
+    void on_pushButtonLoad_clicked();
+
 private:
     void updateLog(QStringList log);
     void updateErrors(QStringList errors);
@@ -66,6 +72,9 @@ private:
 
     ImageGrid *m_gridAP;
     ImageGrid *m_gridLAT;
+
+    //////////// Demo 3: Multiple
+    QString m_multiplePath;
 };
 
 #endif // MAINWINDOW_H

@@ -32,38 +32,45 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::loadSettings(){
     QSettings s;
-    QString selected = s.value("image/selected",QString()).toString();
+    QString selected = s.value( "image/selected" ,QString()).toString();
 
     if(QFile::exists(selected)){
-        ui->labelSelectedImage->setText(selected);
+        ui->labelSelectedImage->setText( selected );
         m_file = selected;
     }
 
-    QString selectedAP = s.value("image/selectedAP",QString()).toString();
+    QString selectedAP = s.value( "image/selectedAP" ,QString()).toString();
 
     if(QFile::exists(selectedAP)){
-        ui->labelAP->setText(QString("AP: %1").arg(selectedAP));
+        ui->labelAP->setText( QString( "AP: %1" ).arg( selectedAP ));
         m_fileAP = selectedAP;
     }
 
-    QString selectedLAT = s.value("image/selectedLAT",QString()).toString();
+    QString selectedLAT = s.value( "image/selectedLAT" ,QString()).toString();
 
     if(QFile::exists(selectedLAT)){
-        ui->labelLAT->setText(QString("LAT: %1").arg(selectedLAT));
+        ui->labelLAT->setText( QString( "LAT: %1" ).arg( selectedLAT ));
         m_fileLAT = selectedLAT;
+    }
+
+    QString multiplePath = s.value( "multiple/currentPath", QString()).toString();
+    if( QFile::exists( multiplePath ) ){
+        ui->labelCurrentDir->setText(multiplePath);
+        m_multiplePath = multiplePath;
     }
 }
 
 void MainWindow::saveSettings(){
     QSettings s;
-    s.setValue("image/selected",m_file);
-    s.setValue("image/selectedLAT",m_fileLAT);
-    s.setValue("image/selectedAP",m_fileAP);
+    s.setValue( "image/selected", m_file );
+    s.setValue( "image/selectedLAT", m_fileLAT );
+    s.setValue( "image/selectedAP", m_fileAP );
+    s.setValue( "multiple/currentPath", m_multiplePath );
 }
 
 MainWindow::~MainWindow()
 {
-//    delete m_gridWindow;
+    //    delete m_gridWindow;
     delete ui;
 }
 
@@ -74,14 +81,57 @@ bool MainWindow::loadImage(const QString &file){
     if(m_grid != NULL){
         delete m_grid;
     }
-    m_grid = new ImageGrid(file, fmt, dim, this);
-    if(m_grid->loadImage( dim )){
-        updateLog(m_grid->logs());
+    m_grid = new ImageGrid( file, fmt, dim, this );
+    if(m_grid->loadImage()){
+        updateLog( m_grid->logs() );
     }else{
-        updateLog(m_grid->errors());
+        updateLog( m_grid->errors() );
     }
     bool ret = true;
     return ret;
+}
+
+///////// Load all images in directory
+bool MainWindow::loadMultiple(const QString &path)
+{
+    QDir dir(path);
+    QFileInfoList list = dir.entryInfoList( QDir::NoDot | QDir::NoDotDot | QDir::Files );
+
+    foreach( QFileInfo info, list ){
+
+        QString file = info.absoluteFilePath();
+        QImageReader reader;
+        reader.setFileName( file );
+        if(!reader.canRead()){
+            continue;
+        }
+
+        QString fmt = format();
+
+        GridWindow *gridWindow = new GridWindow();
+
+        ImageGrid *grid;
+
+        /// TODO: Don't load the same twice, use ref count
+        grid = new ImageGrid( file, fmt, 1024, gridWindow );
+
+        if( grid->loadImage( ) ){
+
+        }
+
+        gridWindow->addImage( grid );
+
+        QSurfaceFormat format;
+        format.setSamples( 16 );
+        format.setStencilBufferSize( 1 );
+
+        gridWindow->setFormat(format);
+
+        gridWindow->resize( 800, 800 );
+        gridWindow->setAnimating(true);
+        gridWindow->show();
+        gridWindow->fitToView();
+    }
 }
 
 int MainWindow::dimension(){
@@ -95,19 +145,12 @@ void MainWindow::on_pushButtonSplit_clicked()
         return;
     }
 
-    bool ok =  m_grid->initTiles(dimension());
-
+    bool ok = m_grid->writeTiles();
     if(!ok){
-        QMessageBox::critical( this, QString( "Split error" ), QString( "Unable to init tiles" ));
-        updateErrors(m_grid->errors());
+        QMessageBox::critical( this, QString( "Split error" ), QString( "Unable to write tiles" ));
+        updateLog( m_grid->errors() );
     }else{
-        ok = m_grid->writeTiles();
-        if(!ok){
-            QMessageBox::critical( this, QString( "Split error" ), QString( "Unable to write tiles" ));
-            updateLog(m_grid->errors());
-        }else{
-            updateLog(m_grid->logs());
-        }
+        updateLog( m_grid->logs() );
     }
 }
 
@@ -116,24 +159,24 @@ QString MainWindow::format()
     return ui->comboBoxFormat->currentText();
 }
 
-void MainWindow::updateLog(QStringList logs)
+void MainWindow::updateLog( QStringList logs )
 {
     QString text;
 
     foreach(QString log, logs){
-        text.append(QString("%1\n").arg(log));
+        text.append( QString( "%1\n" ).arg( log ) );
     }
 
-    ui->textEditLog->setTextColor(QColor(Qt::black));
-    ui->textEditLog->setText(text);
+    ui->textEditLog->setTextColor( QColor( Qt::black ) );
+    ui->textEditLog->setText( text );
 }
 
-void MainWindow::updateErrors(QStringList errors)
+void MainWindow::updateErrors( QStringList errors )
 {
     QString text;
 
     foreach(QString error, errors){
-        text.append(QString("%1\n").arg(error));
+        text.append(QString("%1\n").arg( error ));
     }
 
     ui->textEditLog->setTextColor(QColor(Qt::red));
@@ -146,7 +189,7 @@ void MainWindow::on_pushButtonSelectImage_clicked()
 
     if(QFile::exists(file)){
         m_file = file;
-        ui->labelSelectedImage->setText(m_file);
+        ui->labelSelectedImage->setText( m_file );
         saveSettings();
     }
 }
@@ -157,9 +200,9 @@ void MainWindow::on_pushButtonLoadImage_clicked()
     if( QFile::exists( m_file ) ){
         ui->labelLoadedImage->setText( m_file );
         if(!loadImage( m_file )){
-            updateErrors(m_grid->errors());
+            updateErrors( m_grid->errors() );
         }else{
-            updateLog(m_grid->logs());
+            updateLog( m_grid->logs() );
         }
     }
 }
@@ -179,9 +222,9 @@ void MainWindow::on_pushButtonDemo2AP_clicked()
 {
     QString file = QFileDialog::getOpenFileName( this, QString( "Select AP file" ) );
 
-    if(QFile::exists(file)){
+    if( QFile::exists( file ) ){
         m_fileAP = file;
-        ui->labelAP->setText(QString("AP: %1").arg(m_fileAP));
+        ui->labelAP->setText( QString( "AP: %1" ).arg( m_fileAP ));
         saveSettings();
     }
 }
@@ -190,9 +233,9 @@ void MainWindow::on_pushButtonDemo2LAT_clicked()
 {
     QString file = QFileDialog::getOpenFileName( this, QString( "Select LAT file" ) );
 
-    if(QFile::exists(file)){
+    if( QFile::exists( file ) ){
         m_fileLAT = file;
-        ui->labelLAT->setText(QString("LAT: %1").arg(m_fileLAT));
+        ui->labelLAT->setText( QString( "LAT: %1" ).arg( m_fileLAT ) );
         saveSettings();
     }
 }
@@ -206,24 +249,24 @@ void MainWindow::on_pushButtonOsteotomy_clicked()
 
     m_gridWindow = new GridWindow();
 
-    QQuaternion q = QQuaternion(0,0,0,0);
+    QQuaternion q = QQuaternion( 0,0,0,0 );
 
     int dim = dimension();
     QString fmt = format();
 
 
-    m_gridAP = new ImageGrid(m_fileLAT, fmt, dim, this);
-    if(m_gridAP->loadImage( dim )){
-        updateLog(m_gridAP->logs());
+    m_gridAP = new ImageGrid( m_fileLAT, fmt, dim, this );
+    if(m_gridAP->loadImage(  )){
+        updateLog( m_gridAP->logs() );
     }else{
-        updateLog(m_gridAP->errors());
+        updateLog( m_gridAP->errors() );
     }
 
-    m_gridLAT = new ImageGrid(m_fileLAT, fmt, dim, this);
-    if(m_gridLAT->loadImage( dim )){
-        updateLog(m_gridLAT->logs());
+    m_gridLAT = new ImageGrid( m_fileLAT, fmt, dim, this );
+    if(m_gridLAT->loadImage(  )){
+        updateLog( m_gridLAT->logs() );
     }else{
-        updateLog(m_gridLAT->errors());
+        updateLog( m_gridLAT->errors() );
     }
 
     QVector3D translate0(0.0, -0.1, 0);
@@ -257,22 +300,23 @@ void MainWindow::on_pushButtonDisplay_clicked()
     gridWindow->addImage( m_grid );
 
     QSurfaceFormat format;
-    format.setSamples(16);
-    format.setStencilBufferSize(1);
+    format.setSamples( 16 );
+    format.setStencilBufferSize( 1 );
 
     gridWindow->setFormat(format);
 
     gridWindow->resize(800, 800);
     gridWindow->setAnimating(true);
     gridWindow->show();
+    gridWindow->fitToView();
 
-//    QDialog dlg;
-//    dlg.setLayout(new QVBoxLayout());
-//    QWidget *widget = QWidget::createWindowContainer(gridWindow, &dlg);
-//    dlg.resize(800, 800);
-//    dlg.layout()->addWidget(widget);
-//    gridWindow->fitToView();
-//    dlg.exec();
+    //    QDialog dlg;
+    //    dlg.setLayout(new QVBoxLayout());
+    //    QWidget *widget = QWidget::createWindowContainer(gridWindow, &dlg);
+    //    dlg.resize(800, 800);
+    //    dlg.layout()->addWidget(widget);
+    //    gridWindow->fitToView();
+    //    dlg.exec();
 }
 
 void MainWindow::on_pushButtonDemo2Run_clicked()
@@ -298,7 +342,7 @@ void MainWindow::on_pushButtonDemo2Run_clicked()
     ////////// Load image grids
 
     m_gridAP = new ImageGrid(m_fileAP, fmt, dim, this);
-    bool apOk = m_gridAP->loadImage( dim );
+    bool apOk = m_gridAP->loadImage(  );
     if(apOk){
         updateLog(m_gridAP->logs());
     }else{
@@ -306,7 +350,7 @@ void MainWindow::on_pushButtonDemo2Run_clicked()
     }
 
     m_gridLAT = new ImageGrid(m_fileLAT, fmt, dim, this);
-    bool latOk = m_gridLAT->loadImage( dim );
+    bool latOk = m_gridLAT->loadImage(  );
     if(latOk){
         updateLog(m_gridLAT->logs());
     }else{
@@ -329,7 +373,7 @@ void MainWindow::on_pushButtonDemo2Run_clicked()
     format.setSamples(16);
     format.setStencilBufferSize(8);
 
-//    format.setRenderableType(QSurfaceFormat::OpenGLES);
+    //    format.setRenderableType(QSurfaceFormat::OpenGLES);
 
     m_gridWindow->setVFlip90(true);
     m_gridWindow->setFormat(format);
@@ -337,4 +381,24 @@ void MainWindow::on_pushButtonDemo2Run_clicked()
     m_gridWindow->resize(1280, 768);
     m_gridWindow->setAnimating(true);
     m_gridWindow->show();
+}
+
+void MainWindow::on_pushButtonSearch_clicked()
+{
+    QString existingDir = QFileDialog::getExistingDirectory( this, QString( "Select a directory" ), m_multiplePath, 0 );
+    if(QFile::exists(existingDir)){
+        m_multiplePath = existingDir;
+        ui->labelCurrentDir->setText( m_multiplePath );
+        saveSettings();
+    }
+}
+
+void MainWindow::on_pushButtonLoad_clicked()
+{
+    if(!QFile::exists(m_multiplePath)){
+        QMessageBox::critical( this, QString( "Current path does not exist" ),QString( "Current path does not exist" ) );
+        return;
+    }
+
+    loadMultiple(m_multiplePath);
 }

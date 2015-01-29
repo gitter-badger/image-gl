@@ -188,6 +188,47 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tab_3">
+       <attribute name="title">
+        <string>Multiple</string>
+       </attribute>
+       <widget class="QGroupBox" name="groupBoxDir">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>0</y>
+          <width>621</width>
+          <height>61</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Directory</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QLabel" name="labelCurrentDir">
+           <property name="text">
+            <string>Current Dir</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonSearch">
+           <property name="text">
+            <string>Search...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonLoad">
+           <property name="text">
+            <string>load</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
         <string>AP/Lat Grid</string>

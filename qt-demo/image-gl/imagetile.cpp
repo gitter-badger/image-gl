@@ -27,10 +27,10 @@ QImage ImageTile::lowresImage(){
 
 
 
-void ImageTile::setImage(QImage image)
+void ImageTile::setImage( QImage image )
 {
-    m_image = image.copy();
-    m_mediumresImage = image.scaled(m_image.size() * (1.0 / 4.0));
-    m_lowresImage = image.scaled(m_image.size() * (1.0 / 8.0));
+    m_image = image;
+    m_mediumresImage = m_image.scaled(m_image.size() * (1.0 / 4.0));
+    m_lowresImage = m_image.scaled(m_image.size() * (1.0 / 8.0));
 }
 

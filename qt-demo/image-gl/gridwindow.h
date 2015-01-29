@@ -29,23 +29,8 @@ struct GLSettings {
 
 
 struct GridLayer;
-struct GridImage;
+class GridImage;
 
-class GridImage {
-
-public:
-    QList< GridLayer *> m_gridLayers;
-
-    QQuaternion q; // Position of image
-    ImageGrid *m_imagegrid;
-    GLuint m_squareVertexTextureCoordBuffer;
-    GLuint *m_tilePositionBufferGrid;
-    GLuint *m_tileTextureGrid;
-    GLuint *m_tileTextureGrid2;
-    GLuint *m_tileTextureGrid3;
-    GLfloat **m_tiles;
-    GLfloat *m_textureCoords;
-};
 
 class GridLayer {
 public:
@@ -75,26 +60,27 @@ public:
     virtual void reset();
 
     void addImage(ImageGrid *grid , QQuaternion q = QQuaternion());
+    void removeImage(ImageGrid *imageGrid);
 
 
-    qreal r2d(qreal r);
-    qreal d2r(qreal d);
-    QPointF sm2gl(QPointF pixPos, ImageGrid *grid);
-    QPointF gl2sm(QPointF glPos, ImageGrid *grid);
-    qreal unitToPx(ImageGrid *grid);
+    qreal r2d( qreal r);
+    qreal d2r( qreal d );
+    QPointF sm2gl( QPointF pixPos, ImageGrid *grid );
+    QPointF gl2sm( QPointF glPos, ImageGrid *grid );
+    qreal unitToPx( ImageGrid *grid );
 
     qreal fps();
 
 public slots:
     void fitToView();
-    void setVFlip90(bool);
-    void setSceneRotation(QQuaternion);
+    void setVFlip90( bool );
+    void setSceneRotation( QQuaternion );
 
-    virtual void handleLoadedGridTexture(int index, int row, int column);
+    virtual void handleLoadedGridTexture( int index, int row, int column );
 
-    void setContrast(qreal val);
-    void setBrightness(qreal val);
-    void setGamma(qreal val);
+    void setContrast( qreal val );
+    void setBrightness( qreal val );
+    void setGamma( qreal val );
 
     // control
     void resetOrientation();
@@ -111,8 +97,6 @@ public slots:
     void handleKeys();
     void flipH();
     void flipV();
-    void flipX();
-    void flipY();
     void rotRight90();
     void rotLeft90();
     void zoomIn();
@@ -123,6 +107,8 @@ public slots:
     void toggleWireframe();
 
 protected:
+    bool event(QEvent *event);
+
     virtual void drawScene(int x, int y, float w, float h);
     virtual void drawHud(int x, int y, float w, float h);
     virtual void drawMeasurements(int x, int y, int w, int h);
@@ -151,6 +137,7 @@ private:
     bool isCtrlKeyDown();
     bool isCommandKeyDown();
 
+    void hideEvent(QHideEvent *event);
     void resizeEvent(QResizeEvent *event);
     void wheelEvent(QWheelEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
@@ -294,6 +281,13 @@ private:
     QQueue<qreal> m_frameTime; // Used to calculate FPS
     qreal m_fps; // Set to the calculated FPS
     int m_frame; // Frame counter
+
+    bool m_initialized = true;
+
+    void delRdColors();
+    void initRdColors();
+
+    GLfloat *rdColors = NULL;
 };
 
 #endif // GRIDWINDOW_H

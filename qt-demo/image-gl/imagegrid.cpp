@@ -19,6 +19,7 @@ ImageGrid::ImageGrid(const QString &source, const QString &format, const int til
       m_index(-1),
       m_dimension(tileDimension)
 {
+    initTiles(tileDimension);
 }
 
 ImageGrid::~ImageGrid()
@@ -28,6 +29,7 @@ ImageGrid::~ImageGrid()
             delete tile;
         }
     }
+    unloadImage();
 }
 
 qint64 ImageGrid::rows() const
@@ -58,7 +60,7 @@ bool ImageGrid::initTiles(qint64 dim)
     m_dimension = dim;
 
     /// Create tiles
-    QSize origsize   = m_image.size();
+    QSize origsize   = imageSize();
 
     int origwidth  = origsize.width();
     int origheight = origsize.height();
@@ -195,7 +197,7 @@ bool ImageGrid::writeTiles(){
 
 bool ImageGrid::loadTiles(){
     bool ok = true;
-    QImage input = m_image;
+
     qint64 dim = dimension();
     QPoint offset = QPoint( 0,0 );
 
@@ -203,14 +205,14 @@ bool ImageGrid::loadTiles(){
     for( int row = 0; row < rows(); row++ ){
         for( int col = 0; col < cols(); col++ ){
             offset = QPoint( dim * col, dim * row );
-            QImage img = input.copy( offset.x(), offset.y(), dim, dim );
+            QImage img = m_image.copy( offset.x(), offset.y(), dim, dim );
 
             QString message;
             //ok = _writeImage( img, offset, row, col, m_dimension );
 
             ImageTile *currentTile = tile( row, col );
 
-            currentTile->setImage( img.copy() );
+            currentTile->setImage( img );
 
             emit tileImageLoaded(m_index, row, col );
 
@@ -221,6 +223,7 @@ bool ImageGrid::loadTiles(){
                 message = QString( "Problem writing file" );
                 _error(message);
             }
+            img = QImage();
         }
     }
 
@@ -314,7 +317,18 @@ bool ImageGrid::_writeImage(QImage &img, QPoint pos, int row, int column, int di
     return ok;
 }
 
-bool ImageGrid::loadImage( qint64 dim ){
+QSize ImageGrid::imageSize(  ) {
+    QFile device( m_file );
+    QImageReader reader( &device );
+    return reader.size();
+}
+
+bool ImageGrid::unloadImage(){
+    m_image = QImage();
+    return true;
+}
+
+bool ImageGrid::loadImage(){
 
     QFile device( m_file );
     bool ret = false;
@@ -323,11 +337,12 @@ bool ImageGrid::loadImage( qint64 dim ){
         _error ( message );
         ret = false;
     } else {
-        QImageReader *reader = new QImageReader( &device );
-        reader->setDecideFormatFromContent( true );
-        if ( reader->canRead() ) {
-            if ( !reader->read( &m_image ) ) {
-                QString message =  QString("Could not load image selected: %1 ").arg(reader->errorString());
+        QImageReader reader;
+        reader.setDevice( &device );
+        reader.setDecideFormatFromContent( true );
+        if ( reader.canRead() ) {
+            if ( !reader.read( &m_image ) ) {
+                QString message =  QString( "Could not load image selected: %1 " ).arg( reader.errorString() );
                 _error ( message );
             }else{
                 ret = true;
@@ -335,10 +350,8 @@ bool ImageGrid::loadImage( qint64 dim ){
                 _log( message );
             }
         }
-        delete reader;
+        device.close();
     }
-
-    initTiles( dim );
 
     return ret;
 }

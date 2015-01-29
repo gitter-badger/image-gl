@@ -27,7 +27,9 @@ public:
     QStringList logs() const;
 
     bool loadTiles();
-    bool loadImage(qint64 dim);
+    bool loadImage();
+    bool unloadImage();
+
     ImageTile *tile(qint64 row, qint64 col);
 
     bool writeTiles();
@@ -40,6 +42,7 @@ public:
     float m_stretchheight;
     QImage m_image;
 
+    QSize imageSize();
 signals:
     void tileImageLoaded(int index, int row, int col);
 
