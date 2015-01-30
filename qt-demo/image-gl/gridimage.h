@@ -2,11 +2,12 @@
 #define GRIDIMAGE_H
 
 #include <QQuaternion>
-#include <QOpenGLShaderProgram>
+#include "openglfunctionsdebug.h"
 
+//class QOpenGLTexture;
 class ImageGrid;
 class GridLayer;
-class GridImage {
+class GridImage : public OpenGLFunctionsDebug {
 
 public:
     GridImage();
@@ -18,11 +19,10 @@ public:
     GLuint m_squareVertexTextureCoordBuffer;
     GLuint *m_tilePositionBufferGrid;
     GLuint *m_tileTextureGrid;
-    GLuint *m_tileTextureGrid2;
-    GLuint *m_tileTextureGrid3;
     GLfloat **m_tiles;
     GLfloat *m_textureCoords;
 
+//    QList<QOpenGLTexture *> m_tileTextureGridQt;
 
     bool m_initialized;
 };

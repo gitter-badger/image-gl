@@ -21,9 +21,7 @@ CONFIG(has_bluetooth){
 SOURCES += main.cpp\
     mainwindow.cpp \
     glgraphicsview.cpp \
-    model.cpp \
     imagegrid.cpp \
-    ngraphicsscene.cpp \
     glgraphicsscene.cpp \
     openglwindow.cpp \
     trianglewindow.cpp \
@@ -31,14 +29,12 @@ SOURCES += main.cpp\
     imagetile.cpp \
     openglfunctionsdebug.cpp \
     fontsheet.cpp \
-    gridimage.cpp
+    gridimage.cpp \
+    openglcontextview.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
-    model.h \
-    point3d.h \
     imagegrid.h \
-    ngraphicsscene.h \
     glgraphicsscene.h \
     openglwindow.h \
     trianglewindow.h \
@@ -46,7 +42,8 @@ HEADERS  += mainwindow.h \
     imagetile.h \
     openglfunctionsdebug.h \
     fontsheet.h \
-    gridimage.h
+    gridimage.h \
+    openglcontextview.h
 
 
 FORMS    += mainwindow.ui
@@ -62,13 +59,19 @@ FORMS   +=     bluetoothwidget.ui
 RESOURCES += \
     resources.qrc
 
+
+#TODO: Android does not have freetype available
+android {
+# MISSING freetype!
+}
+
 mac {
 # Include freetype
 INCLUDEPATH += /usr/local/include/freetype2
 LIBS += /usr/local/lib/libfreetype.a
 }
 
-linux {
+linux-x86 {
 INCLUDEPATH += /usr/include/freetype2
 LIBS += -lfreetype
 }

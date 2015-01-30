@@ -8,6 +8,7 @@
 
 #include "openglfunctionsdebug.h"
 
+class QExposeEvent;
 class GLGraphicsScene : public QGraphicsScene, protected OpenGLFunctionsDebug
 {
 public:
@@ -28,7 +29,8 @@ public slots:
     void renderNow();
 
 protected:
-    bool event(QEvent *event) ;
+    virtual void exposeEvent(QExposeEvent *event);
+    virtual bool event(QEvent *event) ;
 //    void exposeEvent(QExposeEvent *event) ;
 
 private:

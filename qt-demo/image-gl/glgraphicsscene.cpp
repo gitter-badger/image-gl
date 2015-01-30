@@ -51,13 +51,13 @@ bool GLGraphicsScene::event(QEvent *event)
     }
 }
 
-//void GLGraphicsScene::exposeEvent(QExposeEvent *event)
-//{
-//    Q_UNUSED(event);
+void GLGraphicsScene::exposeEvent(QExposeEvent *event)
+{
+    Q_UNUSED(event);
 
 //    if (isExposed())
-//        renderNow();
-//}
+        renderNow();
+}
 
 void GLGraphicsScene::renderNow()
 {

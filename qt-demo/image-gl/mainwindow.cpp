@@ -102,7 +102,7 @@ bool MainWindow::loadMultiple(const QString &path)
         QString file = info.absoluteFilePath();
         QImageReader reader;
         reader.setFileName( file );
-        if(!reader.canRead()){
+        if( ! reader.canRead() ){
             continue;
         }
 
@@ -115,8 +115,10 @@ bool MainWindow::loadMultiple(const QString &path)
         /// TODO: Don't load the same twice, use ref count
         grid = new ImageGrid( file, fmt, 1024, gridWindow );
 
-        if( grid->loadImage( ) ){
-
+        if( ! grid->loadImage( ) ){
+            delete grid;
+            delete gridWindow;
+            return false;
         }
 
         gridWindow->addImage( grid );
@@ -128,7 +130,7 @@ bool MainWindow::loadMultiple(const QString &path)
         gridWindow->setFormat(format);
 
         gridWindow->resize( 800, 800 );
-        gridWindow->setAnimating(true);
+        gridWindow->setAnimating( true) ;
         gridWindow->show();
         gridWindow->fitToView();
     }
@@ -249,11 +251,8 @@ void MainWindow::on_pushButtonOsteotomy_clicked()
 
     m_gridWindow = new GridWindow();
 
-    QQuaternion q = QQuaternion( 0,0,0,0 );
-
     int dim = dimension();
     QString fmt = format();
-
 
     m_gridAP = new ImageGrid( m_fileLAT, fmt, dim, this );
     if(m_gridAP->loadImage(  )){
@@ -268,12 +267,6 @@ void MainWindow::on_pushButtonOsteotomy_clicked()
     }else{
         updateLog( m_gridLAT->errors() );
     }
-
-    QVector3D translate0(0.0, -0.1, 0);
-    QVector3D translate1(-0.1, 0.1, 0);
-
-    qreal zrotation0 = 12.0f;
-    qreal zrotation1 = -12.0f;
 
     m_gridWindow->addImage( m_gridAP );
     m_gridWindow->addImage( m_gridLAT );
@@ -296,27 +289,28 @@ void MainWindow::on_pushButtonDisplay_clicked()
         return;
     }
 
-    GridWindow *gridWindow = new GridWindow();
-    gridWindow->addImage( m_grid );
-
     QSurfaceFormat format;
     format.setSamples( 16 );
     format.setStencilBufferSize( 1 );
 
-    gridWindow->setFormat(format);
+    GridWindow *gridWindow1 = new GridWindow();
 
-    gridWindow->resize(800, 800);
-    gridWindow->setAnimating(true);
-    gridWindow->show();
-    gridWindow->fitToView();
+    gridWindow1->setFormat( format );
+    gridWindow1->addImage( m_grid );
 
-    //    QDialog dlg;
-    //    dlg.setLayout(new QVBoxLayout());
-    //    QWidget *widget = QWidget::createWindowContainer(gridWindow, &dlg);
-    //    dlg.resize(800, 800);
-    //    dlg.layout()->addWidget(widget);
-    //    gridWindow->fitToView();
-    //    dlg.exec();
+    gridWindow1->resize( 800, 800 );
+    gridWindow1->setAnimating( true );
+    gridWindow1->show();
+    gridWindow1->fitToView();
+
+
+//        QDialog dlg;
+//        dlg.setLayout(new QVBoxLayout());
+//        QWidget *widget = QWidget::createWindowContainer(gridWindow1, &dlg);
+//        dlg.resize(800, 800);
+//        dlg.layout()->addWidget(widget);
+//        gridWindow1->fitToView();
+//        dlg.exec();
 }
 
 void MainWindow::on_pushButtonDemo2Run_clicked()
@@ -372,8 +366,6 @@ void MainWindow::on_pushButtonDemo2Run_clicked()
     QSurfaceFormat format;
     format.setSamples(16);
     format.setStencilBufferSize(8);
-
-    //    format.setRenderableType(QSurfaceFormat::OpenGLES);
 
     m_gridWindow->setVFlip90(true);
     m_gridWindow->setFormat(format);

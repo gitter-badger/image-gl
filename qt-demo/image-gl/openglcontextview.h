@@ -1,18 +1,22 @@
-#ifndef OPENGLWINDOW_H
-#define OPENGLWINDOW_H
+#ifndef OPENGLCONTEXTVIEW_H
+#define OPENGLCONTEXTVIEW_H
 
-#include <QExposeEvent>
+#include <QObject>
 #include <QWindow>
-#include <QOpenGLFunctions>
-#include <QOpenGLPaintDevice>
+
 #include "openglfunctionsdebug.h"
 
-class OpenGLWindow : public QWindow, protected OpenGLFunctionsDebug
+class QOpenGLContext;
+class QOpenGLPaintDevice;
+class QPainter;
+class QEvent;
+class QExposeEvent;
+
+class OpenGLContextView : public QWindow, protected OpenGLFunctionsDebug
 {
-    Q_OBJECT
 public:
-    explicit OpenGLWindow(QWindow *parent = 0);
-    ~OpenGLWindow();
+    explicit OpenGLContextView(QWindow *parent = 0);
+    ~OpenGLContextView();
 
     virtual void render(QPainter *painter);
     virtual void render();
@@ -25,6 +29,8 @@ public slots:
     void renderLater();
     void renderNow();
 
+    void setContext( QOpenGLContext *context );
+
 protected:
     virtual bool event(QEvent *event) ;
     void exposeEvent(QExposeEvent *event) ;
@@ -32,11 +38,10 @@ protected:
 private:
     bool m_update_pending;
     bool m_animating;
+    bool m_initialized;
 
     QOpenGLContext *m_context;
     QOpenGLPaintDevice *m_device;
 };
 
-
-
-#endif // OPENGLWINDOW_H
+#endif // OPENGLCONTEXTVIEW_H
