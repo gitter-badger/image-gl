@@ -9,7 +9,7 @@ class QResizeEvent;
 class GLGraphicsView : public QGraphicsView
 {
 public:
-    GLGraphicsView(QWidget *parent);
+    GLGraphicsView(QWidget *parent = NULL);
     ~GLGraphicsView();
 protected:
     void resizeEvent(QResizeEvent *event);

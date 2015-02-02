@@ -1,2 +1,5 @@
 <RCC>
+    <qresource prefix="/fonts">
+        <file alias="freesans">FreeSans.ttf</file>
+    </qresource>
 </RCC>

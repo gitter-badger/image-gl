@@ -53,6 +53,8 @@ private slots:
 
     void on_pushButtonLoad_clicked();
 
+    void on_pushButtonGraphicsView_clicked();
+
 private:
     void updateLog(QStringList log);
     void updateErrors(QStringList errors);

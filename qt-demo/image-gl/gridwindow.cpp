@@ -277,7 +277,6 @@ GridLayer::GridLayer( GridImage * g )
     ,m_gridImage( g )
 
 {
-
 }
 
 GridLayer::~GridLayer()
@@ -373,7 +372,6 @@ GridWindow::GridWindow()
     reset();
     m_mvMatrix = QMatrix4x4();
     m_pMatrix  = QMatrix4x4();
-
 }
 
 void GridWindow::deinitialize(){
@@ -411,34 +409,49 @@ GridWindow::~GridWindow()
 
 }
 
-#ifndef Q_OS_ANDROID
 /// Initialize FreeType
 int GridWindow::_initTextResources(){
-#ifdef Q_OS_OSX
-    const char *fontfilename = "/Users/Jon/Downloads/FreeSans/FreeSans.ttf";
-#else
-#ifdef Q_OS_LINUX
-    const char *fontfilename = "/home/jsuppe/Developer/SourceCodePro-ExtraLight.ttf";
-#endif
-#endif
+//#ifdef Q_OS_OSX
+//    const char *fontfilename = "/Users/Jon/Downloads/FreeSans/FreeSans.ttf";
+//#else
+//#ifdef Q_OS_ANDROID
+//    const char * fontfilename = ":/fonts/freesans";
+//#else
+//    const char *fontfilename = "/home/jsuppe/Developer/SourceCodePro-ExtraLight.ttf";
+//#endif
+//#endif
+    const char * fontfilename = ":/fonts/freesans";
+    QFile file(fontfilename);
+    QByteArray bytes;
+    if(!file.open(QFile::ReadOnly)){
+        return 0;
+    }
+    bytes = file.readAll();
+    qDebug() << __FUNCTION__ << fontfilename << bytes.count();
+
     /* Initialize the FreeType2 library */
     if ( FT_Init_FreeType( &m_ft ) ) {
         qDebug() << "Could not init freetype library";
         return 0;
     }
-
     /* Load a font */
-    if (FT_New_Face(m_ft, fontfilename, 0, &m_face)) {
+//#ifdef Q_OS_ANDROID
+    if (FT_New_Memory_Face(m_ft, (FT_Byte*)bytes.constData(), bytes.size(), 0, &m_face)) {
         qDebug() <<  QString( "Could not open font %1\n" ).arg(fontfilename);
         return 0;
     }
+//#else
+//    if (FT_New_Face(m_ft, fontfilename, 0, &m_face)) {
+//        qDebug() <<  QString( "Could not open font %1\n" ).arg(fontfilename);
+//        return 0;
+//    }
+//#endif
 
     // Create the vertex buffer object
     glGenBuffers(1, &m_hudTextVbo);
 
     return 1;
 }
-#endif
 
 qint64 GridWindow::_tileIndex(qint64 row, qint64 col, qint64 cols){
     qint64 index = cols * row + col;
@@ -447,9 +460,7 @@ qint64 GridWindow::_tileIndex(qint64 row, qint64 col, qint64 cols){
 
 void GridWindow::initialize()
 {
-#ifndef Q_OS_ANDROID
     _initTextResources();
-#endif
     webGLStart();
 }
 
@@ -1086,11 +1097,16 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
     }
 
     //////// Zoom cube
-    if( false ) { //  m_zoom != m_settings.zoom ){
+    if( true ) { //  m_zoom != m_settings.zoom ){
 
         m_mvStack.push(m_mvMatrix);
 
         m_mvMatrix.setToIdentity();
+
+        m_mvMatrix.rotate( r2d( m_rotz ), 0.0, 0.0, 1.0 );
+
+        m_mvMatrix.translate( 0, 0, 8 );
+        m_mvMatrix.translate( m_transX, m_transY, m_zoom );
 
         // Set up cube vertices
 
@@ -1279,7 +1295,6 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     float sy = 2.0 / ( h * 1.0 );
 
     /// Android build is not configured for freetype
-#ifndef Q_OS_ANDROID
     /* Set font size to 48 pixels, color to black */
     FT_Set_Pixel_Sizes(m_face, 0, 12);
 
@@ -1294,8 +1309,6 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
         QString rot = QString( "Rotation: %1" ).arg(r2d( m_rotz ));
         render_text(rot.toLatin1(),  0.1, 0.0, sx, sy);
     }
-#endif
-
     glDisable(GL_BLEND);
 
     m_mvMatrix = m_mvStack.pop( );
@@ -1982,7 +1995,7 @@ qreal GridWindow::_dbgZoom(){
 }
 
 void GridWindow::zoomIn(){
-    m_zoomStep = m_settings.zoom / 10.0f;
+    m_zoomStep = m_settings.zoom / 20.0f;
     m_settings.zoom += m_zoomStep;
     if ( m_settings.zoom >  m_maxZ ) {
         m_settings.zoom = m_maxZ;
@@ -1991,7 +2004,7 @@ void GridWindow::zoomIn(){
 }
 
 void GridWindow::zoomOut(){
-    m_zoomStep = m_settings.zoom / 10.0f;
+    m_zoomStep = m_settings.zoom / 20.0f;
     m_settings.zoom -= m_zoomStep;
     if ( m_settings.zoom <  m_minZ ) {
         m_settings.zoom = m_minZ;
@@ -2173,6 +2186,35 @@ void GridWindow::hideEvent(QHideEvent *event)
     OpenGLWindow::hideEvent(event);
 }
 
+
+//void GridWindow::touchEvent(QTouchEvent *event){
+//    QList<QTouchEvent::TouchPoint> touchPoints = event->touchPoints();
+//    if (touchPoints.count() == 2) {
+//        // determine scale factor
+//        const QTouchEvent::TouchPoint &touchPoint0 = touchPoints.first();
+//        const QTouchEvent::TouchPoint &touchPoint1 = touchPoints.last();
+//        qreal currentScaleFactor =
+//                QLineF(touchPoint0.pos(), touchPoint1.pos()).length()
+//                / QLineF(touchPoint0.startPos(), touchPoint1.startPos()).length();
+//        if (event->touchPointStates() & Qt::TouchPointReleased) {
+//            // if one of the fingers is released, remember the current scale
+//            // factor so that adding another finger later will continue zooming
+//            // by adding new scale factor to the existing remembered value.
+//            m_settings.zoom *= currentScaleFactor;
+//            currentScaleFactor = 1;
+//        }
+//        if(currentScaleFactor > 0){
+//            zoomOut();
+//        }else{
+//            zoomIn();
+//        }
+//    }
+//}
+
+//void GridWindow::tabletEvent(QTabletEvent *event){
+
+//}
+
 bool GridWindow::event(QEvent *event){
 //    if(event->type() == QEvent::UpdateRequest){
 //        if(m_initialized == false){
@@ -2183,38 +2225,68 @@ bool GridWindow::event(QEvent *event){
 //        return QWindow::event(event);
 //    }
 
+//    if(event->type() != 77){
+//        qDebug() << __FUNCTION__ << event->type();
+//    }
+
     switch (event->type()) {
     case QEvent::Gesture:
-        return gestureEvent(static_cast<QGestureEvent *>(event));
-//    case QEvent::TouchBegin:
-//    case QEvent::TouchUpdate:
-//    case QEvent::TouchEnd:
-//    {
-//        QTouchEvent *touchEvent = static_cast<QTouchEvent *>(event);
-//        QList<QTouchEvent::TouchPoint> touchPoints = touchEvent->touchPoints();
-//        if (touchPoints.count() == 2) {
-//            // determine scale factor
-//            const QTouchEvent::TouchPoint &touchPoint0 = touchPoints.first();
-//            const QTouchEvent::TouchPoint &touchPoint1 = touchPoints.last();
-//            qreal currentScaleFactor =
-//                    QLineF(touchPoint0.pos(), touchPoint1.pos()).length()
-//                    / QLineF(touchPoint0.startPos(), touchPoint1.startPos()).length();
+        return gestureEvent(static_cast<QGestureEvent  *>(event));
+    case QEvent::NativeGesture:
+        return nativeGestureEvent(static_cast<QNativeGestureEvent *>(event));
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd:
+    {
+        QTouchEvent *touchEvent = static_cast<QTouchEvent *>(event);
+        QList<QTouchEvent::TouchPoint> touchPoints = touchEvent->touchPoints();
+        if (touchPoints.count() == 2) {
+            // determine scale factor
+            const QTouchEvent::TouchPoint &touchPoint0 = touchPoints.first();
+            const QTouchEvent::TouchPoint &touchPoint1 = touchPoints.last();
+            qreal currentScaleFactor =
+                    QLineF(touchPoint0.pos(), touchPoint1.pos()).length()
+                    / QLineF(touchPoint0.startPos(), touchPoint1.startPos()).length();
 //            if (touchEvent->touchPointStates() & Qt::TouchPointReleased) {
 //                // if one of the fingers is released, remember the current scale
 //                // factor so that adding another finger later will continue zooming
 //                // by adding new scale factor to the existing remembered value.
-//                m_settings.zoom *= currentScaleFactor;
 //                currentScaleFactor = 1;
+//                break;
 //            }
-//            m_settings.zoom *= currentScaleFactor;
-//        }
-//        return true;
-//    }
+            if(currentScaleFactor > 1){
+                zoomOut();
+            }else{
+                zoomIn();
+            }
+        }
+        return true;
+    }
     default:
         break;
     }
 
     return OpenGLWindow::event(event);
+}
+
+bool GridWindow::nativeGestureEvent(QNativeGestureEvent *event){
+    bool ok = false;
+    switch(event->gestureType()){
+    case Qt::ZoomNativeGesture:
+        if(event->value() > 0){
+            zoomIn();
+        }else{
+            zoomOut();
+        }
+        break;
+    case Qt::SmartZoomNativeGesture:
+        fitToView();
+        break;
+    case Qt::RotateNativeGesture:
+        m_settings.rotation += -d2r(event->value());
+        break;
+    }
+    return ok;
 }
 
 bool GridWindow::gestureEvent(QGestureEvent *event)
@@ -2271,12 +2343,12 @@ void GridWindow::wheelEvent( QWheelEvent *e )
 
     if(isCommandKeyDown()){
         if( !m_currentlyPressedKeys[ Qt::Key_Shift ]){
-            if(delta > 0){
-                zoomIn();
-            }
-            if(delta < 0){
-                zoomOut();
-            }
+//            if(delta > 0){
+//                zoomIn();
+//            }
+//            if(delta < 0){
+//                zoomOut();
+//            }
         }else{
             float amt = 0.0f;
             if( delta > 0 ){
@@ -2300,7 +2372,6 @@ void GridWindow::wheelEvent( QWheelEvent *e )
     //    qDebug() << "WHEEL:" << delta;
 }
 
-#ifndef Q_OS_ANDROID
 void GridWindow::render_text(const char *text, float x, float y, float sx, float sy) {
     const char *p;
     FT_GlyphSlot g = m_face->glyph;
@@ -2363,4 +2434,3 @@ void GridWindow::render_text(const char *text, float x, float y, float sx, float
     glDisableVertexAttribArray( m_hudTextVertexPositionAttribute );
     glDeleteTextures( 1, &tex );
 }
-#endif

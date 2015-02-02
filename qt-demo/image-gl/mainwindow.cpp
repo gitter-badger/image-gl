@@ -394,3 +394,19 @@ void MainWindow::on_pushButtonLoad_clicked()
 
     loadMultiple(m_multiplePath);
 }
+
+void MainWindow::on_pushButtonGraphicsView_clicked()
+{
+    GLGraphicsView *view = new GLGraphicsView();
+    GLGraphicsScene *scene = new GLGraphicsScene();
+
+    view->setScene(scene);
+
+    QDialog dlg;
+    dlg.setLayout(new QVBoxLayout(&dlg));
+    dlg.layout()->addWidget(view);
+    dlg.exec();
+
+    delete view;
+    delete scene;
+}

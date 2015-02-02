@@ -14,11 +14,8 @@ class QPanGesture;
 class QSwipeGesture;
 class QPinchGesture;
 
-
-#ifndef Q_OS_ANDROID
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#endif
 
 class ImageGrid;
 
@@ -161,6 +158,10 @@ private:
     bool isCtrlKeyDown();
     bool isCommandKeyDown();
 
+
+    virtual bool nativeGestureEvent(QNativeGestureEvent *event);
+//    void touchEvent(QTouchEvent *event);
+//    void tabletEvent(QTabletEvent *event);
     void hideEvent(QHideEvent *event);
     void resizeEvent(QResizeEvent *event);
     void wheelEvent(QWheelEvent *event);
@@ -235,12 +236,11 @@ private:
     GLuint m_hudTextTextTexture;
     GLuint m_hudTextVbo;
     QVector4D m_hudTextColor;
-#ifndef Q_OS_ANDROID
+
     int   _initTextResources();
     FT_Library m_ft;
     FT_Face m_face;
     FT_GlyphSlot m_glyph;
-#endif
 
     /// MEAUREMENT
     GLint m_measurementPMatrixUniform;

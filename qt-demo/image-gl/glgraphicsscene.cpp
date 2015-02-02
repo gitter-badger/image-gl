@@ -18,7 +18,8 @@ void GLGraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
     if (!m_device)
         m_device = new QOpenGLPaintDevice;
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear( GL_COLOR_BUFFER_BIT );
 
     m_device->setSize(sceneRect().size().toSize());
 

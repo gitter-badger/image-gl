@@ -40,7 +40,7 @@ void guiApplicationTest(){
 
     gridWindow1->resize( 1920, 1024 );
     gridWindow1->setAnimating( true );
-    gridWindow1->show();
+    gridWindow1->showFullScreen();
     gridWindow1->fitToView();
 }
 

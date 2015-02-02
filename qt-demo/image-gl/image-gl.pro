@@ -62,7 +62,8 @@ RESOURCES += \
 
 #TODO: Android does not have freetype available
 android {
-# MISSING freetype!
+INCLUDEPATH += /Users/Jon/Developer/freetype-2.5.5/android-build/include/freetype2
+LIBS += /Users/Jon/Developer/freetype-2.5.5/android-build/lib/libfreetype.a
 }
 
 mac {
