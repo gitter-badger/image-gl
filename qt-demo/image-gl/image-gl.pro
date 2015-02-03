@@ -33,7 +33,6 @@ SOURCES += main.cpp\
     openglcontextview.cpp \
     shaders.cpp \
     gridlayer.cpp \
-    seriesviewer.cpp \
     viewer.cpp
 
 HEADERS  += mainwindow.h \
@@ -50,12 +49,10 @@ HEADERS  += mainwindow.h \
     openglcontextview.h \
     shaders.h \
     gridlayer.h \
-    seriesviewer.h \
     viewer.h
 
 
 FORMS    += mainwindow.ui \
-            seriesviewer.ui \
     viewer.ui
 
 CONFIG(has_bluetooth) {

@@ -1246,7 +1246,7 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     QString sfps = QString("FPS: %1 ").arg(fps());
 
     //    render_text(px.toLatin1(), 0.40, -0.4, sx, sy);
-//    render_text(sfps.toLatin1(), -0.20, 0.35, sx, sy);
+    render_text(sfps.toLatin1(), -0.20, 0.35, sx, sy);
 
     if(m_rotz != m_settings.rotation){
         QString rot = QString( "Rotation: %1" ).arg(r2d( m_rotz ));
