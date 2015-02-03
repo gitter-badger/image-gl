@@ -15,6 +15,7 @@
 #include <QJsonDocument>
 #include <QGL>
 #include <QSettings>
+#include <QFileInfoList>
 
 GridWindow *MainWindow::m_gridWindow = NULL;
 
@@ -130,10 +131,30 @@ bool MainWindow::loadMultiple(const QString &path)
         gridWindow->setFormat(format);
 
         gridWindow->resize( 800, 800 );
-        gridWindow->setAnimating( true) ;
+        gridWindow->setAnimating( true ) ;
         gridWindow->show();
         gridWindow->fitToView();
     }
+}
+
+bool MainWindow::loadDirectory(const QString &path)
+{
+    QDir dir(path);
+    QFileInfoList list;
+    list = dir.entryInfoList( QDir::Dirs | QDir::NoDotDot | QDir::NoDot );
+    GridWindow *gridWindow = new GridWindow();
+
+    QSurfaceFormat format;
+    format.setSamples( 16 );
+    format.setStencilBufferSize( 1 );
+
+    gridWindow->setDisplayMode( GridWindow::PathDisplay );
+    gridWindow->setBrowsePath( path );
+    gridWindow->setFormat(format);
+    gridWindow->resize( 800, 800 );
+    gridWindow->setAnimating( true ) ;
+    gridWindow->show();
+    gridWindow->fitToView();
 }
 
 int MainWindow::dimension(){
@@ -392,7 +413,8 @@ void MainWindow::on_pushButtonLoad_clicked()
         return;
     }
 
-    loadMultiple(m_multiplePath);
+//    loadMultiple(m_multiplePath);
+    loadDirectory(m_multiplePath);
 }
 
 void MainWindow::on_pushButtonGraphicsView_clicked()

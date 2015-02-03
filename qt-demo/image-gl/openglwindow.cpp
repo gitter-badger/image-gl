@@ -28,6 +28,7 @@ void OpenGLWindow::initialize()
 
 void OpenGLWindow::render()
 {
+    /// Doesn't get called?
     if (!m_device)
         m_device = new QOpenGLPaintDevice;
 

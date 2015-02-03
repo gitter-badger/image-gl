@@ -5,13 +5,13 @@
 #include "imagegrid.h"
 #include "gridwindow.h"
 
-QString m_file;
-ImageGrid *m_grid = NULL;
 
-QSurfaceFormat format;
 
 
 void guiApplicationTest(){
+    ImageGrid *m_grid;
+    QSurfaceFormat format;
+    QString m_file;
 
 #ifdef Q_OS_ANDROID
     m_file = QString("/sdcard/DCIM/a.jpg");
@@ -28,7 +28,6 @@ void guiApplicationTest(){
 
     GridWindow *gridWindow1 = new GridWindow();
 
-    QSurfaceFormat format;
     format.setSamples( 16 );
     format.setStencilBufferSize( 1 );
 #ifdef Q_OS_ANDROID
@@ -36,7 +35,7 @@ void guiApplicationTest(){
 #endif
 
     gridWindow1->setFormat( format );
-    gridWindow1->addImage( m_grid );
+    gridWindow1->addImage( m_file );
 
     gridWindow1->resize( 1920, 1024 );
     gridWindow1->setAnimating( true );
@@ -46,20 +45,20 @@ void guiApplicationTest(){
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
-    app.setApplicationName("image-gl");
-    app.setOrganizationName("klathzazt");
-    app.setOrganizationDomain("klathzazt.com");
-    app.setApplicationVersion(0);
-    guiApplicationTest();
+//    QGuiApplication app(argc, argv);
+//    app.setApplicationName("image-gl");
+//    app.setOrganizationName("klathzazt");
+//    app.setOrganizationDomain("klathzazt.com");
+//    app.setApplicationVersion(0);
+//    guiApplicationTest();
 
-//    QApplication app(argc, argv);
-//    QCoreApplication::setApplicationName("image-gl");
-//    QCoreApplication::setOrganizationName("klathzazt");
-//    QCoreApplication::setOrganizationDomain("klathzazt.com");
-//    QCoreApplication::setApplicationVersion(0);
-//    MainWindow w;
-//    w.show();
+    QApplication app(argc, argv);
+    QCoreApplication::setApplicationName("image-gl");
+    QCoreApplication::setOrganizationName("klathzazt");
+    QCoreApplication::setOrganizationDomain("klathzazt.com");
+    QCoreApplication::setApplicationVersion(0);
+    MainWindow w;
+    w.show();
 
     return app.exec();
 }

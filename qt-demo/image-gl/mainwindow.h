@@ -28,6 +28,7 @@ public:
     bool writeImage(QImage &img, QPoint pos, int row, int column, int dim);
 
     bool loadMultiple(const QString &path);
+    bool loadDirectory(const QString &path);
 
     int dimension();
     bool writeJSON(QJsonDocument &doc, QString path);

@@ -30,7 +30,8 @@ SOURCES += main.cpp\
     openglfunctionsdebug.cpp \
     fontsheet.cpp \
     gridimage.cpp \
-    openglcontextview.cpp
+    openglcontextview.cpp \
+    shaders.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
@@ -43,7 +44,8 @@ HEADERS  += mainwindow.h \
     openglfunctionsdebug.h \
     fontsheet.h \
     gridimage.h \
-    openglcontextview.h
+    openglcontextview.h \
+    shaders.h
 
 
 FORMS    += mainwindow.ui
@@ -62,8 +64,8 @@ RESOURCES += \
 
 #TODO: Android does not have freetype available
 android {
-INCLUDEPATH += /Users/Jon/Developer/freetype-2.5.5/android-build/include/freetype2
-LIBS += /Users/Jon/Developer/freetype-2.5.5/android-build/lib/libfreetype.a
+INCLUDEPATH += /Users/Jon/Developer/freetype-2.5.5/android/include/freetype2
+LIBS += /Users/Jon/Developer/freetype-2.5.5/android/lib/libfreetype.a
 }
 
 mac {
