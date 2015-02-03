@@ -35,7 +35,7 @@ void guiApplicationTest(){
 #endif
 
     gridWindow1->setFormat( format );
-    gridWindow1->addImage( m_file );
+    gridWindow1->addImage( m_grid );
 
     gridWindow1->resize( 1920, 1024 );
     gridWindow1->setAnimating( true );

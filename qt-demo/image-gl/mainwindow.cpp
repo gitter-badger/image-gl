@@ -148,8 +148,8 @@ bool MainWindow::loadDirectory(const QString &path)
     format.setSamples( 16 );
     format.setStencilBufferSize( 1 );
 
-    gridWindow->setDisplayMode( GridWindow::PathDisplay );
-    gridWindow->setBrowsePath( path );
+//    gridWindow->setDisplayMode( GridWindow::PathDisplay );
+//    gridWindow->setBrowsePath( path );
     gridWindow->setFormat(format);
     gridWindow->resize( 800, 800 );
     gridWindow->setAnimating( true ) ;

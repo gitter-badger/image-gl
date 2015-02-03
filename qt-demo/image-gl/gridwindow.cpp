@@ -453,7 +453,7 @@ int GridWindow::_initTextResources(){
     return 1;
 }
 
-qint64 GridWindow::_tileIndex(qint64 row, qint64 col, qint64 cols){
+qint64 GridWindow::tileIndex(qint64 row, qint64 col, qint64 cols){
     qint64 index = cols * row + col;
     return index;
 }
@@ -665,8 +665,8 @@ void GridWindow::initGridBuffers(){
                 tile[ 8 ] = tCol-1;
                 tile[ 9 ] = tRow;
 
-                qint64 tileIndex = _tileIndex( row, col, cols );
-                grid->m_tiles[ tileIndex ] = tile;
+                qint64 indy = tileIndex( row, col, cols );
+                grid->m_tiles[ indy ] = tile;
             }
         }
 
@@ -687,9 +687,9 @@ void GridWindow::initGridBuffers(){
         glGenBuffers( rows * cols, grid->m_tilePositionBufferGrid );
         for( int row = 0; row < rows; row++ ){
             for( int col = 0; col < cols; col++ ){
-                qint64 tileIndex = _tileIndex( row, col, cols );
-                glBindBuffer( GL_ARRAY_BUFFER, grid->m_tilePositionBufferGrid[ tileIndex ] );
-                glBufferData( GL_ARRAY_BUFFER, tileBufferSize, grid->m_tiles[ tileIndex ], GL_STATIC_DRAW );
+                qint64 indy = tileIndex( row, col, cols );
+                glBindBuffer( GL_ARRAY_BUFFER, grid->m_tilePositionBufferGrid[ indy ] );
+                glBufferData( GL_ARRAY_BUFFER, tileBufferSize, grid->m_tiles[ indy ], GL_STATIC_DRAW );
                 glBindBuffer( GL_ARRAY_BUFFER, 0 );
             }
         }
@@ -1158,9 +1158,9 @@ void GridWindow::drawGrid( GridLayer *layer ){
         m_mvMatrix.rotate( r2d( m_animateSquare ), 0.4, 0.1, 0.8 );
 
         for( int col = 0; col < cols; col++ ) {
-            int tileIndex = _tileIndex( row, col, cols );
+            int indy = tileIndex( row, col, cols );
 
-            GLfloat *tile = grid->m_tiles[ tileIndex ];
+            GLfloat *tile = grid->m_tiles[ indy ];
 
             int j = 0;
             for(int i = 0; i < 8; i++){
@@ -1196,7 +1196,7 @@ void GridWindow::drawGrid( GridLayer *layer ){
             ///////////  Draw Tile
             //  Tile Buffer
             GLuint tileBuffer;
-            tileBuffer = grid->m_tilePositionBufferGrid[ tileIndex ];
+            tileBuffer = grid->m_tilePositionBufferGrid[ indy ];
 
             glBindBuffer( GL_ARRAY_BUFFER, tileBuffer );
 
@@ -1207,8 +1207,8 @@ void GridWindow::drawGrid( GridLayer *layer ){
 
             glActiveTexture( GL_TEXTURE0 );
 
-            tileTexture = grid->m_tileTextureGrid[ tileIndex ];
-            glBindTexture( GL_TEXTURE_2D, tileTexture );
+            tileTexture = grid->m_tileTextureGrid[ indy ];
+            glBindTexture( GL_TEXTURE_2D, indy );
 
             /// Using QOpenGLTexture
 //            grid->m_tileTextureGridQt.at( tileIndex )->bind();
@@ -1239,7 +1239,7 @@ void GridWindow::handleLoadedGridTexture(int index, int row, int col ){
     ImageGrid *imageGrid = grid->m_imagegrid;
     ImageTile *tile = imageGrid->tile( row,col );
 
-    handleLoadedTexture( grid, tile->image(),          grid->m_tileTextureGrid [ _tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() );
+    handleLoadedTexture( grid, tile->image(),          grid->m_tileTextureGrid [ tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() );
 
     /// Using QOpenGLTexture
 //    QOpenGLTexture *tex = new QOpenGLTexture( tile->image().convertToFormat( QImage::Format_RGBA8888 ).mirrored( false, true ) );

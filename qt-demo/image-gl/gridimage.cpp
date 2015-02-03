@@ -45,7 +45,7 @@ void GridImage::handleLoadedGridTexture(int index, int row, int col ){
 
     ImageTile *tile = m_imagegrid->tile( row, col );
 
-    _handleLoadedTexture( tile->image(), m_tileTextureGrid [ GridWindow::_tileIndex( row, col, m_imagegrid->cols() ) ], m_imagegrid->dimension() );
+    _handleLoadedTexture( tile->image(), m_tileTextureGrid [ GridWindow::tileIndex( row, col, m_imagegrid->cols() ) ], m_imagegrid->dimension() );
 
     /// Using QOpenGLTexture
 //    QOpenGLTexture *tex = new QOpenGLTexture( tile->image().convertToFormat( QImage::Format_RGBA8888 ).mirrored( false, true ) );

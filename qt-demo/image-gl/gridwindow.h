@@ -87,6 +87,8 @@ public:
 
     void deinitialize();
 
+    static qint64 tileIndex(qint64 row, qint64 col, qint64 cols);
+
 public slots:
     void panDelta(int x, int y);
     void fitToView();
@@ -145,6 +147,7 @@ protected:
 
     void render_text(const char *text, float x, float y, float sx, float sy);
 
+
 private:
 
     void  _updateLayers();
@@ -171,7 +174,6 @@ private:
     void keyPressEvent(QKeyEvent *event);
     void keyReleaseEvent(QKeyEvent *event);
 
-    qint64 _tileIndex(qint64 row, qint64 col, qint64 cols);
 
     void updateInvert();
     void updateBCG();

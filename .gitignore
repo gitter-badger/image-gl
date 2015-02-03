@@ -1,2 +1,3 @@
 .idea*
 qt-demo/image-gl/image-gl.pro.user
+build-image-gl-clang64-Debug
