@@ -282,6 +282,11 @@ void ImageGrid::setIndex(qint64 index)
     m_index = index;
 }
 
+QImage ImageGrid::image()
+{
+    return m_image;
+}
+
 bool ImageGrid::_writeImage(QImage &img, QPoint pos, int row, int column, int dim){
 
     Q_UNUSED(pos);

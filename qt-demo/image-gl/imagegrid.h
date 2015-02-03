@@ -18,7 +18,6 @@ public:
     qint64 cols() const;
 
     bool initTiles(qint64 dim);
-    bool writeJSON(QString path);
 
     const QString format() const;
     const float dimension() const;
@@ -38,11 +37,12 @@ public:
 
     void setIndex(qint64 index);
 
+    QImage image();
+
     float m_stretchwidth;
     float m_stretchheight;
-    QImage m_image;
-
     QSize imageSize();
+
 signals:
     void tileImageLoaded(int index, int row, int col);
 
@@ -65,6 +65,7 @@ private:
 
     QStringList m_log;
     QStringList m_error;
+    QImage m_image;
 };
 
 #endif // IMAGEGRID_H

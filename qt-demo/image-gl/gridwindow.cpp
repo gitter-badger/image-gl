@@ -1,13 +1,14 @@
 #include "gridwindow.h"
 #include "gridimage.h"
+#include "gridlayer.h"
 #include "imagegrid.h"
 #include "imagetile.h"
+
 #include <QScreen>
 #include <QDateTime>
 #include <math.h>
 #include <QApplication>
 #include <iostream>
-
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
 
@@ -272,63 +273,6 @@ static const char *fragmentShaderSourceH =
         "   gl_FragColor = vColor;\n"
         "}\n";
 
-GridLayer::GridLayer( GridImage * g )
-    :m_stencilVertices( NULL )
-    ,m_gridImage( g )
-
-{
-}
-
-GridLayer::~GridLayer()
-{
-    if( m_stencilVertices )
-    {
-        free( m_stencilVertices );
-    }
-}
-
-void GridLayer::setPolygon( QPolygonF &poly ){
-
-    m_stencilPolygon = poly;
-
-    if( m_stencilVertices ){
-        free( m_stencilVertices );
-    }
-
-    ///// Set up stencil vertices from layer polygon
-    m_stencilVertices = ( GLfloat * )malloc( sizeof ( GLfloat ) * m_stencilPolygon.count() * 2 );
-    int stencilVerticesCount = 0;
-    foreach( QPointF point, m_stencilPolygon){
-        QPointF pt = GridWindow::sm2gl( point, m_gridImage->m_imagegrid );
-        m_stencilVertices[ stencilVerticesCount++ ] = ( float )pt.x();
-        m_stencilVertices[ stencilVerticesCount++ ] = ( float )pt.y();
-    }
-}
-
-QPolygonF GridLayer::stencilPolygon()
-{
-    return m_stencilPolygon;
-}
-
-void GridLayer::setTransformationMatrix(QMatrix4x4 &m)
-{
-    m_transformationMatrix = m;
-}
-
-QMatrix4x4 GridLayer::transformationMatrix()
-{
-    return m_transformationMatrix;
-}
-
-GLfloat *GridLayer::stencilVertices()
-{
-    return m_stencilVertices;
-}
-
-GridImage *GridLayer::gridImage()
-{
-    return m_gridImage;
-}
 
 GLuint GridWindow::loadShader(GLenum type, const char *source)
 {
@@ -715,7 +659,6 @@ void GridWindow::initGridBuffers(){
     glGenBuffers( 1, &m_hudTextVbo );
 }
 
-// grid.js
 void GridWindow::initGridTextures(){
     foreach( GridImage *grid, m_GridImages ){
         int rows = grid->m_imagegrid->rows();
@@ -1249,9 +1192,9 @@ void GridWindow::handleLoadedGridTexture(int index, int row, int col ){
 //    tex->setWrapMode( QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge );
 //    grid->m_tileTextureGridQt.insert( _tileIndex( row, col, imageGrid->cols() ), tex );
 
-    Q_ASSERT( grid->m_imagegrid->dimension() > 0 &&
-              tile->image().width() == tile->image().height() &&
-              tile->image().width() == grid->m_imagegrid->dimension() );
+//    Q_ASSERT( grid->m_imagegrid->dimension() > 0 &&
+//              tile->image().width() == tile->image().height() &&
+//              tile->image().width() == grid->m_imagegrid->dimension() );
 }
 
 void GridWindow::handleLoadedTexture( GridImage *grid, QImage image, GLuint texture, float dimension ){
@@ -1303,7 +1246,7 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     QString sfps = QString("FPS: %1 ").arg(fps());
 
     //    render_text(px.toLatin1(), 0.40, -0.4, sx, sy);
-    render_text(sfps.toLatin1(), -0.20, 0.35, sx, sy);
+//    render_text(sfps.toLatin1(), -0.20, 0.35, sx, sy);
 
     if(m_rotz != m_settings.rotation){
         QString rot = QString( "Rotation: %1" ).arg(r2d( m_rotz ));
@@ -1856,8 +1799,8 @@ void GridWindow::_updateLayers(){
 
                     QPolygonF poly = QPolygonF();
 
-                    int width = gridImage->m_imagegrid->m_image.width();
-                    int height = gridImage->m_imagegrid->m_image.height();
+                    int width = gridImage->m_imagegrid->image().width();
+                    int height = gridImage->m_imagegrid->image().height();
 
                     QPointF pt1 = QPointF( width /  ((rand() % 10) * 1.0), 0);
                     QPointF pt2 = QPointF( width                          , height /  ((rand() % 10) * 1.0));
@@ -1910,8 +1853,8 @@ void GridWindow::_updateLayers(){
 
                 QPolygonF poly = QPolygonF();
 
-                int width = gridImage->m_imagegrid->m_image.width();
-                int height = gridImage->m_imagegrid->m_image.height();
+                int width = gridImage->m_imagegrid->image().width();
+                int height = gridImage->m_imagegrid->image().height();
 
                 QPointF pt1 = QPointF( -width, -height );
                 QPointF pt2 = QPointF( width * 2, -height );
@@ -2084,8 +2027,8 @@ void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
 
     GridLayer *defaultLayer = new GridLayer( gridImage );
 
-    qreal width = imageGrid->m_image.width();
-    qreal height = imageGrid->m_image.height();
+    qreal width = imageGrid->image().width();
+    qreal height = imageGrid->image().height();
 
     QPolygonF poly ;
     poly << QPointF( 0, 0 )
@@ -2110,8 +2053,8 @@ void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
 
     if(m_GridImages.count() == 0){
         /// This is the first image, so center on its dimension
-        m_centerX = -( ( gridImage->m_imagegrid->m_stretchwidth  - gridImage->m_imagegrid->m_image.width() )  / gridImage->m_imagegrid->dimension() ) / 2.0;
-        m_centerY = +( ( gridImage->m_imagegrid->m_stretchheight - gridImage->m_imagegrid->m_image.height() ) / gridImage->m_imagegrid->dimension() ) / 2.0 ;
+        m_centerX = -( ( gridImage->m_imagegrid->m_stretchwidth  - gridImage->m_imagegrid->image().width() )  / gridImage->m_imagegrid->dimension() ) / 2.0;
+        m_centerY = +( ( gridImage->m_imagegrid->m_stretchheight - gridImage->m_imagegrid->image().height() ) / gridImage->m_imagegrid->dimension() ) / 2.0 ;
 //        qDebug() << __FUNCTION__ << m_centerX << m_centerY;
     }
 
@@ -2343,12 +2286,12 @@ void GridWindow::wheelEvent( QWheelEvent *e )
 
     if(isCommandKeyDown()){
         if( !m_currentlyPressedKeys[ Qt::Key_Shift ]){
-//            if(delta > 0){
-//                zoomIn();
-//            }
-//            if(delta < 0){
-//                zoomOut();
-//            }
+            if(delta > 0){
+                zoomIn();
+            }
+            if(delta < 0){
+                zoomOut();
+            }
         }else{
             float amt = 0.0f;
             if( delta > 0 ){
@@ -2364,9 +2307,9 @@ void GridWindow::wheelEvent( QWheelEvent *e )
     }else{
         /// Scroll to next image
         if(delta < 0){
-            qDebug() << "Next Image";
+            emit nextImage();
         }else{
-            qDebug() << "Prev Image";
+            emit prevImage();
         }
     }
     //    qDebug() << "WHEEL:" << delta;

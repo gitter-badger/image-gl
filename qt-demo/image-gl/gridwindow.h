@@ -18,6 +18,7 @@ class QPinchGesture;
 #include FT_FREETYPE_H
 
 class ImageGrid;
+class GridLayer;
 
 struct GLSettings {
     GLfloat zoom;
@@ -35,30 +36,6 @@ struct GLSettings {
 
 
 class GridImage;
-class GridLayer {
-public:
-
-    GridLayer( GridImage * );
-    ~GridLayer();
-
-    void setPolygon( QPolygonF &poly );
-    QPolygonF stencilPolygon();
-    GLfloat *stencilVertices();
-    GridImage *gridImage();
-
-    void setTransformationMatrix( QMatrix4x4 &m );
-    QMatrix4x4 transformationMatrix();
-
-    qreal zrotation;
-    qreal m_zrotation;
-    QVector3D translate;
-
-private:
-    GridImage *m_gridImage;
-    QMatrix4x4 m_transformationMatrix;
-    QPolygonF m_stencilPolygon;
-    GLfloat *m_stencilVertices;
-};
 
 
 class GridWindow : public OpenGLWindow
@@ -88,6 +65,10 @@ public:
     void deinitialize();
 
     static qint64 tileIndex(qint64 row, qint64 col, qint64 cols);
+
+signals:
+    void nextImage();
+    void prevImage();
 
 public slots:
     void panDelta(int x, int y);
@@ -149,7 +130,6 @@ protected:
 
 
 private:
-
     void  _updateLayers();
 
     qreal _dbgZoom();
@@ -163,8 +143,6 @@ private:
 
 
     virtual bool nativeGestureEvent(QNativeGestureEvent *event);
-//    void touchEvent(QTouchEvent *event);
-//    void tabletEvent(QTabletEvent *event);
     void hideEvent(QHideEvent *event);
     void resizeEvent(QResizeEvent *event);
     void wheelEvent(QWheelEvent *event);

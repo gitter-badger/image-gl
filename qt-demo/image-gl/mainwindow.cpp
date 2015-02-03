@@ -6,6 +6,7 @@
 #include "ngraphicsscene.h"
 #include "imagegrid.h"
 #include "trianglewindow.h"
+#include "viewer.h"
 
 #include <QFile>
 #include <QFileDialog>
@@ -20,15 +21,19 @@
 GridWindow *MainWindow::m_gridWindow = NULL;
 
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    m_grid(NULL),
-    m_gridAP (NULL),
-    m_gridLAT (NULL),
-    ui(new Ui::MainWindow)
+    QMainWindow(parent)
+  ,m_viewer(new Viewer(this))
+  ,m_grid(NULL)
+  ,m_gridAP (NULL)
+  ,m_gridLAT (NULL)
+  ,ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
+    ui->tabMultiple->layout()->addWidget(m_viewer);
     loadSettings();
+
+    connect(m_viewer, SIGNAL(logMessage(QString)), SLOT(logMessage(QString)));
+    connect(m_viewer, SIGNAL(errorMessage(QString)), SLOT(errorMessage(QString)));
 }
 
 void MainWindow::loadSettings(){
@@ -139,22 +144,21 @@ bool MainWindow::loadMultiple(const QString &path)
 
 bool MainWindow::loadDirectory(const QString &path)
 {
-    QDir dir(path);
-    QFileInfoList list;
-    list = dir.entryInfoList( QDir::Dirs | QDir::NoDotDot | QDir::NoDot );
-    GridWindow *gridWindow = new GridWindow();
+    return m_viewer->setDirectory(path);
 
-    QSurfaceFormat format;
-    format.setSamples( 16 );
-    format.setStencilBufferSize( 1 );
+//    GridWindow *gridWindow = new GridWindow();
+
+//    QSurfaceFormat format;
+//    format.setSamples( 16 );
+//    format.setStencilBufferSize( 1 );
 
 //    gridWindow->setDisplayMode( GridWindow::PathDisplay );
 //    gridWindow->setBrowsePath( path );
-    gridWindow->setFormat(format);
-    gridWindow->resize( 800, 800 );
-    gridWindow->setAnimating( true ) ;
-    gridWindow->show();
-    gridWindow->fitToView();
+//    gridWindow->setFormat(format);
+//    gridWindow->resize( 800, 800 );
+//    gridWindow->setAnimating( true ) ;
+//    gridWindow->show();
+//    gridWindow->fitToView();
 }
 
 int MainWindow::dimension(){
@@ -431,4 +435,15 @@ void MainWindow::on_pushButtonGraphicsView_clicked()
 
     delete view;
     delete scene;
+}
+
+void MainWindow::errorMessage(QString msg)
+{
+    ui->textEditLog->setTextColor(QColor(Qt::red));
+    ui->textEditLog->append(QString("ERROR: %1").arg(msg));
+}
+
+void MainWindow::logMessage(QString msg)
+{
+    ui->textEditLog->append(QString("LOG: %1").arg(msg));
 }

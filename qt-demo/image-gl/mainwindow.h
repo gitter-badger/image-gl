@@ -10,6 +10,7 @@ namespace Ui {
 class MainWindow;
 }
 
+class Viewer;
 class BtDevice;
 class ImageGrid;
 class MainWindow : public QMainWindow
@@ -51,10 +52,11 @@ private slots:
     void on_pushButtonDemo2Run_clicked();
     void on_pushButtonOsteotomy_clicked();
     void on_pushButtonSearch_clicked();
-
     void on_pushButtonLoad_clicked();
-
     void on_pushButtonGraphicsView_clicked();
+
+    void errorMessage(QString);
+    void logMessage(QString);
 
 private:
     void updateLog(QStringList log);
@@ -78,6 +80,8 @@ private:
 
     //////////// Demo 3: Multiple
     QString m_multiplePath;
+
+    Viewer *m_viewer;
 };
 
 #endif // MAINWINDOW_H

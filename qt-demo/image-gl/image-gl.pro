@@ -31,7 +31,10 @@ SOURCES += main.cpp\
     fontsheet.cpp \
     gridimage.cpp \
     openglcontextview.cpp \
-    shaders.cpp
+    shaders.cpp \
+    gridlayer.cpp \
+    seriesviewer.cpp \
+    viewer.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
@@ -45,10 +48,15 @@ HEADERS  += mainwindow.h \
     fontsheet.h \
     gridimage.h \
     openglcontextview.h \
-    shaders.h
+    shaders.h \
+    gridlayer.h \
+    seriesviewer.h \
+    viewer.h
 
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+            seriesviewer.ui \
+    viewer.ui
 
 CONFIG(has_bluetooth) {
 SOURCES +=     bluetoothwidget.cpp \
