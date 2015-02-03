@@ -1,16 +1,17 @@
 #ifndef GRIDIMAGE_H
 #define GRIDIMAGE_H
 
+#include <QObject>
 #include <QQuaternion>
 #include "openglfunctionsdebug.h"
 
 //class QOpenGLTexture;
 class ImageGrid;
 class GridLayer;
-class GridImage : public OpenGLFunctionsDebug {
-
+class GridImage : public QObject, protected OpenGLFunctionsDebug {
+    Q_OBJECT
 public:
-    GridImage();
+    GridImage(QObject *parent = NULL);
     ~GridImage();
     QList< GridLayer *> m_gridLayers;
 
@@ -25,6 +26,12 @@ public:
 //    QList<QOpenGLTexture *> m_tileTextureGridQt;
 
     bool m_initialized;
+
+public slots:
+    void handleLoadedGridTexture(int index, int row, int col);
+
+private:
+    void _handleLoadedTexture(QImage image, GLuint texture, float dimension);
 };
 
 
