@@ -5,7 +5,7 @@
 #include <QQuaternion>
 #include "openglfunctionsdebug.h"
 
-//class QOpenGLTexture;
+class QOpenGLTexture;
 class ImageGrid;
 class GridLayer;
 class GridImage : public QObject, protected OpenGLFunctionsDebug {
@@ -23,7 +23,7 @@ public:
     GLfloat **m_tiles;
     GLfloat *m_textureCoords;
 
-//    QList<QOpenGLTexture *> m_tileTextureGridQt;
+    QList<QOpenGLTexture *> m_tileTextureGridQt;
 
     bool m_initialized;
 

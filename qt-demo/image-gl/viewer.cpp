@@ -1,4 +1,4 @@
-#include "Viewer.h"
+#include "viewer.h"
 #include <QDir>
 #include <QFileInfoList>
 #include <QImageReader>
@@ -6,7 +6,7 @@
 
 #include <QSurfaceFormat>
 
-#include "ui_Viewer.h"
+#include "ui_viewer.h"
 #include "gridimage.h"
 #include "gridwindow.h"
 #include "imagegrid.h"

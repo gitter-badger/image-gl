@@ -1146,15 +1146,15 @@ void GridWindow::drawGrid( GridLayer *layer ){
             glVertexAttribPointer( m_sceneVertexPositionAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0 );
             glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
-            GLuint tileTexture;
 
             glActiveTexture( GL_TEXTURE0 );
 
-            tileTexture = grid->m_tileTextureGrid[ indy ];
-            glBindTexture( GL_TEXTURE_2D, indy );
+//            GLuint tileTexture;
+//            tileTexture = grid->m_tileTextureGrid[ indy ];
+//            glBindTexture( GL_TEXTURE_2D, indy );
 
             /// Using QOpenGLTexture
-//            grid->m_tileTextureGridQt.at( tileIndex )->bind();
+            grid->m_tileTextureGridQt.at( indy )->bind();
 
             glUniform1i( m_sceneSamplerUniform, 0 );
 
@@ -1182,19 +1182,19 @@ void GridWindow::handleLoadedGridTexture(int index, int row, int col ){
     ImageGrid *imageGrid = grid->m_imagegrid;
     ImageTile *tile = imageGrid->tile( row,col );
 
-    handleLoadedTexture( grid, tile->image(),          grid->m_tileTextureGrid [ tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() );
+//    handleLoadedTesxture( grid, tile->image(), grid->m_tileTextureGrid [ tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() );
 
     /// Using QOpenGLTexture
-//    QOpenGLTexture *tex = new QOpenGLTexture( tile->image().convertToFormat( QImage::Format_RGBA8888 ).mirrored( false, true ) );
-//    tex->setMinificationFilter( QOpenGLTexture::Nearest );
-//    tex->setMagnificationFilter( QOpenGLTexture::Nearest );
-//    tex->setWrapMode( QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge );
-//    tex->setWrapMode( QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge );
-//    grid->m_tileTextureGridQt.insert( _tileIndex( row, col, imageGrid->cols() ), tex );
+    QOpenGLTexture *tex = new QOpenGLTexture( tile->image().convertToFormat( QImage::Format_RGBA8888 ).mirrored( false, true ) );
+    tex->setMinificationFilter( QOpenGLTexture::Nearest );
+    tex->setMagnificationFilter( QOpenGLTexture::Nearest );
+    tex->setWrapMode( QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge );
+    tex->setWrapMode( QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge );
+    grid->m_tileTextureGridQt.insert( tileIndex( row, col, imageGrid->cols() ), tex );
 
-//    Q_ASSERT( grid->m_imagegrid->dimension() > 0 &&
-//              tile->image().width() == tile->image().height() &&
-//              tile->image().width() == grid->m_imagegrid->dimension() );
+    Q_ASSERT( grid->m_imagegrid->dimension() > 0 &&
+              tile->image().width() == tile->image().height() &&
+              tile->image().width() == grid->m_imagegrid->dimension() );
 }
 
 void GridWindow::handleLoadedTexture( GridImage *grid, QImage image, GLuint texture, float dimension ){
@@ -1246,7 +1246,7 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     QString sfps = QString("FPS: %1 ").arg(fps());
 
     //    render_text(px.toLatin1(), 0.40, -0.4, sx, sy);
-    render_text(sfps.toLatin1(), -0.20, 0.35, sx, sy);
+//    render_text(sfps.toLatin1(), -0.20, 0.35, sx, sy);
 
     if(m_rotz != m_settings.rotation){
         QString rot = QString( "Rotation: %1" ).arg(r2d( m_rotz ));
@@ -1922,7 +1922,7 @@ void GridWindow::fitToView()
 
                 int ctrl = imgAspect >= wAspect ? cols : rows;
 
-                m_settings.zoom  = - 2 * (tan( m_fov / 2.0 ) * ( ctrl ));
+                m_zoom = m_settings.zoom  = - 2 * (tan( m_fov / 2.0 ) * ( ctrl ));
             }
         }
     }

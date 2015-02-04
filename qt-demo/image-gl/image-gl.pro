@@ -79,7 +79,7 @@ INCLUDEPATH += /usr/local/include/freetype2
 LIBS += /usr/local/lib/libfreetype.a
 }
 
-linux-x86 {
+linux:!android {
 INCLUDEPATH += /usr/include/freetype2
 LIBS += -lfreetype
 }
