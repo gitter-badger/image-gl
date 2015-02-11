@@ -9,6 +9,10 @@
 #include "ui_viewer.h"
 #include "gridimage.h"
 #include "gridwindow.h"
+
+#include "glgraphicsview.h"
+#include "glgraphicsscene.h"
+
 #include "imagegrid.h"
 
 class ViewerPrivate {
@@ -30,16 +34,19 @@ public:
 
     void nextImage();
     void prevImage();
+
 private:
     QStringList m_nameFilters;
     QString m_error;
     Viewer *m_Owner;
     QList<ImageGrid *> m_imageGridList;
 
-    ImageGrid *m_currentImage;
-    QWidget *m_currentWidget;
-    GridWindow *m_currentGridWindow;
+    GLGraphicsView *m_graphicsView;
+    QList<GLGraphicsScene *>m_graphicsSceneList;
 
+    ImageGrid *m_currentImage;
+    QWidget *m_gridWidget;
+    GridWindow *m_gridWindow;
 };
 
 Viewer::Viewer(QWidget *parent) : QWidget(parent),
@@ -115,7 +122,8 @@ void Viewer::wheelEvent( QWheelEvent *event )
 ViewerPrivate::ViewerPrivate(Viewer *viewer ):
     m_Owner( viewer )
     ,m_currentImage( NULL )
-    ,m_currentWidget( NULL )
+    ,m_gridWidget( NULL )
+    ,m_graphicsView( NULL )
     ,m_ui( new Ui::Viewer )
 {
     m_ui->setupUi(m_Owner);
@@ -123,6 +131,27 @@ ViewerPrivate::ViewerPrivate(Viewer *viewer ):
     foreach( QByteArray format, QImageReader::supportedImageFormats() ){
         m_nameFilters << QString( "*.%1" ).arg( QString( format ) );
     }
+
+    //////// Initialize grid window
+    QSurfaceFormat format;
+    format.setSamples( 16 );
+    format.setStencilBufferSize( 1 );
+
+    m_gridWindow = new GridWindow();
+
+    m_gridWindow->setFormat( format );
+    m_gridWindow->resize( 800, 800 );
+
+    m_gridWidget = QWidget::createWindowContainer( m_gridWindow, m_Owner );
+    m_graphicsView = new GLGraphicsView(m_Owner);
+
+    QVBoxLayout *v = m_ui->verticalLayout;
+    v->addWidget(m_gridWidget);
+    v->addWidget(m_graphicsView);
+    m_graphicsView->setMaximumHeight(300);
+
+    m_Owner->connect( m_gridWindow, SIGNAL(prevImage()), SLOT(prevImage()));
+    m_Owner->connect( m_gridWindow, SIGNAL(nextImage()), SLOT(nextImage()));
 }
 
 ViewerPrivate::~ViewerPrivate()
@@ -215,40 +244,33 @@ bool ViewerPrivate::setCurrentImage(){
     QVBoxLayout *v = m_ui->verticalLayout;
 
     if( m_currentImage ){
-        v->removeWidget( m_currentWidget );
+        m_gridWindow->deinitialize();
         m_currentImage->unloadImage();
-
-        m_currentGridWindow->hide();
-//        delete m_currentGridWindow;
     }
 
     if(m_imageGridList.count() == 0){
         return false;
     }
+
     ImageGrid *grid = m_imageGridList.first();
 
     grid->loadImage();
-
     m_currentImage = grid;
+    m_gridWindow->addImage( grid );
+    m_gridWindow->initialize();
+    m_gridWindow->setAnimating( true );
+//    m_gridWindow->fitToView();
 
-    QSurfaceFormat format;
-    format.setSamples( 16 );
-    format.setStencilBufferSize( 1 );
+    // Remove existing scene;
+    GLGraphicsScene *scene = dynamic_cast<GLGraphicsScene *>(m_graphicsView->scene());
+    if(scene){
+        m_graphicsView->setScene(NULL);
+        delete scene;
+    }
+    scene = new GLGraphicsScene();
+    scene->setImageGrid(grid);
+    m_graphicsView->setScene(scene);
 
-    GridWindow *gridWindow1 = new GridWindow();
 
-    gridWindow1->setFormat( format );
-    gridWindow1->addImage( grid );
-
-    gridWindow1->resize( 800, 800 );
-    gridWindow1->setAnimating( true );
-    gridWindow1->fitToView();
-
-    m_currentWidget = QWidget::createWindowContainer( gridWindow1, m_Owner );
-    m_currentGridWindow = gridWindow1;
-    v->addWidget(m_currentWidget);
-
-    m_Owner->connect( gridWindow1, SIGNAL(prevImage()), SLOT(prevImage()));
-    m_Owner->connect( gridWindow1, SIGNAL(nextImage()), SLOT(nextImage()));
     return true;
 }

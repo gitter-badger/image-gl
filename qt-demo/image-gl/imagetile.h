@@ -13,6 +13,7 @@ public:
     QImage image();
 
     void setImage(QImage image);
+    void unload();
 signals:
 
 public slots:

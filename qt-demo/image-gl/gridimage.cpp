@@ -18,8 +18,13 @@ GridImage::GridImage(QObject *parent):
 GridImage::~GridImage()
 {
     /// Using QOpenGLTexture
-//    foreach(QOpenGLTexture *tex, m_tileTextureGridQt){
-//        delete tex;
+    foreach(QOpenGLTexture *tex, m_tileTextureGridQt){
+        delete tex;
+    }
+
+    /// Delete layers
+//    foreach( GridLayer *layer, m_gridLayers ){
+//        delete layer;
 //    }
 
 //    if(m_initialized){
@@ -35,9 +40,7 @@ GridImage::~GridImage()
 //        free ( m_tileTextureGrid3 );
 //        free ( m_tilePositionBufferGrid );
 
-//        foreach( GridLayer *layer, m_gridLayers ){
-//            delete layer;
-//        }
+
 //    }
 }
 

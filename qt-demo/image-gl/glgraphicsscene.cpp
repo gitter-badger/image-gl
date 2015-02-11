@@ -13,20 +13,6 @@ GLGraphicsScene::~GLGraphicsScene()
 
 }
 
-void GLGraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
-{
-    if (!m_device)
-        m_device = new QOpenGLPaintDevice;
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear( GL_COLOR_BUFFER_BIT );
-
-    m_device->setSize(sceneRect().size().toSize());
-
-    QPainter mPainter(m_device);
-    render(&mPainter);
-}
-
 void GLGraphicsScene::initialize()
 {
 
@@ -96,4 +82,24 @@ void GLGraphicsScene::setAnimating(bool animating)
 
     if (animating)
         renderLater();
+}
+
+void GLGraphicsScene::setImageGrid(ImageGrid *grid)
+{
+    m_ImageGrid = grid;
+}
+
+void GLGraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
+{
+//    if (!m_device)
+//        m_device = new QOpenGLPaintDevice;
+
+//    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+//    glClear( GL_COLOR_BUFFER_BIT );
+
+//    m_device->setSize(sceneRect().size().toSize());
+
+//    QPainter mPainter(m_device);
+//    render(&mPainter);
+    painter->save();
 }

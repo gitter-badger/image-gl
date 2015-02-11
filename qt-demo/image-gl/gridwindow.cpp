@@ -318,39 +318,9 @@ GridWindow::GridWindow()
     m_pMatrix  = QMatrix4x4();
 }
 
-void GridWindow::deinitialize(){
-    delRdColors();
-    if(m_gridInitialized){
-        m_gridInitialized = false;
-        foreach( GridImage *grid, m_GridImages ){
-            qint64 count = grid->m_imagegrid->rows() * grid->m_imagegrid->cols();
-            glDeleteBuffers( count, grid->m_tilePositionBufferGrid);
-            glDeleteBuffers( count, grid->m_tileTextureGrid);
-            glDeleteBuffers( 1, &grid->m_squareVertexTextureCoordBuffer );
-            free ( grid->m_tilePositionBufferGrid );
-            free ( grid->m_tileTextureGrid );
-            foreach( GridLayer *layer, grid->m_gridLayers ){
-                delete layer;
-            }
-            grid->m_imagegrid->unloadImage();
-            delete grid;
-        }
-        glDeleteBuffers(1, &m_hudTextTextTexture);
-        glDeleteBuffers(1, &m_hudTextVbo);
-    }
-
-    delete m_measurementsProgram;
-    delete m_sceneProgram;
-    delete m_stencilProgram;
-    delete m_hudProgram;
-    delete m_hudTextProgram;
-    m_gridInitialized = false;
-}
-
-
 GridWindow::~GridWindow()
 {
-
+    delRdColors();
 }
 
 /// Initialize FreeType
@@ -402,9 +372,50 @@ qint64 GridWindow::tileIndex(qint64 row, qint64 col, qint64 cols){
     return index;
 }
 
+void GridWindow::deinitialize(){
+    if(m_gridInitialized){
+        m_gridInitialized = false;
+        foreach( GridImage *grid, m_GridImages ){
+            qint64 count = grid->m_imagegrid->rows() * grid->m_imagegrid->cols();
+            glDeleteBuffers( count, grid->m_tilePositionBufferGrid);
+            glDeleteBuffers( count, grid->m_tileTextureGrid);
+            glDeleteBuffers( 1, &grid->m_squareVertexTextureCoordBuffer );
+            free ( grid->m_tilePositionBufferGrid );
+            free ( grid->m_tileTextureGrid );
+            free ( grid->m_textureCoords );
+
+            int rows = grid->m_imagegrid->rows();
+            int cols = grid->m_imagegrid->cols();
+
+            for(int i = 0; i < rows * cols; i++){
+                free ( grid->m_tiles[i] );
+            }
+            free( grid->m_tiles );
+
+            foreach( GridLayer *layer, grid->m_gridLayers ){
+                delete layer;
+            }
+            delete grid;
+
+        }
+        m_GridImages.clear();
+        glDeleteBuffers(1, &m_hudTextTextTexture);
+        glDeleteBuffers(1, &m_hudTextVbo);
+    }
+
+    delete m_measurementsProgram;
+    delete m_sceneProgram;
+    delete m_stencilProgram;
+    delete m_hudProgram;
+    delete m_hudTextProgram;
+
+    m_gridInitialized = false;
+}
+
+
 void GridWindow::initialize()
 {
-    _initTextResources();
+//    _initTextResources();
     webGLStart();
 }
 
@@ -415,7 +426,6 @@ void GridWindow::webGLStart() {
     initShadersHudText();
     initShaderMeasurements();
     initShadersStencil();
-
     initGridBuffersAndTextures();
 
     glClearColor( 0.0, 0.0, 0.0, 1.0 );
@@ -614,7 +624,7 @@ void GridWindow::initGridBuffers(){
             }
         }
 
-        // init texture coords
+        //////// init texture coords
         grid->m_textureCoords = ( GLfloat * )malloc( tileBufferSize );
         grid->m_textureCoords[ 0 ] = 0.0f;
         grid->m_textureCoords[ 1 ] = 1.0f;
@@ -648,15 +658,15 @@ void GridWindow::initGridBuffers(){
         grid->m_initialized = true;
     }
 
-    glGenTextures( 1, &m_hudTextTextTexture );
-    glBindTexture( GL_TEXTURE_2D, m_hudTextTextTexture );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-    glBindTexture( GL_TEXTURE_2D, 0 );
-    glGenBuffers( 1, &m_hudTextVbo );
+//    glGenTextures( 1, &m_hudTextTextTexture );
+//    glBindTexture( GL_TEXTURE_2D, m_hudTextTextTexture );
+//    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+//    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+//    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+//    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+//    glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+//    glBindTexture( GL_TEXTURE_2D, 0 );
+//    glGenBuffers( 1, &m_hudTextVbo );
 }
 
 void GridWindow::initGridTextures(){
@@ -1110,7 +1120,6 @@ void GridWindow::drawGrid( GridLayer *layer ){
 //                qDebug() << __FUNCTION__ << QPointF(tile[j++], tile[j++]);
             }
 
-
             //////// Don't draw the grid tile that is excluded from the stencil
             QPolygonF poly;
             poly << gl2sm( QPointF( tile[ 0 ], tile[ 1 ] ), grid->m_imagegrid );
@@ -1244,9 +1253,12 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     setHudTextUniforms();
     QString px = QString("%1px").arg(_dbgZoom());
     QString sfps = QString("FPS: %1 ").arg(fps());
+    QString title = QString("%1").arg(this->m_GridImages.first()->m_imagegrid->fileName());
 
     //    render_text(px.toLatin1(), 0.40, -0.4, sx, sy);
-//    render_text(sfps.toLatin1(), -0.20, 0.35, sx, sy);
+    render_text(sfps.toLatin1(), -0.20, 0.35, sx, sy);
+
+    render_text(title.toLatin1(), 0.20, 0.35, sx, sy);
 
     if(m_rotz != m_settings.rotation){
         QString rot = QString( "Rotation: %1" ).arg(r2d( m_rotz ));
@@ -1367,13 +1379,13 @@ void GridWindow::controlAnimate() {
         if(m_settings.transX != m_transX ||
                 m_settings.transX > m_transX
                 || m_settings.transX < m_transX){
-            float step = (m_settings.transX - m_transX) / (fps() / 7.0);
+            float step = (m_settings.transX - m_transX) / (fps() / 44.0);
             m_transX += step;
         }
 
         if(m_settings.transY != m_transY
                 || m_settings.transY > m_transY ){
-            float step = (m_settings.transY - m_transY) / (fps() / 7.0);
+            float step = (m_settings.transY - m_transY) / (fps() / 44.0);
             m_transY += step;
         }
 
@@ -1659,6 +1671,10 @@ void GridWindow::render(){
 
 void GridWindow::_render( qint64 frame )
 {
+
+    if(m_GridImages.count() == 0)
+        return;
+
     const qreal retinaScale = devicePixelRatio();
     int x = 0;
     int y = 0;
@@ -1881,11 +1897,11 @@ void GridWindow::drawHud( int x, int y, float w, float h ){
     drawOverlay1( x, y, w, h );
     m_hudProgram->release();
 
-#ifndef Q_OS_ANDROID
-    m_hudTextProgram->bind();
-    drawOverlayText( x, y, w, h );
-    m_hudTextProgram->release();
-#endif
+//#ifndef Q_OS_ANDROID
+//    m_hudTextProgram->bind();
+//    drawOverlayText( x, y, w, h );
+//    m_hudTextProgram->release();
+//#endif
 }
 
 void GridWindow::drawMeasurements( int x, int y, int w, int h ){
@@ -1930,6 +1946,9 @@ void GridWindow::fitToView()
 
 qreal GridWindow::_dbgZoom(){
 
+    if(m_GridImages.length() == 0){
+        return 0;
+    }
     qreal dx = qAbs( m_zoom / m_rulerZ);
     qreal dim = m_GridImages.first()->m_imagegrid->dimension();
 
@@ -2159,19 +2178,6 @@ void GridWindow::hideEvent(QHideEvent *event)
 //}
 
 bool GridWindow::event(QEvent *event){
-//    if(event->type() == QEvent::UpdateRequest){
-//        if(m_initialized == false){
-//            return true;
-//        }
-//    }
-//    if(m_initialized){
-//        return QWindow::event(event);
-//    }
-
-//    if(event->type() != 77){
-//        qDebug() << __FUNCTION__ << event->type();
-//    }
-
     switch (event->type()) {
     case QEvent::Gesture:
         return gestureEvent(static_cast<QGestureEvent  *>(event));
@@ -2190,13 +2196,6 @@ bool GridWindow::event(QEvent *event){
             qreal currentScaleFactor =
                     QLineF(touchPoint0.pos(), touchPoint1.pos()).length()
                     / QLineF(touchPoint0.startPos(), touchPoint1.startPos()).length();
-//            if (touchEvent->touchPointStates() & Qt::TouchPointReleased) {
-//                // if one of the fingers is released, remember the current scale
-//                // factor so that adding another finger later will continue zooming
-//                // by adding new scale factor to the existing remembered value.
-//                currentScaleFactor = 1;
-//                break;
-//            }
             if(currentScaleFactor > 1){
                 zoomOut();
             }else{

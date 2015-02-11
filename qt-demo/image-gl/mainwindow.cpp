@@ -98,7 +98,7 @@ bool MainWindow::loadImage(const QString &file){
 }
 
 ///////// Load all images in directory
-bool MainWindow::loadMultiple(const QString &path)
+bool MainWindow::loadMultiple( const QString &path )
 {
     QDir dir(path);
     QFileInfoList list = dir.entryInfoList( QDir::NoDot | QDir::NoDotDot | QDir::Files );
@@ -142,9 +142,9 @@ bool MainWindow::loadMultiple(const QString &path)
     }
 }
 
-bool MainWindow::loadDirectory(const QString &path)
+bool MainWindow::loadDirectory( const QString &path )
 {
-    return m_viewer->setDirectory(path);
+    return m_viewer->setDirectory( path );
 
 //    GridWindow *gridWindow = new GridWindow();
 
@@ -280,14 +280,14 @@ void MainWindow::on_pushButtonOsteotomy_clicked()
     QString fmt = format();
 
     m_gridAP = new ImageGrid( m_fileLAT, fmt, dim, this );
-    if(m_gridAP->loadImage(  )){
+    if( m_gridAP->loadImage() ){
         updateLog( m_gridAP->logs() );
     }else{
         updateLog( m_gridAP->errors() );
     }
 
     m_gridLAT = new ImageGrid( m_fileLAT, fmt, dim, this );
-    if(m_gridLAT->loadImage(  )){
+    if( m_gridLAT->loadImage() ){
         updateLog( m_gridLAT->logs() );
     }else{
         updateLog( m_gridLAT->errors() );
@@ -361,7 +361,7 @@ void MainWindow::on_pushButtonDemo2Run_clicked()
     ////////// Load image grids
 
     m_gridAP = new ImageGrid(m_fileAP, fmt, dim, this);
-    bool apOk = m_gridAP->loadImage(  );
+    bool apOk = m_gridAP->loadImage();
     if(apOk){
         updateLog(m_gridAP->logs());
     }else{
@@ -369,7 +369,7 @@ void MainWindow::on_pushButtonDemo2Run_clicked()
     }
 
     m_gridLAT = new ImageGrid(m_fileLAT, fmt, dim, this);
-    bool latOk = m_gridLAT->loadImage(  );
+    bool latOk = m_gridLAT->loadImage();
     if(latOk){
         updateLog(m_gridLAT->logs());
     }else{

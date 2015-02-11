@@ -11,25 +11,26 @@
 #include <QDebug>
 
 ImageGrid::ImageGrid(const QString &source, const QString &format, const int tileDimension, QObject *parent)
-    :QObject(parent),
-      m_cols(0),
-      m_rows(0),
-      m_file(source),
-      m_format(format),
-      m_index(-1),
-      m_dimension(tileDimension)
+    :QObject(parent)
+    ,m_loaded(false)
+    ,m_cols(0)
+    ,m_rows(0)
+    ,m_file(source)
+    ,m_format(format)
+    ,m_index(-1)
+    ,m_dimension(tileDimension)
 {
     initTiles(tileDimension);
 }
 
 ImageGrid::~ImageGrid()
 {
+    unloadImage();
     if(m_gridTiles.length() > 0){
         foreach(ImageTile *tile, m_gridTiles){
             delete tile;
         }
     }
-    unloadImage();
 }
 
 qint64 ImageGrid::rows() const
@@ -277,6 +278,12 @@ QString ImageGrid::filePath(){
     return fileinfo.absoluteDir().absolutePath();
 }
 
+QString ImageGrid::fileName()
+{
+    QFileInfo info(m_file);
+    return info.fileName();
+}
+
 void ImageGrid::setIndex(qint64 index)
 {
     m_index = index;
@@ -329,35 +336,46 @@ QSize ImageGrid::imageSize(  ) {
 }
 
 bool ImageGrid::unloadImage(){
-    m_image = QImage();
-    return true;
+
+    if(!m_loaded){
+        foreach( ImageTile *tile, m_gridTiles ) {
+            tile->unload();
+        }
+        m_image = QImage();
+        m_loaded = false;
+    }
+    return m_loaded;
 }
 
 bool ImageGrid::loadImage(){
 
-    QFile device( m_file );
     bool ret = false;
-    if ( !device.open( QIODevice::ReadOnly ) ) {
-        QString message = QString( "Could not load image selected." );
-        _error ( message );
-        ret = false;
-    } else {
-        QImageReader reader;
-        reader.setDevice( &device );
-        reader.setDecideFormatFromContent( true );
-        if ( reader.canRead() ) {
-            if ( !reader.read( &m_image ) ) {
-                QString message =  QString( "Could not load image selected: %1 " ).arg( reader.errorString() );
-                _error ( message );
-            }else{
-                ret = true;
-                QString message = QString("Image loaded successfully");
-                _log( message );
+    if(m_loaded){
+        ret = true;
+    }else{
+        QFile device( m_file );
+        if ( !device.open( QIODevice::ReadOnly ) ) {
+            QString message = QString( "Could not load image selected." );
+            _error ( message );
+            ret = false;
+        } else {
+            QImageReader reader;
+            reader.setDevice( &device );
+            reader.setDecideFormatFromContent( true );
+            if ( reader.canRead() ) {
+                if ( !reader.read( &m_image ) ) {
+                    QString message =  QString( "Could not load image selected: %1 " ).arg( reader.errorString() );
+                    _error ( message );
+                }else{
+                    ret = true;
+                    QString message = QString("Image loaded successfully");
+                    _log( message );
+                }
             }
+            device.close();
+            m_loaded = true;
         }
-        device.close();
     }
-
     return ret;
 }
 

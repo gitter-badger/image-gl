@@ -1,10 +1,14 @@
 #include "glgraphicsview.h"
 #include <QResizeEvent>
+#include <QGLWidget>
 
 GLGraphicsView::GLGraphicsView(QWidget *parent):
     QGraphicsView(parent)
 {
-
+    setViewport(new QGLWidget(
+                         QGLFormat(QGL::SampleBuffers)));
+    setViewportUpdateMode(
+                QGraphicsView::FullViewportUpdate);
 }
 
 GLGraphicsView::~GLGraphicsView()

@@ -1,4 +1,5 @@
 #include "imagetile.h"
+#include <QDebug>
 
 ImageTile::ImageTile(QObject *parent) : QObject(parent)
 {
@@ -19,5 +20,9 @@ QImage ImageTile::image()
 void ImageTile::setImage( QImage image )
 {
     m_image = image;
+}
+
+void ImageTile::unload(){
+    m_image = QImage();
 }
 

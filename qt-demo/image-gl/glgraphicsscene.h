@@ -9,6 +9,7 @@
 #include "openglfunctionsdebug.h"
 
 class QExposeEvent;
+class ImageGrid;
 class GLGraphicsScene : public QGraphicsScene, protected OpenGLFunctionsDebug
 {
 public:
@@ -23,6 +24,8 @@ public:
     virtual void initialize();
 
     void setAnimating(bool animating);
+
+    void setImageGrid(ImageGrid *grid);
 
 public slots:
     void renderLater();
@@ -40,11 +43,7 @@ private:
     QOpenGLContext *m_context;
     QOpenGLPaintDevice *m_device;
 
-
-
-
-
-
+    ImageGrid *m_ImageGrid;
 };
 
 #endif // GLGRAPHICSSCENE_H

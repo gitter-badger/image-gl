@@ -46,6 +46,7 @@ public:
     virtual ~GridWindow();
 
     virtual void initialize() ;
+    virtual void deinitialize();
     virtual void render();
 
     virtual void reset();
@@ -62,7 +63,6 @@ public:
 
     qreal fps();
 
-    void deinitialize();
 
     static qint64 tileIndex(qint64 row, qint64 col, qint64 cols);
 
@@ -152,7 +152,6 @@ private:
     void keyPressEvent(QKeyEvent *event);
     void keyReleaseEvent(QKeyEvent *event);
 
-
     void updateInvert();
     void updateBCG();
 
@@ -177,7 +176,6 @@ private:
     void setStencilMatrixUniforms();
 
     GLuint loadShader(GLenum type, const char *source);
-
 
     /// Shader Programs
     QOpenGLShaderProgram *m_sceneProgram;

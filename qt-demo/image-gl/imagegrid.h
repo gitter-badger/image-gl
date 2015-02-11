@@ -34,6 +34,7 @@ public:
     bool writeTiles();
 
     QString filePath();
+    QString fileName();
 
     void setIndex(qint64 index);
 
@@ -66,6 +67,7 @@ private:
     QStringList m_log;
     QStringList m_error;
     QImage m_image;
+    bool m_loaded;
 };
 
 #endif // IMAGEGRID_H
