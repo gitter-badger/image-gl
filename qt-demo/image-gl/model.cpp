@@ -44,10 +44,12 @@
 
 #include <QtOpenGL>
 
-Model::Model(const QString &filePath)
-    : m_fileName(QFileInfo(filePath).fileName())
+Model::Model(const QString &filePath, float vscale)
+    : m_fileName(QFileInfo(filePath).fileName()),
+      m_scale(1.0)
 {
     QFile file(filePath);
+    Q_ASSERT(file.exists());
     if (!file.open(QIODevice::ReadOnly))
         return;
 
@@ -71,6 +73,7 @@ Model::Model(const QString &filePath)
                 boundsMax[i] = qMax(boundsMax[i], p[i]);
             }
             m_points << p;
+            m_scaledpoints << p;
         } else if (id == "f" || id == "fo") {
             QVarLengthArray<int, 4> p;
 
@@ -118,23 +121,66 @@ Model::Model(const QString &filePath)
 
     for (int i = 0; i < m_normals.size(); ++i)
         m_normals[i] = m_normals[i].normalize();
+
+    setScale(vscale);
+}
+
+void Model::setScale(qreal vscale){
+    if(m_scale != vscale){
+        for(int i = 0; i < m_points.size(); i++){
+            Point3d pt = m_points[i];
+            pt.x *= vscale;
+            pt.y *= vscale;
+            pt.z *= vscale;
+            m_scaledpoints[i] = pt;
+        }
+        m_scale = vscale;
+
+        // Recalculate normals
+//        for (int i = 0; i < m_pointIndices.size(); i += 3) {
+//            const Point3d a = m_scaledpoints.at(m_pointIndices.at(i));
+//            const Point3d b = m_scaledpoints.at(m_pointIndices.at(i+1));
+//            const Point3d c = m_scaledpoints.at(m_pointIndices.at(i+2));
+
+//            const Point3d normal = cross(b - a, c - a).normalize();
+
+//            for (int j = 0; j < 3; ++j)
+//                m_normals[m_pointIndices.at(i + j)] += normal;
+//        }
+
+//        for (int i = 0; i < m_normals.size(); ++i)
+//            m_normals[i] = m_normals[i].normalize();
+    }
 }
 
 void Model::render(bool wireframe, bool normals) const
 {
     glEnable(GL_DEPTH_TEST);
     glEnableClientState(GL_VERTEX_ARRAY);
+
+    Q_ASSERT(m_edgeIndices.count() > 0);
+    Q_ASSERT(m_pointIndices.count() > 0);
+
+
     if (wireframe) {
-        glVertexPointer(3, GL_FLOAT, 0, (float *)m_points.data());
+        glVertexPointer(3, GL_FLOAT, 0, (float *)m_scaledpoints.data());
         glDrawElements(GL_LINES, m_edgeIndices.size(), GL_UNSIGNED_INT, m_edgeIndices.data());
     } else {
+
+        GLfloat light[] = {
+            -1.0,
+            -1.0,
+            0.0,
+        };
+        glLightfv(GL_LIGHT0, GL_POSITION, light);
+
         glEnable(GL_LIGHTING);
         glEnable(GL_LIGHT0);
         glEnable(GL_COLOR_MATERIAL);
         glShadeModel(GL_SMOOTH);
 
         glEnableClientState(GL_NORMAL_ARRAY);
-        glVertexPointer(3, GL_FLOAT, 0, (float *)m_points.data());
+        glVertexPointer(3, GL_FLOAT, 0, (float *)m_scaledpoints.data());
         glNormalPointer(GL_FLOAT, 0, (float *)m_normals.data());
         glDrawElements(GL_TRIANGLES, m_pointIndices.size(), GL_UNSIGNED_INT, m_pointIndices.data());
 
@@ -147,7 +193,7 @@ void Model::render(bool wireframe, bool normals) const
     if (normals) {
         QVector<Point3d> normals;
         for (int i = 0; i < m_normals.size(); ++i)
-            normals << m_points.at(i) << (m_points.at(i) + m_normals.at(i) * 0.02f);
+            normals << m_scaledpoints.at(i) << (m_scaledpoints.at(i) + m_normals.at(i) * 0.02f);
         glVertexPointer(3, GL_FLOAT, 0, (float *)normals.data());
         glDrawArrays(GL_LINES, 0, normals.size());
     }

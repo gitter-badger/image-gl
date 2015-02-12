@@ -2,4 +2,10 @@
     <qresource prefix="/fonts">
         <file alias="freesans">FreeSans.ttf</file>
     </qresource>
+    <qresource prefix="/objects">
+        <file alias="chair">objects/chair.obj</file>
+        <file alias="shoppingcart">objects/shoppingcart.obj</file>
+        <file alias="toyplane">objects/toyplane.obj</file>
+        <file alias="wateringcan">objects/wateringcan.obj</file>
+    </qresource>
 </RCC>

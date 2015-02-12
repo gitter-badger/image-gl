@@ -11,8 +11,6 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = image-gl
 TEMPLATE = app
 
-#CONFIG += has_bluetooth
-
 CONFIG(has_bluetooth){
   DEFINES += HAS_BLUETOOTH
   QT += bluetooth
@@ -28,12 +26,12 @@ SOURCES += main.cpp\
     gridwindow.cpp \
     imagetile.cpp \
     openglfunctionsdebug.cpp \
-    fontsheet.cpp \
     gridimage.cpp \
     openglcontextview.cpp \
     shaders.cpp \
     gridlayer.cpp \
-    viewer.cpp
+    viewer.cpp \
+    model.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
@@ -44,23 +42,19 @@ HEADERS  += mainwindow.h \
     gridwindow.h \
     imagetile.h \
     openglfunctionsdebug.h \
-    fontsheet.h \
     gridimage.h \
     openglcontextview.h \
     shaders.h \
     gridlayer.h \
-    viewer.h
-
+    viewer.h \
+    model.h \
+    point3d.h
 
 FORMS    += mainwindow.ui \
     viewer.ui
 
 CONFIG(has_bluetooth) {
-SOURCES +=     bluetoothwidget.cpp \
-    btdevice.cpp
-HEADERS +=     bluetoothwidget.h \
-    btdevice.h
-FORMS   +=     bluetoothwidget.ui
+include(bluetooth/bluetooth.pri)
 }
 
 RESOURCES += \

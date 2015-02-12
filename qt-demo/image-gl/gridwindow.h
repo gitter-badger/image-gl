@@ -2,7 +2,6 @@
 #define GRIDWINDOW_H
 
 #include "openglwindow.h"
-#include "openglcontextview.h"
 #include <QOpenGLShaderProgram>
 #include <QTimer>
 #include <QStack>
@@ -19,7 +18,7 @@ class QPinchGesture;
 
 class ImageGrid;
 class GridLayer;
-
+class Model;
 struct GLSettings {
     GLfloat zoom;
     GLboolean flipH;
@@ -255,6 +254,7 @@ private:
     GLfloat m_centerY = 0.0f;
 
     bool m_initialized = true;
+    Model *m_model1;
 
     bool m_currentlyPressedKeys[Qt::Key_unknown]; // currently pressed keys
     QPoint m_lastMouse; // Last mouse recorded position

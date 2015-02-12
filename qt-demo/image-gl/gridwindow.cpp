@@ -3,6 +3,7 @@
 #include "gridlayer.h"
 #include "imagegrid.h"
 #include "imagetile.h"
+#include "model.h"
 
 #include <QScreen>
 #include <QDateTime>
@@ -238,9 +239,11 @@ static const char *vertexShaderSourceM =
         "uniform highp mat4 uMVMatrix;\n"
         "uniform highp mat4 uPMatrix;\n"
         "void main() {\n"
-        "   vColor = aColor;\n"
+//        "   vColor = aColor;\n"
+        "   vColor = vec4(1.0, 0.0, 0.0, 0.2);\n"
         "   gl_Position = uPMatrix * uMVMatrix * aVertexPosition;\n"
         "}\n";
+
 static const char *fragmentShaderSourceM =
         "varying lowp vec4 vColor;\n"
         "void main() {\n"
@@ -428,6 +431,10 @@ void GridWindow::webGLStart() {
     initShadersStencil();
     initGridBuffersAndTextures();
 
+    m_model1 = new Model( ":/objects/shoppingcart", 0.001 );
+//    m_model1 = new Model( "/Users/Jon/Downloads/vrml/4021722_prt.obj", 0.001 );
+
+
     glClearColor( 0.0, 0.0, 0.0, 1.0 );
     m_initialized = true;
 }
@@ -458,6 +465,7 @@ void GridWindow::initShadersHudText(){
     m_hudTextProgram->link();
 
     m_hudTextVertexPositionAttribute       = m_hudTextProgram->attributeLocation( "aVertexPosition" );
+
     m_hudTextColorUniform    			   = m_hudTextProgram->uniformLocation( "uColor" );
     m_hudTextPMatrixUniform                = m_hudTextProgram->uniformLocation( "uPMatrix" );
     m_hudTextMVMatrixUniform               = m_hudTextProgram->uniformLocation( "uMVMatrix" );
@@ -486,6 +494,7 @@ void GridWindow::initShaderMeasurements(){
 
     m_measurementVertexPositionAttribute   = m_measurementsProgram->attributeLocation( "aVertexPosition" );
     m_measurementColorAttribute 	       = m_measurementsProgram->attributeLocation( "aColor" );
+
     m_measurementPMatrixUniform            = m_measurementsProgram->uniformLocation( "uPMatrix" );
     m_measurementMVMatrixUniform           = m_measurementsProgram->uniformLocation( "uMVMatrix" );
 }
@@ -497,6 +506,7 @@ void GridWindow::initShadersStencil(){
     m_stencilProgram->link();
 
     m_stencilVertexPositionAttribute      = m_stencilProgram->attributeLocation( "aVertexPosition" );
+
     m_stencilPMatrixUniform               = m_stencilProgram->uniformLocation( "uPMatrix" );
     m_stencilMVMatrixUniform              = m_stencilProgram->uniformLocation( "uMVMatrix" );
 }
@@ -691,7 +701,7 @@ void GridWindow::drawOverlayMeasurements( int x, int y, float w, float h ){
 
     //    p.ortho(0,0,w,h,0.01,100.0);
     p.perspective( m_fov,  w / h, 0.01f, 100.0f );
-    p.translate( 0, 0, -0.01 );
+    p.translate( 0, 0, -0.01f );
 
     m_pMatrix = p;
 
@@ -699,51 +709,79 @@ void GridWindow::drawOverlayMeasurements( int x, int y, float w, float h ){
     zratio = 1.0 / zratio;
 
 
-    /// Draw measurement overlay
+//    /// Draw measurement overlay
+//    m_mvStack.push( m_mvMatrix );
+//    m_mvMatrix.setToIdentity();
+//    m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
+//    m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
 
-    m_mvStack.push(m_mvMatrix);
-    m_mvMatrix.setToIdentity();
+//    m_mvMatrix.translate( m_transX - m_centerX, m_transY - m_centerY, m_zoom );
 
-    m_mvMatrix.translate(0,0,m_rulerZ);
+    ////////  Model
+    if( true ) {
 
-    m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
-    m_mvMatrix.translate( m_transX * zratio, m_transY * zratio, 0.0);
+//        m_mvStack.push( m_mvMatrix );
+//        m_mvMatrix.setToIdentity();
+//        m_mvMatrix.translate( 0, 0, 0 );
+////        m_mvMatrix.rotate( m_frame, 0, 1, 0 );
+//        m_mvMatrix.rotate( r2d( m_rotz ), 0, 0, 1 );
 
-    ImageGrid * grid = m_GridImages.first()->m_imagegrid;
 
-    QPointF topLeft = sm2gl( QPointF( 0,0 ), grid );
-    QPointF BottomRight = sm2gl( QPointF( grid->m_stretchwidth, grid->m_stretchheight ), grid);
 
-    /////////// Draw yellow overlay square
+        m_mvStack.push( m_mvMatrix );
+        m_mvMatrix.setToIdentity();
+        m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
+        m_mvMatrix.translate( m_transX - m_centerX, m_transY - m_centerY, m_zoom );
+    //    m_mvMatrix.rotate( grid->q.scalar(), grid->q.vector() );
+        m_mvMatrix.rotate( m_sceneRotation );
 
-    //    GLfloat vertices[] = {
-    //        zratio * topLeft.x(),     zratio * topLeft.y(), 0.0,
-    //        zratio * topLeft.x(),     zratio * BottomRight.y(), 0.0,
-    //        zratio * BottomRight.x(), zratio * BottomRight.y(), 0.0,
-    //        zratio * BottomRight.x(), zratio * topLeft.y(), 0.0,
-    //    };
 
-    //    GLfloat colors[] = {
-    //        1.0, 1.0, 0.0, 0.2,
-    //        1.0, 1.0, 0.0, 0.2,
-    //        1.0, 1.0, 0.0, 0.2,
-    //        1.0, 1.0, 0.0, 0.2
-    //    };
 
-    //    glVertexAttribPointer(m_measurementVertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
-    //    glVertexAttribPointer(m_measurementColorAttribute,  4, GL_FLOAT, GL_FALSE, 0, colors);
+        setMeasurementUniforms();
+        m_model1->setScale( zratio * 0.0001 );
+        m_model1->render( true, false );
 
-    //    glEnableVertexAttribArray(0);
-    //    glEnableVertexAttribArray(1);
+        m_mvMatrix = m_mvStack.pop();
+    }
 
-    //    setMeasurementUniforms();
+//    m_mvMatrix.rotate( r2d(m_rotz), 0, 0, 1 );
+//    m_mvMatrix.translate( m_transX * zratio, m_transY * zratio, 0.0);
 
-    //    glDrawArrays(GL_QUADS, 0, 4);
+//    ImageGrid * grid = m_GridImages.first()->m_imagegrid;
 
-    //    glDisableVertexAttribArray(1);
-    //    glDisableVertexAttribArray(0);
+//    QPointF topLeft = sm2gl( QPointF( 0,0 ), grid );
+//    QPointF BottomRight = sm2gl( QPointF( grid->m_stretchwidth, grid->m_stretchheight ), grid);
 
-    m_mvMatrix = m_mvStack.pop();
+//    /////////// Draw yellow overlay square
+
+//        GLfloat vertices[] = {
+//            zratio * topLeft.x(),     zratio * topLeft.y(), 0.0,
+//            zratio * topLeft.x(),     zratio * BottomRight.y(), 0.0,
+//            zratio * BottomRight.x(), zratio * BottomRight.y(), 0.0,
+//            zratio * BottomRight.x(), zratio * topLeft.y(), 0.0,
+//        };
+
+//        GLfloat colors[] = {
+//            1.0, 1.0, 0.0, 0.2,
+//            1.0, 1.0, 0.0, 0.2,
+//            1.0, 1.0, 0.0, 0.2,
+//            1.0, 1.0, 0.0, 0.2
+//        };
+
+//        glVertexAttribPointer(m_measurementVertexPositionAttribute, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+////        glVertexAttribPointer(m_measurementColorAttribute,  4, GL_FLOAT, GL_FALSE, 0, colors);
+
+//        glEnableVertexAttribArray(0);
+////        glEnableVertexAttribArray(1);
+
+//        setMeasurementUniforms();
+
+//        glDrawArrays(GL_QUADS, 0, 4);
+
+////        glDisableVertexAttribArray(1);
+//        glDisableVertexAttribArray(0);
+
+//    m_mvMatrix = m_mvStack.pop();
 }
 
 void GridWindow::drawOverlay1( int x, int y, float w, float h ){
@@ -1018,7 +1056,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
 
     //////// Rhombic dodecahedron
     ///
-    if( true ){
+    if( false ){
         m_mvStack.push( m_mvMatrix );
 
         m_mvMatrix.setToIdentity();
@@ -1050,7 +1088,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
     }
 
     //////// Zoom cube
-    if( true ) { //  m_zoom != m_settings.zoom ){
+    if( false ) { //  m_zoom != m_settings.zoom ){
 
         m_mvStack.push(m_mvMatrix);
 

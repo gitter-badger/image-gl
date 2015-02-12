@@ -3,7 +3,6 @@
 
 #include "glgraphicsview.h"
 #include "glgraphicsscene.h"
-#include "ngraphicsscene.h"
 #include "imagegrid.h"
 #include "trianglewindow.h"
 #include "viewer.h"
