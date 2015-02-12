@@ -3,6 +3,8 @@
  */
 
 var shaderProgram;
+var shaderProgramS;
+
 
 var uInvert = 0;
 var uBCG = new Array(4);
@@ -56,33 +58,55 @@ function getShader(gl, id) {
 }
 
 function initShaders() {
-	var fragmentShader = getShader(gl, "shader-fs");
-	var vertexShader = getShader(gl, "shader-vs");
+    {
+        var vertexShader = getShader(gl, "shader-vs-s");
+        var fragmentShader = getShader(gl, "shader-fs-s");
 
-	shaderProgram = gl.createProgram();
-	gl.attachShader(shaderProgram, vertexShader);
-	gl.attachShader(shaderProgram, fragmentShader);
-	gl.linkProgram(shaderProgram);
+        shaderProgramS = gl.createProgram();
+        gl.attachShader(shaderProgramS, vertexShader);
+        gl.attachShader(shaderProgramS, fragmentShader);
+        gl.linkProgram(shaderProgramS);
 
-	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-		alert("Could not initialise shaders");
-	}
+        if (!gl.getProgramParameter(shaderProgramS, gl.LINK_STATUS)) {
+            var lastError = gl.getProgramInfoLog(shaderProgramS);
+            alert("Error in program linking:" + lastError);
+            gl.deleteProgram(shaderProgramS);
+        } else {
+            gl.useProgram(shaderProgramS);
 
-	gl.useProgram(shaderProgram);
+            shaderProgramS.vertexPositionAttribute = gl.getAttribLocation(shaderProgramS, "aVertexPosition");
 
-	shaderProgram.vertexPositionAttribute = gl.getAttribLocation( shaderProgram, "aVertexPosition" );
-	gl.enableVertexAttribArray( shaderProgram.vertexPositionAttribute );
 
-	shaderProgram.textureCoordAttribute   = gl.getAttribLocation( shaderProgram, "aTextureCoord" );
-	gl.enableVertexAttribArray( shaderProgram.textureCoordAttribute );
-	
-	shaderProgram.uBCG = gl.getUniformLocation( shaderProgram, "uBCG" );
-	shaderProgram.uInvert = gl.getUniformLocation( shaderProgram, "uInvert" );
-	
-	shaderProgram.pMatrixUniform  = gl.getUniformLocation( shaderProgram, "uPMatrix" );
-	shaderProgram.mvMatrixUniform = gl.getUniformLocation( shaderProgram, "uMVMatrix" );
-	shaderProgram.samplerUniform = gl.getUniformLocation( shaderProgram, "uSampler" );
-	
-    shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "uColor");
+            shaderProgramS.pMatrixUniform = gl.getUniformLocation(shaderProgramS, "uPMatrix");
+            shaderProgramS.mvMatrixUniform = gl.getUniformLocation(shaderProgramS, "uMVMatrix");
+        }
+    }
 
+    {
+        var fragmentShader = getShader(gl, "shader-fs-g");
+        var vertexShader = getShader(gl, "shader-vs-g");
+
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+
+        gl.useProgram(shaderProgram);
+
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+
+        shaderProgram.uBCG = gl.getUniformLocation(shaderProgram, "uBCG");
+        shaderProgram.uInvert = gl.getUniformLocation(shaderProgram, "uInvert");
+
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+
+        shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "uColor");
+    }
 }

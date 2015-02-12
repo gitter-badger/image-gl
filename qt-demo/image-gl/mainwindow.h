@@ -6,6 +6,8 @@
 
 #include "gridwindow.h"
 
+#include <QTimer>
+
 namespace Ui {
 class MainWindow;
 }
@@ -13,6 +15,7 @@ class MainWindow;
 class Viewer;
 class BtDevice;
 class ImageGrid;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -58,6 +61,8 @@ private slots:
     void errorMessage(QString);
     void logMessage(QString);
 
+    void updateTitle();
+
 private:
     void updateLog(QStringList log);
     void updateErrors(QStringList errors);
@@ -82,6 +87,8 @@ private:
     QString m_multiplePath;
 
     Viewer *m_viewer;
+
+    QTimer m_timer;
 };
 
 #endif // MAINWINDOW_H

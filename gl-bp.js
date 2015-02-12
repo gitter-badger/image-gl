@@ -30,6 +30,11 @@ function setMatrixUniforms() {
 	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 }
 
+function setMatrixUniformsS() {
+    gl.uniformMatrix4fv(shaderProgramS.pMatrixUniform, false, pMatrix);
+    gl.uniformMatrix4fv(shaderProgramS.mvMatrixUniform, false, mvMatrix);
+}
+
 //Util: GL Exceptions
 function throwOnGLError(err, funcName, args) {
 	throw WebGLDebugUtils.glEnumToString(err) + " was caused by call to: " + funcName;

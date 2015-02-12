@@ -1,0 +1,178 @@
+<html>
+<head>
+<title>opengl</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="/image-gl/glMatrix-0.9.5.min.js"></script>
+<script type="text/javascript" src="/image-gl/webgl-utils.js"></script>
+
+    <script id="shader-vs-m" type="x-shader/x-vertex">
+        attribute highp vec4 aVertexPosition;
+        attribute lowp vec4 aColor;
+        varying lowp vec4 vColor;
+        uniform highp mat4 uMVMatrix;
+        uniform highp mat4 uPMatrix;
+        void main() {
+            vColor = aColor;
+            gl_Position = uPMatrix * uMVMatrix * aVertexPosition;
+        };
+    </script>
+    <script id="shader-fs-m" type="x-shader/x-fragment">
+        varying lowp vec4 vColor;
+        void main() {
+            gl_FragColor = vColor;
+        };
+    </script>
+    <script id="shader-vs-h" type="x-shader/x-vertex">
+        attribute highp vec4 aVertexPosition;
+        attribute lowp vec4 aColor;
+        varying lowp vec4 vColor;
+        uniform highp mat4 uMVMatrix;
+        uniform highp mat4 uPMatrix;
+        void main() {
+            vColor = aColor;
+            gl_Position = uPMatrix * uMVMatrix * aVertexPosition;
+        };
+    </script>
+    <script id="shader-fs-h" type="x-shader/x-fragment">
+        varying lowp vec4 vColor;
+        void main() {
+            gl_FragColor = vColor;
+        };
+    </script>
+    <script id="shader-vs-s" type="x-shader/x-vertex">
+        attribute vec4 aVertexPosition;
+        uniform mat4 uMVMatrix;
+        uniform mat4 uPMatrix;
+        varying lowp vec4 vColor;
+        void main() {
+            vColor = vec4(1.0, 1.0, 1.0, 1.0);
+            gl_Position = uPMatrix * uMVMatrix * aVertexPosition;
+        }
+    </script>
+    <script id="shader-fs-s" type="x-shader/x-fragment">
+        varying lowp vec4 vColor;
+        void main() {
+           gl_FragColor = vColor;
+        }
+    </script>
+    <script id="shader-vs-g" type="x-shader/x-vertex">
+        attribute vec3 aVertexPosition;
+        attribute vec2 aTextureCoord;
+  
+        uniform mat4 uMVMatrix;
+        uniform mat4 uPMatrix;
+	
+        varying vec2 vTextureCoord;
+
+        void main(void) {
+            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            vTextureCoord = aTextureCoord;
+        }
+    </script>
+    <script id="shader-fs-g" type="x-shader/x-fragment">
+        precision mediump float;
+  
+        varying vec2 vTextureCoord;
+
+        uniform int uInvert;
+        uniform sampler2D uSampler;
+        uniform vec4 uBCG;
+  
+        void main(void) {
+  	        vec4 vColor;
+            vColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    
+   	        mediump float brightness = uBCG.x;
+            mediump float contrast = uBCG.y;
+            mediump float gamma = uBCG.z;
+    
+            mediump float b = brightness / 100.0;
+            mediump float c = contrast / 100.0;
+            mediump float g;
+            if (gamma > 50.0) {
+                g = 1.0 + (gamma - 50.0) / 10.0;
+            } else {
+                g = 1.0 / (1.0 + (50.0 - gamma) / 10.0);
+            }
+
+	        mediump float bias = (1.0 - c) / 2.0 + b * c;
+    
+   	        vColor.x = (pow(((vColor.x * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;
+   	        vColor.y = (pow(((vColor.y * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;
+   	        vColor.z = (pow(((vColor.z * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;
+
+	        if(uInvert > 0){
+		        vColor.x = 1.0 - vColor.x;
+		        vColor.y = 1.0 - vColor.y;
+		        vColor.z = 1.0 - vColor.z;
+	        }
+	
+	        if(vColor.a == 0.0){
+    		    vColor.x = 0.0;
+                vColor.y = 0.0;
+	    	    vColor.z = 0.0;
+		        vColor.a = 1.0;
+	        }
+            gl_FragColor = vColor;
+        }
+</script>
+
+<script type="text/javascript" src="/image-gl/grid.js"></script>
+<script type="text/javascript" src="/image-gl/webgl-debug.js"></script>
+<script type="text/javascript" src="/image-gl/controls.js"></script>
+<script type="text/javascript" src="/image-gl/gl-bp.js"></script>
+<script type="text/javascript" src="/image-gl/gl-animate.js"></script>
+<script type="text/javascript" src="/image-gl/gl-shader.js"></script>
+<script type="text/javascript" src="tiles/tile_data.js"></script>
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            border 0px;
+            padding: 0px;
+        }
+        canvas {
+			background: #CCC;
+			width: 100%;
+			height: 100%;
+			display: block;
+        }
+    </style>
+
+ <script type="text/javascript" >
+	 function resizeCanvas() {
+	 	canvas = document.getElementById("gl-canvas");
+	   // only change the size of the canvas if the size it's being displayed
+	   // has changed.
+	   var width = canvas.clientWidth;
+	   var height = canvas.clientHeight;
+	   if (canvas.width != width ||
+	       canvas.height != height) {
+	     // Change the size of the canvas to match the size it's being displayed
+	     canvas.width = width;
+	     canvas.height = height;
+	     //tick();
+	     	gl.viewportWidth = canvas.width;
+			gl.viewportHeight = canvas.height;
+	     }
+	   }
+	function main() {
+	  canvas = document.getElementById("gl-canvas");
+	  resizeCanvas();
+	}
+	
+	window.addEventListener('resize', resizeCanvas);
+	main();
+ </script>
+</head>
+
+
+<body style="background-color:gray" id="body" onload="webGLStart();" onresize="resizeCanvas();">
+    <canvas id="textureCanvas" style="display: none;"></canvas>
+	<canvas id="gl-canvas" ></canvas>
+</body>
+
+</html>

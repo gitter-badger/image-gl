@@ -162,11 +162,9 @@ static const char *vertexShaderSourceG =
         "uniform mat4 uMVMatrix;\n"
         "uniform mat4 uPMatrix;\n"
         "varying vec2 vTextureCoord;\n"
-        "varying vec4 vColor;\n"
         "void main(void) {\n"
         "    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 0.0, 1.0);\n"
         "    vTextureCoord = aTextureCoord;\n"
-        "    vColor = aColor;\n"
         "}\n";
 
 //        "precision mediump float;\n"
@@ -175,7 +173,6 @@ static const char *fragmentShaderSourceG =
         "uniform int uInvert;\n"
         "uniform sampler2D uSampler;\n"
         "uniform vec4 uBCG;\n"
-        "varying vec4 vColor;\n"
         "void main(void) {\n"
         "  vec4 oColor;\n"
         "  oColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n"
@@ -239,8 +236,7 @@ static const char *vertexShaderSourceM =
         "uniform highp mat4 uMVMatrix;\n"
         "uniform highp mat4 uPMatrix;\n"
         "void main() {\n"
-//        "   vColor = aColor;\n"
-        "   vColor = vec4(1.0, 0.0, 0.0, 0.2);\n"
+        "   vColor = aColor;\n"
         "   gl_Position = uPMatrix * uMVMatrix * aVertexPosition;\n"
         "}\n";
 

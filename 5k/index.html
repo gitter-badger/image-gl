@@ -7,7 +7,7 @@
 <script type="text/javascript" src="/image-gl/webgl-utils.js"></script>
 
 
-<script id="shader-vs" type="x-shader/x-vertex">
+<script id="shader-vs-g" type="x-shader/x-vertex">
   attribute vec3 aVertexPosition;
   attribute vec2 aTextureCoord;
   
@@ -22,7 +22,7 @@
   }
 </script>
 
-<script id="shader-fs" type="x-shader/x-fragment">
+<script id="shader-fs-g" type="x-shader/x-fragment">
   precision mediump float;
   
   varying vec2 vTextureCoord;
@@ -71,7 +71,6 @@
     gl_FragColor = vColor;
   }
 </script>
-
 
 <script type="text/javascript" src="/image-gl/grid.js"></script>
 <script type="text/javascript" src="/image-gl/webgl-debug.js"></script>

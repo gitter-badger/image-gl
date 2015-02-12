@@ -1,0 +1,1 @@
+var compiledShader = require('./shaders');

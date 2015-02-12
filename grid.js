@@ -1,5 +1,7 @@
 
 var squareVertexTextureCoordBuffer;
+var stencilVertexCoordBuffer;
+var vertexPositionBuffer;
 var tilePositionBufferGrid;
 var tileTextureGrid;
 
@@ -53,7 +55,18 @@ function initBuffers() {
 	 		tilePositionBufferGrid[row][col].numItems = 5;
 		}
 	}
-	
+
+    stencilVertexCoordBuffer = gl.createBuffer();
+    gl.bindBuffer( gl.ARRAY_BUFFER, stencilVertexCoordBuffer );
+    var stencilCoords = [
+        -1.6, 1.2,
+        -1.4, -1.0,
+        1.8, -1.5,
+        1.0, 2.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(stencilCoords), gl.STATIC_DRAW);
+    stencilVertexCoordBuffer.itemSize = 2;
+    stencilVertexCoordBuffer.numItems = 4;
 	
 	// Init tile buffer
 	squareVertexTextureCoordBuffer = gl.createBuffer();
@@ -115,8 +128,16 @@ function initTextures() {
 }
 
 function drawGrid(x,y,w,h){
-	
-	gl.viewport(x, y, w, h);
+
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+
+    gl.enable( gl.BLEND );
+    gl.enable( gl.DEPTH_TEST );
+    gl.depthFunc( gl.LEQUAL );
+    gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+
+
+    gl.viewport(x, y, w, h);
 	
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -175,9 +196,74 @@ function drawGrid(x,y,w,h){
 	}
 	mvPopMatrix();	
 }
+
+function _enableStencil(){
+    gl.colorMask( false, false, false, false );
+    gl.depthMask( false );
+    gl.stencilFunc( gl.NEVER, 1, 0xFF );
+    gl.stencilOp( gl.REPLACE, gl.KEEP, gl.KEEP );  // draw 1s on test fail (always)
+
+    // draw stencil pattern
+    gl.stencilMask( 0xFF);
+    gl.clear( gl.STENCIL_BUFFER_BIT );  // needs mask=0xFF
+    gl.enable( gl.STENCIL_TEST );
+}
+
+function _disableStencil(){
+    gl.colorMask( true, true, true, true );
+    gl.depthMask( true );
+    gl.stencilMask( 0x00 );
+    // draw where stencil's value is 0
+    gl.stencilFunc( gl.EQUAL, 0, 0xFF );
+    // draw only where stencil's value is 1
+    gl.stencilFunc( gl.EQUAL, 1, 0xFF );
+}
+
+function drawStencil(x,y,w,h){
+
+    _enableStencil();
+    mvPushMatrix();
+
+    gl.viewport(x, y, w, h);
+
+    mat4.perspective( 45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix );
+
+    mat4.identity( mvMatrix );
+
+    // Rot v2, although now Pan doesn't work properly';
+
+    mat4.rotate( mvMatrix, settings.rotation,        [0, 0, 1] ); // Rotation around Z axis
+
+    mat4.translate( mvMatrix, [transX, transY, zoomZ] );
+
+    mat4.rotate( mvMatrix, m_roty,          [0, 1, 0] );       // Animation rotate around y axis
+    mat4.rotate( mvMatrix, m_rotx,          [1, 0, 0] );
+
+    /////  Draw stencil to stencil buffer
+    setMatrixUniformsS();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, stencilVertexCoordBuffer);
+    gl.vertexAttribPointer(shaderProgramS.vertexPositionAttribute, 2,  gl.FLOAT, false, 0, 0);
+
+    gl.drawArrays( gl.TRIANGLE_STRIP, 0, stencilVertexCoordBuffer.numItems );
+
+    _disableStencil();
+
+    mvPopMatrix();
+}
+
 function drawScene() {
-	updateBCG(m_brightness, m_contrast, m_gamma);
+
+    //gl.useProgram(shaderProgramS);
+    //gl.enableVertexAttribArray(shaderProgramS.vertexPositionAttribute);
+    //drawStencil(0,0, gl.viewportWidth, gl.viewportHeight);
+
+    gl.useProgram(shaderProgram);
+    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+
+    updateBCG(m_brightness, m_contrast, m_gamma);
 	drawGrid(0, 0, gl.viewportWidth, gl.viewportHeight);
-	
+
 	//drawLines();
 }

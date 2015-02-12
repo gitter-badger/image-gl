@@ -33,6 +33,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(m_viewer, SIGNAL(logMessage(QString)), SLOT(logMessage(QString)));
     connect(m_viewer, SIGNAL(errorMessage(QString)), SLOT(errorMessage(QString)));
+    connect(&m_timer, SIGNAL(timeout()), SLOT(updateTitle()));
+
+    m_timer.setInterval(1000);
+    m_timer.start();
 }
 
 void MainWindow::loadSettings(){
@@ -55,7 +59,7 @@ void MainWindow::loadSettings(){
 
     if(QFile::exists(selectedLAT)){
         ui->labelLAT->setText( QString( "LAT: %1" ).arg( selectedLAT ));
-        m_fileLAT = selectedLAT;
+        m_fileLAT = selectedLAT;cc
     }
 
     QString multiplePath = s.value( "multiple/currentPath", QString()).toString();
@@ -445,4 +449,13 @@ void MainWindow::errorMessage(QString msg)
 void MainWindow::logMessage(QString msg)
 {
     ui->textEditLog->append(QString("LOG: %1").arg(msg));
+}
+
+void MainWindow::updateTitle()
+{
+    qreal fps = 0;
+    if(m_gridWindow){
+        fps = m_gridWindow->fps();
+    }
+    setWindowTitle(QString("GL Test app: %1 fps").arg(fps));
 }

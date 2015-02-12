@@ -63,6 +63,6 @@ function drawShapes(x,y,w,h){
 function drawScene() {
 	updateBCG(m_brightness, m_contrast, m_gamma);
 	drawShapes(0, 0, gl.viewportWidth, gl.viewportHeight);
-	
+
 	//drawLines();
 }
