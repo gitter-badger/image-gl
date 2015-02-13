@@ -307,7 +307,7 @@ void	OpenGLFunctionsDebug::glGetShaderiv(GLuint shader, GLenum pname, GLint * pa
 }
 
 const GLubyte *	OpenGLFunctionsDebug::glGetString(GLenum name){
-    QOpenGLFunctions::glGetString(name);GL_DEBUG
+    return QOpenGLFunctions::glGetString(name);GL_DEBUG
 }
 
 void	OpenGLFunctionsDebug::glGetTexParameterfv(GLenum target, GLenum pname, GLfloat * params){
@@ -591,7 +591,7 @@ void	OpenGLFunctionsDebug::glViewport(GLint x, GLint y, GLsizei width, GLsizei h
 }
 
 bool	OpenGLFunctionsDebug::hasOpenGLFeature(QOpenGLFunctions::OpenGLFeature feature) const{
-    QOpenGLFunctions::hasOpenGLFeature(feature);
+    return QOpenGLFunctions::hasOpenGLFeature(feature);
 }
 void	OpenGLFunctionsDebug::initializeOpenGLFunctions(){
     QOpenGLFunctions::initializeOpenGLFunctions();GL_DEBUG

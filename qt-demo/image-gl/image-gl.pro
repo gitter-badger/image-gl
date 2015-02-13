@@ -60,6 +60,9 @@ include(bluetooth/bluetooth.pri)
 RESOURCES += \
     resources.qrc
 
+win32 {
+QMAKE_LFLAGS_WINDOWS = /SUBSYSTEM:WINDOWS,5.01
+}
 
 #TODO: Android does not have freetype available
 android {

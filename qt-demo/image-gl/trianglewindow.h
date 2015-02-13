@@ -1,7 +1,7 @@
 #ifndef TRIANGLEWINDOW_H
 #define TRIANGLEWINDOW_H
 
-#include <openglwindow.h>
+#include "openglwindow.h"
 #include <QOpenGLShaderProgram>
 
 class TriangleWindow : public OpenGLWindow

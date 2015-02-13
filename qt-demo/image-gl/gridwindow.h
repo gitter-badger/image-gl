@@ -13,8 +13,10 @@ class QPanGesture;
 class QSwipeGesture;
 class QPinchGesture;
 
+#ifdef HAS_FREETYPE2
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#endif
 
 class ImageGrid;
 class GridLayer;
@@ -65,6 +67,8 @@ public:
 
     static qint64 tileIndex(qint64 row, qint64 col, qint64 cols);
 
+    bool isKeyDown(Qt::Key key);
+    void resetKeys();
 signals:
     void nextImage();
     void prevImage();
@@ -121,7 +125,9 @@ protected:
 
     void drawOverlayMeasurements( int, int, float, float );
     void drawOverlay1( int, int, float, float );
+#ifdef HAS_FREETYPE2
     void drawOverlayText( int x, int y, float w, float h );
+#endif
     void drawStencil( GridLayer *layer );
     void drawGrid( GridLayer *layer );
 
@@ -214,10 +220,12 @@ private:
     GLuint m_hudTextVbo;
     QVector4D m_hudTextColor;
 
+#ifdef HAS_FREETYPE2
     int   _initTextResources();
     FT_Library m_ft;
     FT_Face m_face;
     FT_GlyphSlot m_glyph;
+#endif
 
     /// MEAUREMENT
     GLint m_measurementPMatrixUniform;

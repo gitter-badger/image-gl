@@ -21,6 +21,10 @@
 #include <GLES2/gl2platform.h>
 #endif
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 #include <QGestureEvent>
 #include <QPanGesture>
 #include <QSwipeGesture>
@@ -323,6 +327,7 @@ GridWindow::~GridWindow()
 }
 
 /// Initialize FreeType
+#ifdef HAS_FREETYPE2
 int GridWindow::_initTextResources(){
 //#ifdef Q_OS_OSX
 //    const char *fontfilename = "/Users/Jon/Downloads/FreeSans/FreeSans.ttf";
@@ -365,6 +370,7 @@ int GridWindow::_initTextResources(){
 
     return 1;
 }
+#endif
 
 qint64 GridWindow::tileIndex(qint64 row, qint64 col, qint64 cols){
     qint64 index = cols * row + col;
@@ -427,7 +433,7 @@ void GridWindow::webGLStart() {
     initShadersStencil();
     initGridBuffersAndTextures();
 
-    m_model1 = new Model( ":/objects/shoppingcart", 0.001 );
+//    m_model1 = new Model( ":/objects/toyplane", 0.001 );
 //    m_model1 = new Model( "/Users/Jon/Downloads/vrml/4021722_prt.obj", 0.001 );
 
 
@@ -714,7 +720,7 @@ void GridWindow::drawOverlayMeasurements( int x, int y, float w, float h ){
 //    m_mvMatrix.translate( m_transX - m_centerX, m_transY - m_centerY, m_zoom );
 
     ////////  Model
-    if( true ) {
+    if( false ) {
 
 //        m_mvStack.push( m_mvMatrix );
 //        m_mvMatrix.setToIdentity();
@@ -950,7 +956,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         m_mvMatrix.setToIdentity();
         m_mvMatrix.translate(0.0f,0.0f,-8.0f);
         m_mvMatrix.rotate( r2d( m_rotz ) , 0.0, 0.0, 1.0 );
-        int dots = 12;
+        const int dots = 12;
         float radius = 0.25;
         GLfloat centerX = 0.0;
         GLfloat centerY = 0.0;
@@ -1253,7 +1259,7 @@ void GridWindow::handleLoadedTexture( GridImage *grid, QImage image, GLuint text
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     glBindTexture( GL_TEXTURE_2D, 0 );
 }
-
+#ifdef HAS_FREETYPE2
 void GridWindow::drawOverlayText( int x, int y, float w, float h ){
     QMatrix4x4 p;
     p.setToIdentity();
@@ -1302,6 +1308,7 @@ void GridWindow::drawOverlayText( int x, int y, float w, float h ){
 
     m_mvMatrix = m_mvStack.pop( );
 }
+#endif
 
 ////////////////////////////////////////////////////////////////
 
@@ -1648,37 +1655,37 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
 
 
 void GridWindow::handleKeys() {
-    if( m_currentlyPressedKeys[ Qt::Key_R ]) {       // RESET
+    if( isKeyDown ( Qt::Key_R )) {       // RESET
          reset();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_C ]) {       // COLOR RESET
+    if( isKeyDown(Qt::Key_C )) {       // COLOR RESET
          resetColor();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_T ]){        // ORIENTATION RESET
+    if( isKeyDown(Qt::Key_T )){        // ORIENTATION RESET
          resetOrientation();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_PageUp ]) {  // ZOOM IN
+    if( isKeyDown(Qt::Key_PageUp )) {  // ZOOM IN
         zoomIn();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_PageDown ] ){ // ZOOM OUT
+    if( isKeyDown(Qt::Key_PageDown )){ // ZOOM OUT
          zoomOut();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_Right ] ){    // PAN LEFT
+    if( isKeyDown(Qt::Key_Right )){    // PAN LEFT
          panLeft();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_Down ] ){     // PAN UP
+    if( isKeyDown(Qt::Key_Down  )){     // PAN UP
          panUp();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_Left ] ){     // PAN RIGHT
+    if( isKeyDown(Qt::Key_Left )){     // PAN RIGHT
          panRight();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_Up ] ){       // PAN DOWN
+    if( isKeyDown(Qt::Key_Up )){       // PAN DOWN
          panDown();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_End ] ){      // ROT RIGHT
+    if( isKeyDown(Qt::Key_End )){      // ROT RIGHT
          rotateRight();
     }
-    if( m_currentlyPressedKeys[ Qt::Key_Home ] ){     // ROT LEFT
+    if( isKeyDown(Qt::Key_Home )){     // ROT LEFT
         rotateLeft();
     }
     if(isCommandKeyDown()){
@@ -1828,7 +1835,7 @@ void GridWindow::drawScene( int x, int y, float w, float h ){
 void GridWindow::_updateLayers(){
     ////////////// Osteotomy test demo
     if( m_osteotomyOn ){
-        int testLayerCount = 128;
+        int testLayerCount = 10;
         /// two layers for first image only
         GridImage *gridImage = m_GridImages.first();
         if( gridImage ){
@@ -1932,10 +1939,12 @@ void GridWindow::drawHud( int x, int y, float w, float h ){
     m_hudProgram->release();
 
 //#ifndef Q_OS_ANDROID
+#ifdef HAS_FREETYPE2
 //    m_hudTextProgram->bind();
 //    drawOverlayText( x, y, w, h );
 //    m_hudTextProgram->release();
-//#endif
+#endif // HAS_FREETYPE2
+//#endif // Q_OS_ANDROIDs
 }
 
 void GridWindow::drawMeasurements( int x, int y, int w, int h ){
@@ -2055,7 +2064,14 @@ void GridWindow::invert() {
     //    qDebug() << "Invert" << m_settings.invert ;
 }
 
+void GridWindow::resetKeys(){
+    for(int i = 0; i < Qt::Key_unknown; i++){
+        m_currentlyPressedKeys[i] = false;
+    }
+}
+
 void GridWindow::reset(){
+    resetKeys();
     resetColor();
     resetAnimation();
     resetOrientation();
@@ -2102,7 +2118,7 @@ void GridWindow::addImage( ImageGrid *imageGrid, QQuaternion q )
     Q_ASSERT(test0.x() == -(cols / 2.0));
     Q_ASSERT(test0.y() ==  (rows / 2.0));
 
-    gridImage->m_gridLayers.append( defaultLayer );
+//    gridImage->m_gridLayers.append( defaultLayer );
 
     if(m_GridImages.count() == 0){
         /// This is the first image, so center on its dimension
@@ -2168,11 +2184,20 @@ void GridWindow::flipV() {
     //    qDebug() << "FlipV" << m_settings.flipV;
 }
 
+bool GridWindow::isKeyDown(Qt::Key keycode){
+
+    bool isDown = false;
+
+    isDown = m_currentlyPressedKeys[keycode];
+
+    return isDown;
+}
+
 bool GridWindow::isCommandKeyDown()
 {
     return
-            m_currentlyPressedKeys[ Qt::Key_Alt ] ||
-            m_currentlyPressedKeys[ Qt::Key_Control ];
+            isKeyDown( Qt::Key_Alt ) ||
+            isKeyDown( Qt::Key_Control );
 }
 
 void GridWindow::hideEvent(QHideEvent *event)
@@ -2213,6 +2238,9 @@ void GridWindow::hideEvent(QHideEvent *event)
 
 bool GridWindow::event(QEvent *event){
     switch (event->type()) {
+    case QEvent::Close:
+        exit(0);
+        break;
     case QEvent::Gesture:
         return gestureEvent(static_cast<QGestureEvent  *>(event));
     case QEvent::NativeGesture:
@@ -2304,7 +2332,7 @@ void GridWindow::pinchTriggered(QPinchGesture *pinch)
 
 bool GridWindow::isCtrlKeyDown()
 {
-    return m_currentlyPressedKeys[ Qt::Key_Control ];
+    return isKeyDown( Qt::Key_Control );
 }
 
 void GridWindow::resizeEvent( QResizeEvent *e )
@@ -2318,7 +2346,7 @@ void GridWindow::wheelEvent( QWheelEvent *e )
     float delta = e->delta() / 70.0;
 
     if(isCommandKeyDown()){
-        if( !m_currentlyPressedKeys[ Qt::Key_Shift ]){
+        if( !isKeyDown( Qt::Key_Shift )){
             if(delta > 0){
                 zoomIn();
             }
@@ -2348,6 +2376,7 @@ void GridWindow::wheelEvent( QWheelEvent *e )
     //    qDebug() << "WHEEL:" << delta;
 }
 
+#ifdef HAS_FREETYPE2
 void GridWindow::render_text(const char *text, float x, float y, float sx, float sy) {
     const char *p;
     FT_GlyphSlot g = m_face->glyph;
@@ -2410,3 +2439,4 @@ void GridWindow::render_text(const char *text, float x, float y, float sx, float
     glDisableVertexAttribArray( m_hudTextVertexPositionAttribute );
     glDeleteTextures( 1, &tex );
 }
+#endif

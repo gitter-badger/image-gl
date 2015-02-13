@@ -21,19 +21,21 @@ GridWindow *MainWindow::m_gridWindow = NULL;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)
-  ,m_viewer(new Viewer(this))
+//  ,m_viewer(new Viewer(this))
   ,m_grid(NULL)
   ,m_gridAP (NULL)
   ,m_gridLAT (NULL)
   ,ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->tabMultiple->layout()->addWidget(m_viewer);
+//    ui->tabMultiple->layout()->addWidget(m_viewer);
     loadSettings();
 
-    connect(m_viewer, SIGNAL(logMessage(QString)), SLOT(logMessage(QString)));
-    connect(m_viewer, SIGNAL(errorMessage(QString)), SLOT(errorMessage(QString)));
+//    connect(m_viewer, SIGNAL(logMessage(QString)), SLOT(logMessage(QString)));
+//    connect(m_viewer, SIGNAL(errorMessage(QString)), SLOT(errorMessage(QString)));
     connect(&m_timer, SIGNAL(timeout()), SLOT(updateTitle()));
+
+    ui->textEditLog->hide();
 
     m_timer.setInterval(1000);
     m_timer.start();
@@ -59,7 +61,7 @@ void MainWindow::loadSettings(){
 
     if(QFile::exists(selectedLAT)){
         ui->labelLAT->setText( QString( "LAT: %1" ).arg( selectedLAT ));
-        m_fileLAT = selectedLAT;cc
+        m_fileLAT = selectedLAT;
     }
 
     QString multiplePath = s.value( "multiple/currentPath", QString()).toString();
@@ -147,7 +149,8 @@ bool MainWindow::loadMultiple( const QString &path )
 
 bool MainWindow::loadDirectory( const QString &path )
 {
-    return m_viewer->setDirectory( path );
+    return false;
+//    return m_viewer->setDirectory( path );
 
 //    GridWindow *gridWindow = new GridWindow();
 
@@ -332,6 +335,8 @@ void MainWindow::on_pushButtonDisplay_clicked()
     gridWindow1->fitToView();
 
 
+    m_gridWindow = gridWindow1;
+    this->hide();
 //        QDialog dlg;
 //        dlg.setLayout(new QVBoxLayout());
 //        QWidget *widget = QWidget::createWindowContainer(gridWindow1, &dlg);
@@ -456,6 +461,6 @@ void MainWindow::updateTitle()
     qreal fps = 0;
     if(m_gridWindow){
         fps = m_gridWindow->fps();
+        m_gridWindow->setTitle(QString("GL Test app: %1 fps").arg(fps));
     }
-    setWindowTitle(QString("GL Test app: %1 fps").arg(fps));
 }
