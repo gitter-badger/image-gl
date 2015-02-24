@@ -7,13 +7,15 @@ var tileTextureGrid;
 
 var bcgColorBuffer;
 
-function initBuffersAndTextures(){
+function initBuffersAndTextures()
+{
 
 	initBuffers();
 	initTextures();	
 }
 
-function Create2DArray(rows,columns) {
+function Create2DArray(rows,columns)
+{
    var x = new Array(rows);
    for (var i = 0; i < rows; i++) {
        x[i] = new Array(columns);
@@ -24,7 +26,8 @@ function Create2DArray(rows,columns) {
 var tilePositionBufferGrid;
 var tilePoints;
 
-function initBuffers() {
+function initBuffers()
+{
 	var rows = tileImage.rows ;
 	var cols = tileImage.cols ;
 
@@ -62,11 +65,12 @@ function initBuffers() {
         -1.6, 1.2,
         -1.4, -1.0,
         1.8, -1.5,
-        1.0, 2.0
+        1.0, 2.0,
+        -1.6, 1.2
     ];
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(stencilCoords), gl.STATIC_DRAW);
     stencilVertexCoordBuffer.itemSize = 2;
-    stencilVertexCoordBuffer.numItems = 4;
+    stencilVertexCoordBuffer.numItems = 5;
 	
 	// Init tile buffer
 	squareVertexTextureCoordBuffer = gl.createBuffer();
@@ -92,7 +96,8 @@ function initBuffers() {
 	bcgColorBuffer.numItems = 1;
 }
 
-function handleLoadedGridTexture(row,col){
+function handleLoadedGridTexture(row,col)
+{
 	try{
 		handleLoadedTexture(tileTextureGrid[row][col]);
 	}catch(e){
@@ -100,7 +105,8 @@ function handleLoadedGridTexture(row,col){
 	}
 }
 
-function initTextures() {
+function initTextures()
+{
 	var rows = tileImage.rows ;
 	var cols = tileImage.cols ;
 
@@ -127,10 +133,11 @@ function initTextures() {
 	}
 }
 
-function drawGrid(x,y,w,h){
-
+function drawGrid(x,y,w,h)
+{
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
+    gl.enable( gl.STENCIL_TEST);
     gl.enable( gl.BLEND );
     gl.enable( gl.DEPTH_TEST );
     gl.depthFunc( gl.LEQUAL );
@@ -145,8 +152,6 @@ function drawGrid(x,y,w,h){
 
 	mat4.identity( mvMatrix );
 
-	// Rot v2, although now Pan doesn't work properly';
-
 	mat4.rotate( mvMatrix, settings.rotation,        [0, 0, 1] ); // Rotation around Z axis
 
 	mat4.translate( mvMatrix, [transX, transY, zoomZ] );
@@ -157,10 +162,10 @@ function drawGrid(x,y,w,h){
     mat4.rotate( mvMatrix, m_animateSquare, [0.4, 0.1, 0.8] ); // Animation rotate around y axis
 
     gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexTextureCoordBuffer);
-    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, squareVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(shaderProgramG.textureCoordAttribute, squareVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, bcgColorBuffer);
-	gl.vertexAttribPointer(shaderProgram.uBCG, bcgColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+	gl.vertexAttribPointer(shaderProgramG.uBCG, bcgColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 
 	var rows = tileImage.rows ;
@@ -178,13 +183,14 @@ function drawGrid(x,y,w,h){
                 }
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, tilePositionBufferGrid[row][col]);
-                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, tilePositionBufferGrid[row][col].itemSize, gl.FLOAT, false, 0, 0);
+                gl.vertexAttribPointer(shaderProgramG.vertexPositionAttribute, tilePositionBufferGrid[row][col].itemSize, gl.FLOAT, false, 0, 0);
 
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, tileTextureGrid[row][col]);
-                gl.uniform1i(shaderProgram.samplerUniform, 0);
+                gl.uniform1i(shaderProgramG.samplerUniform, 0);
 			    
 			    setMatrixUniforms();
+
                 gl.drawArrays(gl.TRIANGLE_STRIP, 0, tilePositionBufferGrid[row][col].numItems);
 
                 mvPopMatrix();
@@ -194,10 +200,12 @@ function drawGrid(x,y,w,h){
 	}catch(e){
 		//alert(e);
 	}
+    gl.disable( gl.STENCIL_TEST);
 	mvPopMatrix();	
 }
 
-function _enableStencil(){
+function _enableStencil()
+{
     gl.colorMask( false, false, false, false );
     gl.depthMask( false );
     gl.stencilFunc( gl.NEVER, 1, 0xFF );
@@ -209,7 +217,8 @@ function _enableStencil(){
     gl.enable( gl.STENCIL_TEST );
 }
 
-function _disableStencil(){
+function _disableStencil()
+{
     gl.colorMask( true, true, true, true );
     gl.depthMask( true );
     gl.stencilMask( 0x00 );
@@ -219,9 +228,13 @@ function _disableStencil(){
     gl.stencilFunc( gl.EQUAL, 1, 0xFF );
 }
 
-function drawStencil(x,y,w,h){
+function drawStencil(x,y,w,h)
+{
+    gl.enable(gl.BLEND);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    _enableStencil();
     mvPushMatrix();
 
     gl.viewport(x, y, w, h);
@@ -230,7 +243,6 @@ function drawStencil(x,y,w,h){
 
     mat4.identity( mvMatrix );
 
-    // Rot v2, although now Pan doesn't work properly';
 
     mat4.rotate( mvMatrix, settings.rotation,        [0, 0, 1] ); // Rotation around Z axis
 
@@ -240,30 +252,47 @@ function drawStencil(x,y,w,h){
     mat4.rotate( mvMatrix, m_rotx,          [1, 0, 0] );
 
     /////  Draw stencil to stencil buffer
-    setMatrixUniformsS();
+
+    _enableStencil();
+
+    gl.enableVertexAttribArray(0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, stencilVertexCoordBuffer);
     gl.vertexAttribPointer(shaderProgramS.vertexPositionAttribute, 2,  gl.FLOAT, false, 0, 0);
 
+    setMatrixUniformsS();
     gl.drawArrays( gl.TRIANGLE_STRIP, 0, stencilVertexCoordBuffer.numItems );
+
+    gl.disableVertexAttribArray(0);
 
     _disableStencil();
 
     mvPopMatrix();
+
+    gl.disable(gl.BLEND);
+    gl.disable(gl.DEPTH_TEST);
 }
 
-function drawScene() {
+function drawScene()
+{
+    gl.useProgram(shaderProgramS);
+    gl.enableVertexAttribArray(shaderProgramS.vertexPositionAttribute);
 
-    //gl.useProgram(shaderProgramS);
-    //gl.enableVertexAttribArray(shaderProgramS.vertexPositionAttribute);
-    //drawStencil(0,0, gl.viewportWidth, gl.viewportHeight);
+    drawStencil(0,0, gl.viewportWidth, gl.viewportHeight);
 
-    gl.useProgram(shaderProgram);
-    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+    gl.disableVertexAttribArray(shaderProgramS.vertexPositionAttribute);
+
+    gl.useProgram(shaderProgramG);
+    gl.enableVertexAttribArray(shaderProgramG.vertexPositionAttribute);
+    gl.enableVertexAttribArray(shaderProgramG.textureCoordAttribute);
 
     updateBCG(m_brightness, m_contrast, m_gamma);
 	drawGrid(0, 0, gl.viewportWidth, gl.viewportHeight);
 
-	//drawLines();
+    gl.disableVertexAttribArray(shaderProgramG.vertexPositionAttribute);
+    gl.disableVertexAttribArray(shaderProgramG.textureCoordAttribute);
+}
+
+function drawOverlay1(x,y,w,h){
+
 }

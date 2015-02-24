@@ -37,34 +37,7 @@
 #include <QtGui/QOpenGLShaderProgram>
 #include <QtGui/QScreen>
 
-// zoom range & init
-const GLfloat m_maxZ = -0.01;
-const GLfloat m_minZ = -100.0;
-const GLfloat m_initZ = -70.0;
-const GLfloat m_stepZ = 5.0;
-
-const GLfloat initBrightness = 0;
-const GLfloat initContrast = 100;
-const GLfloat initGamma = 50;
-
-const GLfloat minBrightness = -100;
-const GLfloat maxBrightness = 100;
-const GLfloat minContrast = 0;
-const GLfloat maxContrast = 200;
-const GLfloat minGamma = 0;
-const GLfloat maxGamma = 100;
-
-const GLfloat m_rulerZ = -20.0;
-
-const GLfloat pi = 3.14159265359;
-
-qreal GridWindow::r2d(qreal r){
-    return r * 57.2957795;
-}
-qreal GridWindow::d2r(qreal d){
-    return d / 57.2957795;
-}
-
+#include "graphics_util.h"
 
 void GridWindow::delRdColors(){
     free( rdColors );
@@ -73,7 +46,7 @@ void GridWindow::delRdColors(){
 void GridWindow::initRdColors(){
 
     int nVertices = 48;
-    rdColors = ( GLfloat *) malloc( sizeof (GLfloat ) * nVertices * 4 );
+    rdColors = ( GLfloat * ) malloc ( sizeof ( GLfloat ) * nVertices * 4 );
 
     int j = 0;
 
@@ -92,189 +65,6 @@ void GridWindow::initRdColors(){
         }
     }
 }
-
-qreal GridWindow::unitToPx(ImageGrid *grid){
-    qreal val = 1.0; // Default is something crazy
-    if(grid){
-        qreal dx = qAbs( m_zoom / m_rulerZ);
-        qreal dim = grid->dimension();
-        val = dim * dx;
-    }
-    return val;
-}
-
-// Convert surgimap pixel position to gl position
-QPointF GridWindow::sm2gl( QPointF pixPos, ImageGrid *grid ){
-
-//    Q_ASSERT(false);
-    float x    = pixPos.x();
-    float y    = pixPos.y();
-    float cols = grid->cols();
-    float rows = grid->rows();
-    float dim  = grid->dimension();
-
-    x  = x / dim;
-    y  = y / dim;
-
-    x = -(cols / 2.0) + x;
-
-    y = (rows / 2.0) - y;
-
-    return QPointF( x, y );
-}
-
-// Convert gl coord position to surgimap pixel position
-QPointF GridWindow::gl2sm( QPointF glPos, ImageGrid *grid ){
-
-    float x    = glPos.x();
-    float y    = glPos.y();
-    float cols = grid->cols();
-    float rows = grid->rows();
-    float dim  = grid->dimension();
-
-    if( y > 0 ){
-        y = (( rows / 2.0) - y );
-        y *= dim;
-    }else{
-        y = fabs(y) + (rows / 2.0);
-        y *= dim;
-    }
-
-    if( x < 0 ){
-        x = fabs(-(cols / 2.0) - x);
-        x *= dim;
-    }else{
-        x = x + (cols / 2.0);
-        x *= dim;
-    }
-
-    return QPointF( x, y );
-}
-
-struct point {
-    GLfloat x;
-    GLfloat y;
-    GLfloat s;
-    GLfloat t;
-};
-
-//// Grid shaders
-static const char *vertexShaderSourceG =
-        "attribute vec2 aVertexPosition;\n"
-        "attribute vec2 aTextureCoord;\n"
-        "attribute vec4 aColor;\n"
-        "uniform mat4 uMVMatrix;\n"
-        "uniform mat4 uPMatrix;\n"
-        "varying vec2 vTextureCoord;\n"
-        "void main(void) {\n"
-        "    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 0.0, 1.0);\n"
-        "    vTextureCoord = aTextureCoord;\n"
-        "}\n";
-
-//        "precision mediump float;\n"
-static const char *fragmentShaderSourceG =
-        "varying vec2 vTextureCoord;\n"
-        "uniform int uInvert;\n"
-        "uniform sampler2D uSampler;\n"
-        "uniform vec4 uBCG;\n"
-        "void main(void) {\n"
-        "  vec4 oColor;\n"
-        "  oColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n"
-        "  mediump float brightness = uBCG.x;\n"
-        "  mediump float contrast = uBCG.y;\n"
-        "  mediump float gamma = uBCG.z;\n"
-        "  mediump float b = brightness / 100.0;\n"
-        "  mediump float c = contrast / 100.0;\n"
-        "  mediump float g;\n"
-        "  if (gamma > 50.0) {\n"
-        "      g = 1.0 + (gamma - 50.0) / 10.0;\n"
-        "  } else {\n"
-        "      g = 1.0 / (1.0 + (50.0 - gamma) / 10.0);\n"
-        "  }\n"
-        "  if( oColor.x == 0.0 && oColor.y == 0.0 && oColor.z == 0.0 ){\n"
-        "      oColor.w = 0.0;\n"
-        "      oColor.a = 0.0;\n"
-        "  }\n"
-        "  mediump float bias = (1.0 - c) / 2.0 + b * c;\n"
-        "  oColor.x = (pow(((oColor.x * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
-        "  oColor.y = (pow(((oColor.y * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
-        "  oColor.z = (pow(((oColor.z * 256.0)  * c + 255.0 * bias) / 255.0, 1.0 / g) * 255.0) / 256.0;\n"
-        "  if(uInvert > 0){\n"
-        "      oColor.x = 1.0 - oColor.x;\n"
-        "      oColor.y = 1.0 - oColor.y;\n"
-        "      oColor.z = 1.0 - oColor.z;\n"
-        "  }\n"
-        "  if(oColor.w == 0.0){\n"
-        "      oColor.x = 0.0;\n"
-        "      oColor.y = 0.0;\n"
-        "      oColor.z = 0.0;\n"
-        "      oColor.w = 0.0;\n"
-        "  }\n"
-        "  gl_FragColor = oColor;\n"
-        "}\n";
-
-/// Hud text shaders
-static const char *vertexShaderSourceT =
-        "uniform mat4 uMVMatrix;\n"
-        "uniform mat4 uPMatrix;\n"
-        "attribute vec4 aVertexPosition;\n"
-        "varying vec2 vTextureCoord;\n"
-        "void main(void) {\n"
-        "   gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition.xy, 0, 1);\n"
-        "   vTextureCoord = aVertexPosition.zw;\n"
-        "}\n";
-
-static const char *fragmentShaderSourceT =
-        "varying vec2 vTextureCoord;\n"
-        "uniform vec4 uColor;\n"
-        "uniform sampler2D uSampler;\n"
-        "void main() {\n"
-        "   gl_FragColor = vec4( 1,1,1, texture2D( uSampler, vTextureCoord ).a) * uColor;\n"
-        "}\n";
-
-/// Measurement shaders
-static const char *vertexShaderSourceM =
-        "attribute highp vec4 aVertexPosition;\n"
-        "attribute lowp vec4 aColor;\n"
-        "varying lowp vec4 vColor;\n"
-        "uniform highp mat4 uMVMatrix;\n"
-        "uniform highp mat4 uPMatrix;\n"
-        "void main() {\n"
-        "   vColor = aColor;\n"
-        "   gl_Position = uPMatrix * uMVMatrix * aVertexPosition;\n"
-        "}\n";
-
-static const char *fragmentShaderSourceM =
-        "varying lowp vec4 vColor;\n"
-        "void main() {\n"
-        "   gl_FragColor = vColor;\n"
-        "}\n";
-
-/// Stencil shader
-static const char *vertexShaderSourceS =
-        "attribute highp vec4 aVertexPosition;\n"
-        "uniform highp mat4 uMVMatrix;\n"
-        "uniform highp mat4 uPMatrix;\n"
-        "void main() {\n"
-        "   gl_Position = uPMatrix * uMVMatrix * aVertexPosition;\n"
-        "}\n";
-
-/// Hud shaders
-static const char *vertexShaderSourceH =
-        "attribute highp vec4 aVertexPosition;\n"
-        "attribute lowp vec4 aColor;\n"
-        "varying lowp vec4 vColor;\n"
-        "uniform highp mat4 uMVMatrix;\n"
-        "uniform highp mat4 uPMatrix;\n"
-        "void main() {\n"
-        "   vColor = aColor;\n"
-        "   gl_Position = uPMatrix * uMVMatrix * aVertexPosition;\n"
-        "}\n";
-static const char *fragmentShaderSourceH =
-        "varying lowp vec4 vColor;\n"
-        "void main() {\n"
-        "   gl_FragColor = vColor;\n"
-        "}\n";
 
 
 GLuint GridWindow::loadShader(GLenum type, const char *source)
@@ -302,9 +92,9 @@ GridWindow::GridWindow()
       m_animateSquare(0),
       m_animateEven(0),
       m_animateOdd(0),
-      m_brightness(initBrightness),
-      m_contrast(initContrast),
-      m_gamma(initGamma),
+      m_brightness(m_initBrightness),
+      m_contrast(m_initContrast),
+      m_gamma(m_initGamma),
       m_animateOn( false ),
       m_osteotomyOn( false ),
       m_layerDemoOn( false ),
@@ -372,11 +162,6 @@ int GridWindow::_initTextResources(){
 }
 #endif
 
-qint64 GridWindow::tileIndex(qint64 row, qint64 col, qint64 cols){
-    qint64 index = cols * row + col;
-    return index;
-}
-
 void GridWindow::deinitialize(){
     if(m_gridInitialized){
         m_gridInitialized = false;
@@ -421,10 +206,10 @@ void GridWindow::deinitialize(){
 void GridWindow::initialize()
 {
 //    _initTextResources();
-    webGLStart();
+    GLStart();
 }
 
-void GridWindow::webGLStart() {
+void GridWindow::GLStart() {
 
     initShadersScene();
     initShadersHud();
@@ -962,9 +747,9 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
         GLfloat centerY = 0.0;
 
         GLfloat vertices[ (dots  * 3) + ( 6 ) ];
-        float stepSize = ( (2.0 * pi) / dots );
+        float stepSize = ( (2.0 * m_pi) / dots );
         int i = 0;
-        for (float d = 0; d <= ( 2.0* pi ) - stepSize ; d += stepSize ) {
+        for (float d = 0; d <= ( 2.0* m_pi ) - stepSize ; d += stepSize ) {
             vertices[ i++ ] = ( sin( d ) * radius ) + centerX;
             vertices[ i++ ] = ( cos( d ) * radius ) + centerY;
             vertices[ i++ ] = 0.0f;
@@ -1058,7 +843,7 @@ void GridWindow::drawOverlay1( int x, int y, float w, float h ){
 
     //////// Rhombic dodecahedron
     ///
-    if( false ){
+    if( true ){
         m_mvStack.push( m_mvMatrix );
 
         m_mvMatrix.setToIdentity();
@@ -1372,33 +1157,33 @@ void GridWindow::controlAnimate() {
         if(m_brightness != m_settings.brightness){
             float step = (m_settings.brightness - m_brightness) / 4.0;
             m_brightness += step;
-            if(m_brightness > maxBrightness){
-                m_brightness = maxBrightness;
+            if(m_brightness > m_maxBrightness){
+                m_brightness = m_maxBrightness;
             }
-            if(m_brightness < minBrightness){
-                m_brightness = minBrightness;
+            if(m_brightness < m_minBrightness){
+                m_brightness = m_minBrightness;
             }
         }
 
         if(m_contrast != m_settings.contrast){
             float step = (m_settings.contrast - m_contrast) / 4.0;
             m_contrast += step;
-            if(m_contrast > maxContrast){
-                m_contrast = maxContrast;
+            if(m_contrast > m_maxContrast){
+                m_contrast = m_maxContrast;
             }
-            if(m_contrast < minContrast){
-                m_contrast = minContrast;
+            if(m_contrast < m_minContrast){
+                m_contrast = m_minContrast;
             }
         }
 
         if(m_gamma != m_settings.gamma){
             float step = (m_settings.gamma - m_gamma) / 4.0;
             m_gamma += step;
-            if(m_gamma > maxGamma){
-                m_gamma = maxGamma;
+            if(m_gamma > m_maxGamma){
+                m_gamma = m_maxGamma;
             }
-            if(m_gamma < minGamma){
-                m_gamma = minGamma;
+            if(m_gamma < m_minGamma){
+                m_gamma = m_minGamma;
             }
         }
 
@@ -1433,8 +1218,8 @@ void GridWindow::controlAnimate() {
         if(m_settings.flipH){
             // increase from 0 to pi
             m_rotx += (75 *elapsed) / m_flipfreq;
-            if(m_rotx > pi ){
-                m_rotx = pi ;
+            if(m_rotx > m_pi ){
+                m_rotx = m_pi ;
             }
         }else{
             // decrease from pi to 0
@@ -1452,8 +1237,8 @@ void GridWindow::controlAnimate() {
         if(m_settings.flipV){
             // increase from 0 to pi
             m_roty += (75 * elapsed) / m_flipfreq ;
-            if(m_roty > (pi * flipMod)  ){
-                m_roty = (pi * flipMod) ;
+            if(m_roty > (m_pi * flipMod)  ){
+                m_roty = (m_pi * flipMod) ;
             }
         }else{
             // decrease from pi to 0
@@ -1499,6 +1284,16 @@ void GridWindow::toggleWireframe(){
     qDebug() << "WIREFRAME:" << m_wireframe;
 }
 
+qreal GridWindow::zoom()
+{
+    return m_zoom;
+}
+
+qreal GridWindow::ruler()
+{
+    return m_rulerZ;
+}
+
 void GridWindow::toggleOsteotomy(){
     m_osteotomyOn = !m_osteotomyOn;
     qDebug() << "OSTEOTOMY:" << m_osteotomyOn;
@@ -1510,42 +1305,42 @@ void GridWindow::toggleAnimate(){
 }
 
 void GridWindow::rotLeft90(){
-    m_settings.rotation = pi / 2;
+    m_settings.rotation = m_pi / 2;
 }
 
 void GridWindow::rotRight90(){
-    m_settings.rotation = 3 *( pi / 2 );
+    m_settings.rotation = 3 *( m_pi / 2 );
 }
 
 void GridWindow::setContrast ( qreal val ){
     m_settings.contrast = val;
-    if(m_settings.contrast < minContrast){
-        m_settings.contrast = minContrast;
+    if(m_settings.contrast < m_minContrast){
+        m_settings.contrast = m_minContrast;
     }
-    if(m_settings.contrast > maxContrast){
-        m_settings.contrast = maxContrast;
+    if(m_settings.contrast > m_maxContrast){
+        m_settings.contrast = m_maxContrast;
     }
     qDebug() << "CONTRAST:" << m_settings.contrast;
 }
 
 void GridWindow::setBrightness( qreal val ){
     m_settings.brightness = val;
-    if(m_settings.brightness < minBrightness){
-        m_settings.brightness = minBrightness;
+    if(m_settings.brightness < m_minBrightness){
+        m_settings.brightness = m_minBrightness;
     }
-    if(m_settings.brightness > maxBrightness){
-        m_settings.brightness = maxBrightness;
+    if(m_settings.brightness > m_maxBrightness){
+        m_settings.brightness = m_maxBrightness;
     }
     qDebug() << "BRIGHTNESS:" << m_settings.brightness;
 }
 
 void GridWindow::setGamma( qreal val ){
     m_settings.gamma = val;
-    if(m_settings.gamma < minGamma){
-        m_settings.gamma = minGamma;
+    if(m_settings.gamma < m_minGamma){
+        m_settings.gamma = m_minGamma;
     }
-    if(m_settings.gamma > maxGamma){
-        m_settings.gamma = maxGamma;
+    if(m_settings.gamma > m_maxGamma){
+        m_settings.gamma = m_maxGamma;
     }
     qDebug() << "GAMMA:" << m_settings.gamma;
 }
@@ -1655,37 +1450,37 @@ void GridWindow::keyPressEvent(QKeyEvent *e){
 
 
 void GridWindow::handleKeys() {
-    if( isKeyDown ( Qt::Key_R )) {       // RESET
+    if( _isKeyDown ( Qt::Key_R )) {       // RESET
          reset();
     }
-    if( isKeyDown(Qt::Key_C )) {       // COLOR RESET
+    if( _isKeyDown(Qt::Key_C )) {       // COLOR RESET
          resetColor();
     }
-    if( isKeyDown(Qt::Key_T )){        // ORIENTATION RESET
+    if( _isKeyDown(Qt::Key_T )){        // ORIENTATION RESET
          resetOrientation();
     }
-    if( isKeyDown(Qt::Key_PageUp )) {  // ZOOM IN
+    if( _isKeyDown(Qt::Key_PageUp )) {  // ZOOM IN
         zoomIn();
     }
-    if( isKeyDown(Qt::Key_PageDown )){ // ZOOM OUT
+    if( _isKeyDown(Qt::Key_PageDown )){ // ZOOM OUT
          zoomOut();
     }
-    if( isKeyDown(Qt::Key_Right )){    // PAN LEFT
+    if( _isKeyDown(Qt::Key_Right )){    // PAN LEFT
          panLeft();
     }
-    if( isKeyDown(Qt::Key_Down  )){     // PAN UP
+    if( _isKeyDown(Qt::Key_Down  )){     // PAN UP
          panUp();
     }
-    if( isKeyDown(Qt::Key_Left )){     // PAN RIGHT
+    if( _isKeyDown(Qt::Key_Left )){     // PAN RIGHT
          panRight();
     }
-    if( isKeyDown(Qt::Key_Up )){       // PAN DOWN
+    if( _isKeyDown(Qt::Key_Up )){       // PAN DOWN
          panDown();
     }
-    if( isKeyDown(Qt::Key_End )){      // ROT RIGHT
+    if( _isKeyDown(Qt::Key_End )){      // ROT RIGHT
          rotateRight();
     }
-    if( isKeyDown(Qt::Key_Home )){     // ROT LEFT
+    if( _isKeyDown(Qt::Key_Home )){     // ROT LEFT
         rotateLeft();
     }
     if(isCommandKeyDown()){
@@ -2050,12 +1845,12 @@ void GridWindow::panRight() {
 }
 
 void GridWindow::rotateLeft() {
-    m_settings.rotation -= pi / 180.0;
+    m_settings.rotation -= m_pi / 180.0;
     //    qDebug() << "Rot Left" << m_settings.rotation ;
 }
 
 void GridWindow::rotateRight() {
-    m_settings.rotation += pi / 180.0;
+    m_settings.rotation += m_pi / 180.0;
     //    qDebug() << "Rot Right" << m_settings.rotation ;
 }
 
@@ -2064,14 +1859,14 @@ void GridWindow::invert() {
     //    qDebug() << "Invert" << m_settings.invert ;
 }
 
-void GridWindow::resetKeys(){
+void GridWindow::_resetKeys(){
     for(int i = 0; i < Qt::Key_unknown; i++){
         m_currentlyPressedKeys[i] = false;
     }
 }
 
 void GridWindow::reset(){
-    resetKeys();
+    _resetKeys();
     resetColor();
     resetAnimation();
     resetOrientation();
@@ -2148,9 +1943,9 @@ void GridWindow::setSceneRotation( QQuaternion q )
 
 void GridWindow::resetColor(){
     m_settings.invert = false;
-    m_settings.brightness = initBrightness;
-    m_settings.contrast = initContrast;
-    m_settings.gamma = initGamma;
+    m_settings.brightness = m_initBrightness;
+    m_settings.contrast = m_initContrast;
+    m_settings.gamma = m_initGamma;
 }
 
 void GridWindow::resetAnimation(){
@@ -2184,7 +1979,7 @@ void GridWindow::flipV() {
     //    qDebug() << "FlipV" << m_settings.flipV;
 }
 
-bool GridWindow::isKeyDown(Qt::Key keycode){
+bool GridWindow::_isKeyDown(Qt::Key keycode){
 
     bool isDown = false;
 
@@ -2196,8 +1991,8 @@ bool GridWindow::isKeyDown(Qt::Key keycode){
 bool GridWindow::isCommandKeyDown()
 {
     return
-            isKeyDown( Qt::Key_Alt ) ||
-            isKeyDown( Qt::Key_Control );
+            _isKeyDown( Qt::Key_Alt ) ||
+            _isKeyDown( Qt::Key_Control );
 }
 
 void GridWindow::hideEvent(QHideEvent *event)
@@ -2332,7 +2127,7 @@ void GridWindow::pinchTriggered(QPinchGesture *pinch)
 
 bool GridWindow::isCtrlKeyDown()
 {
-    return isKeyDown( Qt::Key_Control );
+    return _isKeyDown( Qt::Key_Control );
 }
 
 void GridWindow::resizeEvent( QResizeEvent *e )
@@ -2346,7 +2141,7 @@ void GridWindow::wheelEvent( QWheelEvent *e )
     float delta = e->delta() / 70.0;
 
     if(isCommandKeyDown()){
-        if( !isKeyDown( Qt::Key_Shift )){
+        if( !_isKeyDown( Qt::Key_Shift )){
             if(delta > 0){
                 zoomIn();
             }
@@ -2375,68 +2170,3 @@ void GridWindow::wheelEvent( QWheelEvent *e )
     }
     //    qDebug() << "WHEEL:" << delta;
 }
-
-#ifdef HAS_FREETYPE2
-void GridWindow::render_text(const char *text, float x, float y, float sx, float sy) {
-    const char *p;
-    FT_GlyphSlot g = m_face->glyph;
-
-    /* Create a texture that will be used to hold one "glyph" */
-    GLuint tex;
-
-    glActiveTexture( GL_TEXTURE0 );
-    glGenTextures( 1, &tex );
-    glBindTexture( GL_TEXTURE_2D, tex );
-    glUniform1i( m_hudTextSamplerUniform, 0 );
-
-    /* We require 1 byte alignment when uploading texture data */
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-    /* Clamping to edges is important to prevent artifacts when scaling */
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-
-    /* Linear filtering usually looks best for text */
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-    /* Set up the VBO for our vertex data */
-    glEnableVertexAttribArray( m_hudTextVertexPositionAttribute );
-    glBindBuffer( GL_ARRAY_BUFFER, m_hudTextVbo );
-    glVertexAttribPointer( m_hudTextVertexPositionAttribute, 4, GL_FLOAT, GL_FALSE, 0, 0 );
-
-    /* Loop through all characters */
-    for ( p = text; *p; p++ ) {
-        /* Try to load and render the character */
-        if ( FT_Load_Char( m_face, *p, FT_LOAD_RENDER ))
-            continue;
-
-        /* Upload the "bitmap", which contains an 8-bit grayscale image, as an alpha texture */
-        glTexImage2D( GL_TEXTURE_2D, 0, GL_ALPHA, g->bitmap.width, g->bitmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, g->bitmap.buffer );
-
-        /* Calculate the vertex and texture coordinates */
-        float x2 = x + g->bitmap_left * sx;
-        float y2 = -y - g->bitmap_top * sy;
-        float w = g->bitmap.width * sx;
-        float h = g->bitmap.rows * sy;
-
-        point box[ 4 ] = {
-            { x2, -y2, 0, 0 },
-            { x2 + w, -y2, 1, 0 },
-            { x2, -y2 - h, 0, 1 },
-            { x2 + w, -y2 - h, 1, 1 },
-        };
-
-        /* Draw the character on the screen */
-        glBufferData( GL_ARRAY_BUFFER, sizeof box, box, GL_DYNAMIC_DRAW );
-        glDrawArrays( GL_TRIANGLE_STRIP, 0, 4 );
-
-        /* Advance the cursor to the start of the next character */
-        x += ( g->advance.x >> 6 ) * sx;
-        y += ( g->advance.y >> 6 ) * sy;
-    }
-
-    glDisableVertexAttribArray( m_hudTextVertexPositionAttribute );
-    glDeleteTextures( 1, &tex );
-}
-#endif

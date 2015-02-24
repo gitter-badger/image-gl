@@ -26,8 +26,8 @@ function mvPopMatrix() {
 }
 
 function setMatrixUniforms() {
-	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+	gl.uniformMatrix4fv(shaderProgramG.pMatrixUniform, false, pMatrix);
+	gl.uniformMatrix4fv(shaderProgramG.mvMatrixUniform, false, mvMatrix);
 }
 
 function setMatrixUniformsS() {
@@ -146,8 +146,8 @@ function handleLoadedTexture(texture) {
     	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     }
     //UNUSED: Used for clamping textures that are not power of 2
-    //gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	//gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	gl.texParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl.bindTexture(gl.TEXTURE_2D, null);
 }
 

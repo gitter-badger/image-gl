@@ -2,7 +2,7 @@
  * This file contains methods to set up the shaders for the scene
  */
 
-var shaderProgram;
+var shaderProgramG;
 var shaderProgramS;
 
 
@@ -10,14 +10,14 @@ var uInvert = 0;
 var uBCG = new Array(4);
 
 function updateBCG( brightness, contrast, gamma ) {
-	gl.uniform4f(shaderProgram.uBCG, brightness, contrast, gamma , 1.0);
+	gl.uniform4f(shaderProgramG.uBCG, brightness, contrast, gamma , 1.0);
 }
 
 function updateInvert( invert ){
 	if(invert){
-		gl.uniform1i(shaderProgram.uInvert, 1);
+		gl.uniform1i(shaderProgramG.uInvert, 1);
 	}else{
-		gl.uniform1i(shaderProgram.uInvert, 0);
+		gl.uniform1i(shaderProgramG.uInvert, 0);
 	}
 }
 
@@ -76,7 +76,6 @@ function initShaders() {
 
             shaderProgramS.vertexPositionAttribute = gl.getAttribLocation(shaderProgramS, "aVertexPosition");
 
-
             shaderProgramS.pMatrixUniform = gl.getUniformLocation(shaderProgramS, "uPMatrix");
             shaderProgramS.mvMatrixUniform = gl.getUniformLocation(shaderProgramS, "uMVMatrix");
         }
@@ -86,27 +85,27 @@ function initShaders() {
         var fragmentShader = getShader(gl, "shader-fs-g");
         var vertexShader = getShader(gl, "shader-vs-g");
 
-        shaderProgram = gl.createProgram();
-        gl.attachShader(shaderProgram, vertexShader);
-        gl.attachShader(shaderProgram, fragmentShader);
-        gl.linkProgram(shaderProgram);
+        shaderProgramG = gl.createProgram();
+        gl.attachShader(shaderProgramG, vertexShader);
+        gl.attachShader(shaderProgramG, fragmentShader);
+        gl.linkProgram(shaderProgramG);
 
-        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+        if (!gl.getProgramParameter(shaderProgramG, gl.LINK_STATUS)) {
             alert("Could not initialise shaders");
         }
 
-        gl.useProgram(shaderProgram);
+        gl.useProgram(shaderProgramG);
 
-        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-        shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+        shaderProgramG.vertexPositionAttribute = gl.getAttribLocation(shaderProgramG, "aVertexPosition");
+        shaderProgramG.textureCoordAttribute   = gl.getAttribLocation(shaderProgramG, "aTextureCoord");
 
-        shaderProgram.uBCG = gl.getUniformLocation(shaderProgram, "uBCG");
-        shaderProgram.uInvert = gl.getUniformLocation(shaderProgram, "uInvert");
+        shaderProgramG.uBCG                    = gl.getUniformLocation(shaderProgramG, "uBCG");
+        shaderProgramG.uInvert                 = gl.getUniformLocation(shaderProgramG, "uInvert");
 
-        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgramG.pMatrixUniform          = gl.getUniformLocation(shaderProgramG, "uPMatrix");
+        shaderProgramG.mvMatrixUniform         = gl.getUniformLocation(shaderProgramG, "uMVMatrix");
+        shaderProgramG.samplerUniform          = gl.getUniformLocation(shaderProgramG, "uSampler");
 
-        shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "uColor");
+        shaderProgramG.colorUniform            = gl.getUniformLocation(shaderProgramG, "uColor");
     }
 }

@@ -11,6 +11,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = image-gl
 TEMPLATE = app
 
+CONFIG += has_bluetooth
+
 CONFIG(has_bluetooth){
   DEFINES += HAS_BLUETOOTH
   QT += bluetooth
@@ -48,7 +50,8 @@ HEADERS  += mainwindow.h \
     gridlayer.h \
     viewer.h \
     model.h \
-    point3d.h
+    point3d.h \
+    graphics_util.h
 
 FORMS    += mainwindow.ui \
     viewer.ui

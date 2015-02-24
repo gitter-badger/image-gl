@@ -2,7 +2,8 @@
 #include "imagegrid.h"
 #include "imagetile.h"
 
-#include "gridwindow.h"
+//#include "gridwindow.h"
+#include "graphics_util.h"
 
 //#include <QOpenGLTexture>
 
@@ -40,7 +41,6 @@ GridImage::~GridImage()
 //        free ( m_tileTextureGrid3 );
 //        free ( m_tilePositionBufferGrid );
 
-
 //    }
 }
 
@@ -48,7 +48,7 @@ void GridImage::handleLoadedGridTexture(int index, int row, int col ){
 
     ImageTile *tile = m_imagegrid->tile( row, col );
 
-    _handleLoadedTexture( tile->image(), m_tileTextureGrid [ GridWindow::tileIndex( row, col, m_imagegrid->cols() ) ], m_imagegrid->dimension() );
+    _handleLoadedTexture( tile->image(), m_tileTextureGrid [ tileIndex( row, col, m_imagegrid->cols() ) ], m_imagegrid->dimension() );
 
     /// Using QOpenGLTexture
 //    QOpenGLTexture *tex = new QOpenGLTexture( tile->image().convertToFormat( QImage::Format_RGBA8888 ).mirrored( false, true ) );
@@ -66,11 +66,11 @@ void GridImage::handleLoadedGridTexture(int index, int row, int col ){
 void GridImage::_handleLoadedTexture( QImage image, GLuint texture, float dimension ){
 
     QImage img = image.convertToFormat( QImage::Format_RGBA8888 );
-    glBindTexture( GL_TEXTURE_2D, texture );
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, dimension, dimension, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.mirrored( false, true ).bits() );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    glBindTexture( GL_TEXTURE_2D, 0 );
+    glBindTexture   ( GL_TEXTURE_2D, texture );
+    glTexImage2D    ( GL_TEXTURE_2D, 0, GL_RGBA, dimension, dimension, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.mirrored( false, true ).bits() );
+    glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+    glTexParameterf ( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    glTexParameterf ( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    glBindTexture   ( GL_TEXTURE_2D, 0 );
 }

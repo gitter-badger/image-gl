@@ -1,7 +1,8 @@
-SOURCES += btdevice.cpp \
-            bluetoothwidget.cpp
+SOURCES += \
+bluetooth/btdevice.cpp \
+            bluetooth/bluetoothwidget.cpp
 
-HEADERS += btdevice.h \
-            bluetoothwidget.h
+HEADERS += bluetooth/btdevice.h \
+            bluetooth/bluetoothwidget.h
 
-FORMS += bluetoothwidget.ui
+FORMS += bluetooth/bluetoothwidget.ui

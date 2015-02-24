@@ -411,7 +411,7 @@ void MainWindow::on_pushButtonDemo2Run_clicked()
 void MainWindow::on_pushButtonSearch_clicked()
 {
     QString existingDir = QFileDialog::getExistingDirectory( this, QString( "Select a directory" ), m_multiplePath, 0 );
-    if(QFile::exists(existingDir)){
+    if( QFile::exists( existingDir ) ){
         m_multiplePath = existingDir;
         ui->labelCurrentDir->setText( m_multiplePath );
         saveSettings();
@@ -425,8 +425,8 @@ void MainWindow::on_pushButtonLoad_clicked()
         return;
     }
 
-//    loadMultiple(m_multiplePath);
-    loadDirectory(m_multiplePath);
+//    loadMultiple( m_multiplePath );
+    loadDirectory( m_multiplePath );
 }
 
 void MainWindow::on_pushButtonGraphicsView_clicked()
@@ -434,26 +434,39 @@ void MainWindow::on_pushButtonGraphicsView_clicked()
     GLGraphicsView *view = new GLGraphicsView();
     GLGraphicsScene *scene = new GLGraphicsScene();
 
-    view->setScene(scene);
+    ////////// Load image grid
+    on_pushButtonLoadImage_clicked();
+
+    if(!m_grid){
+        return;
+    }
+
+
+    scene->setImageGrid( m_grid );
+
+    view->setScene( scene );
+
+    scene->initialize();
 
     QDialog dlg;
-    dlg.setLayout(new QVBoxLayout(&dlg));
-    dlg.layout()->addWidget(view);
+    dlg.setLayout( new QVBoxLayout( &dlg ) );
+    dlg.layout()->addWidget( view );
+    dlg.resize( 800, 800 );
     dlg.exec();
 
     delete view;
     delete scene;
 }
 
-void MainWindow::errorMessage(QString msg)
+void MainWindow::errorMessage( QString msg )
 {
-    ui->textEditLog->setTextColor(QColor(Qt::red));
-    ui->textEditLog->append(QString("ERROR: %1").arg(msg));
+    ui->textEditLog->setTextColor( QColor( Qt::red ) );
+    ui->textEditLog->append( QString( "ERROR: %1" ).arg( msg ) );
 }
 
-void MainWindow::logMessage(QString msg)
+void MainWindow::logMessage( QString msg )
 {
-    ui->textEditLog->append(QString("LOG: %1").arg(msg));
+    ui->textEditLog->append( QString( "LOG: %1" ).arg( msg ) );
 }
 
 void MainWindow::updateTitle()
@@ -461,6 +474,6 @@ void MainWindow::updateTitle()
     qreal fps = 0;
     if(m_gridWindow){
         fps = m_gridWindow->fps();
-        m_gridWindow->setTitle(QString("GL Test app: %1 fps").arg(fps));
+        m_gridWindow->setTitle( QString( "GL Test app: %1 fps" ).arg( fps ));
     }
 }

@@ -8,6 +8,8 @@
 #include <QMatrix4x4>
 #include <QQueue>
 
+#include "graphics_util.h"
+
 class QGestureEvent;
 class QPanGesture;
 class QSwipeGesture;
@@ -21,22 +23,21 @@ class QPinchGesture;
 class ImageGrid;
 class GridLayer;
 class Model;
-struct GLSettings {
-    GLfloat zoom;
-    GLboolean flipH;
-    GLboolean flipV;
-    GLboolean invert;
-    GLfloat brightness;
-    GLfloat contrast;
-    GLfloat gamma;
-    GLfloat rotation;
-
-    GLfloat transX ;
-    GLfloat transY ;
-};
-
 
 class GridImage;
+
+struct GLSettings {
+    GLfloat   brightness;
+    GLfloat   contrast;
+    GLboolean flipH;
+    GLboolean flipV;
+    GLfloat   gamma;
+    GLboolean invert;
+    GLfloat   rotation;
+    GLfloat   transX ;
+    GLfloat   transY ;
+    GLfloat   zoom;
+};
 
 
 class GridWindow : public OpenGLWindow
@@ -49,37 +50,22 @@ public:
     virtual void initialize() ;
     virtual void deinitialize();
     virtual void render();
-
     virtual void reset();
 
     void addImage(ImageGrid *grid , QQuaternion q = QQuaternion());
     void removeImage(ImageGrid *imageGrid);
 
-
-    static qreal r2d( qreal r);
-    static qreal d2r( qreal d );
-    static QPointF sm2gl( QPointF pixPos, ImageGrid *grid );
-    static QPointF gl2sm( QPointF glPos, ImageGrid *grid );
-    qreal unitToPx( ImageGrid *grid );
-
     qreal fps();
 
-
-    static qint64 tileIndex(qint64 row, qint64 col, qint64 cols);
-
-    bool isKeyDown(Qt::Key key);
-    void resetKeys();
 signals:
     void nextImage();
     void prevImage();
 
 public slots:
-    void panDelta(int x, int y);
     void fitToView();
     void setVFlip90( bool );
     void setSceneRotation( QQuaternion );
 
-    virtual void handleLoadedGridTexture( int index, int row, int column );
 
     void setContrast( qreal val );
     void setBrightness( qreal val );
@@ -109,20 +95,28 @@ public slots:
     void toggleLayerDemo();
     void toggleWireframe();
 
+    qreal zoom();
+    qreal ruler();
+
+protected slots:
+    virtual void handleLoadedGridTexture( int index, int row, int column );
+
 protected:
+    void panDelta(int x, int y);
+
     bool event(QEvent *event);
     bool gestureEvent(QGestureEvent *event);
     void panTriggered(QPanGesture *pan);
     void swipeTriggered(QSwipeGesture *swipe);
     void pinchTriggered(QPinchGesture *pinch);
 
+
     virtual void drawScene(int x, int y, float w, float h);
     virtual void drawHud(int x, int y, float w, float h);
     virtual void drawMeasurements(int x, int y, int w, int h);
-
+private:
+    void _resetKeys();
     void handleLoadedTexture(GridImage *grid, QImage image, GLuint texture, float dimension);
-
-
     void drawOverlayMeasurements( int, int, float, float );
     void drawOverlay1( int, int, float, float );
 #ifdef HAS_FREETYPE2
@@ -132,19 +126,16 @@ protected:
     void drawGrid( GridLayer *layer );
 
     void render_text(const char *text, float x, float y, float sx, float sy);
-
-
-private:
-    void  _updateLayers();
-
+    bool _isKeyDown(Qt::Key key);
     qreal _dbgZoom();
+    void  _updateLayers();
     void  _render(qint64 frame);
     void  _enableStencil();
     void  _disableStencil();
 
-    void controlAnimate();
-    bool isCtrlKeyDown();
-    bool isCommandKeyDown();
+    void  controlAnimate();
+    bool  isCtrlKeyDown();
+    bool  isCommandKeyDown();
 
 
     virtual bool nativeGestureEvent(QNativeGestureEvent *event);
@@ -160,7 +151,7 @@ private:
     void updateInvert();
     void updateBCG();
 
-    void webGLStart();
+    void GLStart();
     void initShadersScene();
     void initShadersHud();
     void initShadersHudText();
@@ -250,7 +241,6 @@ private:
     GLuint m_animateSquare;
     GLboolean m_animateOn = false;
 
-
     GLfloat m_panBase;
     GLfloat m_zoom;
     GLboolean m_osteotomyOn = false;
@@ -295,6 +285,7 @@ private:
     void delRdColors();
     void initRdColors();
     GLfloat *rdColors = NULL;
+    const GLfloat m_rulerZ = -20.0;
 };
 
 #endif // GRIDWINDOW_H

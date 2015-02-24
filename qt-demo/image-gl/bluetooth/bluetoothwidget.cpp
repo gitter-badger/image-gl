@@ -7,6 +7,7 @@ BluetoothWidget::BluetoothWidget(QWidget *parent) :
     QWidget(parent),
     m_isBluetoothOn( false ),
     m_discoveryAgent( NULL ),
+    m_lowEnergyController( NULL ),
     ui(new Ui::BluetoothWidget)
 {
     ui->setupUi(this);

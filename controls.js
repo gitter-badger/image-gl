@@ -52,16 +52,9 @@ var lastMouseX = null;
 var lastMouseY = null;
 
 // Toggle the debug animation
-function toggleAnimate(){
-	m_animateOn = !m_animateOn;
-}
-
-function rotLeft90(){
-	settings.rotation = pi / 2;
-}
-function rotRight90(){
-	settings.rotation = 3 *( pi / 2 );
-}
+function toggleAnimate(){ m_animateOn = !m_animateOn; }
+function rotLeft90(){ settings.rotation = pi / 2; }
+function rotRight90(){ settings.rotation = 3 *( pi / 2 ); }
 
 function resetSettings() {
 	m_animateSquare = 0;

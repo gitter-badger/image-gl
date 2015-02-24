@@ -3,7 +3,7 @@
 
 #include <QBluetoothDeviceDiscoveryAgent>
 #include <QBluetoothDeviceInfo>
-
+#include <QLowEnergyController>
 #include <QWidget>
 
 namespace Ui {
@@ -23,6 +23,7 @@ public:
     void initBluetooth();
 
 public slots:
+    void on_pushButtonBTConnectSelected_clicked();
     void onAddDevice(const QBluetoothDeviceInfo&);
     void onDeviceScanError(QBluetoothDeviceDiscoveryAgent::Error error);
     void onDeviceScanFinished();
@@ -31,6 +32,7 @@ private:
 
     bool m_isBluetoothOn;
     QBluetoothDeviceDiscoveryAgent *  m_discoveryAgent;
+    QLowEnergyController *m_lowEnergyController;
     QList<BtDevice *> m_discoveredDevices;
 
 

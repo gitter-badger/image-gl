@@ -1,9 +1,11 @@
 #include "gridlayer.h"
 #include "gridimage.h"
-#include "gridwindow.h"
+//#include "gridwindow.h"
 
 #include <QPolygonF>
 #include <QMatrix4x4>
+
+#include "graphics_util.h"
 
 GridLayer::GridLayer( GridImage * g )
     :m_stencilVertices( NULL )
@@ -32,7 +34,7 @@ void GridLayer::setPolygon( QPolygonF &poly ){
     m_stencilVertices = ( GLfloat * )malloc( sizeof ( GLfloat ) * m_stencilPolygon.count() * 2 );
     int stencilVerticesCount = 0;
     foreach( QPointF point, m_stencilPolygon){
-        QPointF pt = GridWindow::sm2gl( point, m_gridImage->m_imagegrid );
+        QPointF pt = sm2gl( point, m_gridImage->m_imagegrid );
         m_stencilVertices[ stencilVerticesCount++ ] = ( float )pt.x();
         m_stencilVertices[ stencilVerticesCount++ ] = ( float )pt.y();
     }

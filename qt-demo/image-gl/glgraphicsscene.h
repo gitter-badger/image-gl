@@ -6,32 +6,31 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLPaintDevice>
 
-#include "openglfunctionsdebug.h"
-
 class QExposeEvent;
 class ImageGrid;
-class GLGraphicsScene : public QGraphicsScene, protected OpenGLFunctionsDebug
+class GLGraphicsScenePrivate;
+class GLGraphicsScene : public QGraphicsScene
 {
+    Q_OBJECT
+
 public:
     GLGraphicsScene();
     ~GLGraphicsScene();
 
-    virtual void drawBackground(QPainter *painter, const QRectF &rect);
-
-//    virtual void render(QPainter *painter);
-//    virtual void render();
 
     virtual void initialize();
 
     void setAnimating(bool animating);
-
     void setImageGrid(ImageGrid *grid);
 
 public slots:
     void renderLater();
     void renderNow();
 
+    void handleLoadedGridTexture(int index, int row, int col);
+
 protected:
+    virtual void drawBackground(QPainter *painter, const QRectF &rect);
     virtual void exposeEvent(QExposeEvent *event);
     virtual bool event(QEvent *event) ;
 //    void exposeEvent(QExposeEvent *event) ;
@@ -43,7 +42,9 @@ private:
     QOpenGLContext *m_context;
     QOpenGLPaintDevice *m_device;
 
-    ImageGrid *m_ImageGrid;
+    bool m_initialized;
+
+    GLGraphicsScenePrivate *d;
 };
 
 #endif // GLGRAPHICSSCENE_H
