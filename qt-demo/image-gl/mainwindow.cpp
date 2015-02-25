@@ -38,8 +38,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ok = connect(&m_timer, SIGNAL(timeout()), SLOT(updateTitle()));
     Q_ASSERT( ok );
     ok = connect(&m_listener,
-            SIGNAL(sensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal)),
-            SLOT(onSensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal)));
+            SIGNAL(sensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal)),
+            SLOT(onSensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal)));
     Q_ASSERT( ok );
 
     ui->textEditLog->hide();
@@ -344,8 +344,8 @@ void MainWindow::on_pushButtonDisplay_clicked()
 
     m_gridWindow = gridWindow1;
 
-    bool ok = connect(&m_listener, SIGNAL(sensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal)),
-            m_gridWindow, SLOT(onSensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal)));
+    bool ok = connect(&m_listener, SIGNAL(sensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal)),
+            m_gridWindow, SLOT(onSensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal)));
     Q_ASSERT(ok);
 
     this->hide();
@@ -458,8 +458,6 @@ void MainWindow::on_pushButtonGraphicsView_clicked()
 
     view->setScene( scene );
 
-    scene->initialize();
-
     QDialog dlg;
     dlg.setLayout( new QVBoxLayout( &dlg ) );
     dlg.layout()->addWidget( view );
@@ -491,7 +489,7 @@ void MainWindow::updateTitle()
     QApplication::processEvents();
 }
 
-void MainWindow::onSensorData(qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz)
+void MainWindow::onSensorData(qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz, qreal rx, qreal ry, qreal rz)
 {
 //    qDebug() << __FUNCTION__ << timestamp << ax << ay << az << gx << gy << gz;
     emit sensorData(timestamp, ax, ay, az, gx, gy, gz);

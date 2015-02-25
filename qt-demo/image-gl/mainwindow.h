@@ -66,7 +66,7 @@ private slots:
 
     void updateTitle();
 
-    void onSensorData(qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz);
+    void onSensorData(qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz, qreal rx, qreal ry, qreal rz);
 
 private:
     void updateLog(QStringList log);
