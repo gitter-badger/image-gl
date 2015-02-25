@@ -33,7 +33,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
 //    connect(m_viewer, SIGNAL(logMessage(QString)), SLOT(logMessage(QString)));
 //    connect(m_viewer, SIGNAL(errorMessage(QString)), SLOT(errorMessage(QString)));
-    connect(&m_timer, SIGNAL(timeout()), SLOT(updateTitle()));
+
+    bool ok = false;
+    ok = connect(&m_timer, SIGNAL(timeout()), SLOT(updateTitle()));
+    Q_ASSERT( ok );
+    ok = connect(&m_listener,
+            SIGNAL(sensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal)),
+            SLOT(onSensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal)));
+    Q_ASSERT( ok );
 
     ui->textEditLog->hide();
 
@@ -336,6 +343,11 @@ void MainWindow::on_pushButtonDisplay_clicked()
 
 
     m_gridWindow = gridWindow1;
+
+    bool ok = connect(&m_listener, SIGNAL(sensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal)),
+            m_gridWindow, SLOT(onSensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal)));
+    Q_ASSERT(ok);
+
     this->hide();
 //        QDialog dlg;
 //        dlg.setLayout(new QVBoxLayout());
@@ -476,4 +488,11 @@ void MainWindow::updateTitle()
         fps = m_gridWindow->fps();
         m_gridWindow->setTitle( QString( "GL Test app: %1 fps" ).arg( fps ));
     }
+    QApplication::processEvents();
+}
+
+void MainWindow::onSensorData(qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz)
+{
+//    qDebug() << __FUNCTION__ << timestamp << ax << ay << az << gx << gy << gz;
+    emit sensorData(timestamp, ax, ay, az, gx, gy, gz);
 }

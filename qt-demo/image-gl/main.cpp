@@ -11,6 +11,8 @@
 void guiApplicationTest(){
     ImageGrid *m_grid;
     QSurfaceFormat format;
+    format.setSamples( 16 );
+    format.setStencilBufferSize( 1 );
     QString m_file;
 
 #ifdef Q_OS_ANDROID
@@ -28,8 +30,6 @@ void guiApplicationTest(){
 
     GridWindow *gridWindow1 = new GridWindow();
 
-    format.setSamples( 16 );
-    format.setStencilBufferSize( 1 );
 #ifdef Q_OS_ANDROID
     format.setRenderableType(QSurfaceFormat::OpenGLES);
 #endif

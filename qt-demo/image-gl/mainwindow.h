@@ -5,6 +5,7 @@
 #include <QImage>
 
 #include "gridwindow.h"
+#include "listener.h"
 
 #include <QTimer>
 
@@ -42,8 +43,10 @@ public:
     void loadSettings();
     void saveSettings();
 
+signals:
+    void sensorData(qreal, qreal, qreal, qreal, qreal, qreal, qreal);
 
-    void scanBluetooth();
+
 private slots:
     void on_pushButtonSplit_clicked();
     void on_pushButtonLoadImage_clicked();
@@ -62,6 +65,8 @@ private slots:
     void logMessage(QString);
 
     void updateTitle();
+
+    void onSensorData(qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz);
 
 private:
     void updateLog(QStringList log);
@@ -89,6 +94,8 @@ private:
     Viewer *m_viewer;
 
     QTimer m_timer;
+
+    listener m_listener;
 };
 
 #endif // MAINWINDOW_H

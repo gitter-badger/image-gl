@@ -1248,7 +1248,7 @@ void GridWindow::controlAnimate() {
             }
         }
 
-        float step = (m_settings.rotation - m_rotz) / 20.0;
+        float step = (m_settings.rotation - m_rotz) / 60.0;
         if(m_rotz < m_settings.rotation ){
             m_rotz += step;
             if(m_rotz > m_settings.rotation){
@@ -1537,6 +1537,7 @@ void GridWindow::_render( qint64 frame )
 #endif
     drawHud(x,y,w,h);
     m_frame++;
+    QApplication::processEvents();
 }
 
 void GridWindow::drawScene( int x, int y, float w, float h ){
@@ -1750,6 +1751,15 @@ void GridWindow::drawMeasurements( int x, int y, int w, int h ){
 
 qreal GridWindow::fps(){
     return m_fps;
+}
+
+void GridWindow::onSensorData( qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz )
+{
+//    qDebug() << __FUNCTION__ << timestamp << ax << ay << az << gx << gy << gz;
+    qDebug() << __FUNCTION__ << timestamp << gz;
+    m_settings.rotation      = gz;
+//    m_settings.zoom = gy;
+//    m_settings.contrast   = gz;
 }
 
 // Uses first grid image to fit

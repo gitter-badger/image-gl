@@ -17,8 +17,9 @@
 #include "gridlayer.h"
 #include "imagetile.h"
 #include "graphics_util.h"
+#include "openglfunctionsdebug.h"
 
-class GLGraphicsScenePrivate {
+class GLGraphicsScenePrivate : protected OpenGLFunctionsDebug {
 public:
     GLGraphicsScenePrivate(GLGraphicsScene *scene);
 
@@ -204,10 +205,13 @@ private:
     void initRdColors();
     GLfloat *rdColors = NULL;
     const GLfloat m_rulerZ = -20.0;
+
+    QOpenGLContext *m_context;
 };
 
 GLGraphicsScenePrivate::GLGraphicsScenePrivate(GLGraphicsScene *owner):
     m_Owner(owner),
+    m_context(new QOpenGLContext(owner)),
     m_sceneRotation(QQuaternion(0,0,0,0)),
     m_frame(0),
     m_sceneProgram(0),
@@ -236,6 +240,14 @@ GLGraphicsScenePrivate::GLGraphicsScenePrivate(GLGraphicsScene *owner):
     m_centerY( 0.0f ),
     m_initialized( false )
 {
+    QSurfaceFormat format;
+    format.setSamples( 16 );
+    format.setStencilBufferSize( 1 );
+
+    m_context->setFormat( format );
+
+    m_context->create();
+
     m_mvMatrix = QMatrix4x4();
     m_pMatrix  = QMatrix4x4();
 }
@@ -259,13 +271,16 @@ void GLGraphicsScenePrivate::GLStart() {
 
 void GLGraphicsScenePrivate::initShadersScene(){
 
-    m_sceneProgram = new QOpenGLShaderProgram( m_Owner );
+    m_sceneProgram = new QOpenGLShaderProgram( m_context );
 
-    m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceG );
-    qDebug() << __FUNCTION__ << "Vertex shader ok";Q_ASSERT(m_sceneProgram);
+    bool ok = true;
+    ok = m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceG );
+    if(!ok){
+        qDebug() << __FUNCTION__ << m_sceneProgram->log();
+    }
 
-    m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceG );
-    qDebug() << __FUNCTION__ << "Fragment shader ok";Q_ASSERT(m_sceneProgram);
+    ok = m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceG );
+    Q_ASSERT(ok);
 
     m_sceneProgram->link();
 
@@ -282,7 +297,7 @@ void GLGraphicsScenePrivate::initShadersScene(){
 
 void GLGraphicsScenePrivate::initShadersHudText(){
 
-    m_hudTextProgram = new QOpenGLShaderProgram( m_Owner );
+    m_hudTextProgram = new QOpenGLShaderProgram( m_context );
     m_hudTextProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceT );
     m_hudTextProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceT );
     m_hudTextProgram->link();
@@ -297,7 +312,7 @@ void GLGraphicsScenePrivate::initShadersHudText(){
 
 void GLGraphicsScenePrivate::initShadersHud(){
 
-    m_hudProgram = new QOpenGLShaderProgram( m_Owner );
+    m_hudProgram = new QOpenGLShaderProgram( m_context );
     m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceH );
     m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceH );
     m_hudProgram->link();
@@ -310,7 +325,7 @@ void GLGraphicsScenePrivate::initShadersHud(){
 }
 
 void GLGraphicsScenePrivate::initShaderMeasurements(){
-    m_measurementsProgram = new QOpenGLShaderProgram( m_Owner );
+    m_measurementsProgram = new QOpenGLShaderProgram( m_context );
     m_measurementsProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceM );
     m_measurementsProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceM );
     m_measurementsProgram->link();
@@ -324,7 +339,7 @@ void GLGraphicsScenePrivate::initShaderMeasurements(){
 
 
 void GLGraphicsScenePrivate::initShadersStencil(){
-    m_stencilProgram = new QOpenGLShaderProgram( m_Owner );
+    m_stencilProgram = new QOpenGLShaderProgram( m_context );
     m_stencilProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceS );
     m_stencilProgram->link();
 

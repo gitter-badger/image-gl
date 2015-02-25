@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui opengl bluetooth
+QT       += core gui opengl bluetooth network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -33,7 +33,8 @@ SOURCES += main.cpp\
     shaders.cpp \
     gridlayer.cpp \
     viewer.cpp \
-    model.cpp
+    model.cpp \
+    listener.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
@@ -51,7 +52,8 @@ HEADERS  += mainwindow.h \
     viewer.h \
     model.h \
     point3d.h \
-    graphics_util.h
+    graphics_util.h \
+    listener.h
 
 FORMS    += mainwindow.ui \
     viewer.ui
