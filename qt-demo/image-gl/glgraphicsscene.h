@@ -3,8 +3,8 @@
 
 #include <QObject>
 #include <QGraphicsScene>
-#include <QOpenGLFunctions>
-#include <QOpenGLPaintDevice>
+//#include <QOpenGLFunctions>
+//#include <QOpenGLPaintDevice>
 
 class QExposeEvent;
 class ImageGrid;
@@ -31,7 +31,6 @@ public slots:
 
 protected:
     virtual void drawBackground(QPainter *painter, const QRectF &rect);
-    virtual void exposeEvent(QExposeEvent *event);
     virtual bool event(QEvent *event) ;
 //    void exposeEvent(QExposeEvent *event) ;
 
@@ -39,8 +38,8 @@ private:
     bool m_update_pending;
     bool m_animating;
 
-    QOpenGLContext *m_context;
-    QOpenGLPaintDevice *m_device;
+//    QOpenGLContext *m_context;
+//    QOpenGLPaintDevice *m_device;
 
     bool m_initialized;
 

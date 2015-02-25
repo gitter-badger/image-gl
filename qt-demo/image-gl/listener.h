@@ -18,7 +18,7 @@ public:
     ~listener();
 
 signals:
-    void sensorData(qreal, qreal, qreal, qreal, qreal, qreal, qreal);
+    void sensorData(qreal, qreal, qreal, qreal, qreal, qreal, qreal, qreal, qreal, qreal);
     void dataReceived(QByteArray);
 
 public slots:

@@ -2,7 +2,8 @@
 #define GRAPHICS_UTIL_H
 
 #include <QPointF>
-#include <QtGui/QOpenGLFunctions>
+//#include <QtGui/QOpenGLFunctions>
+#include <QGLFunctions>
 #include <math.h>
 
 #include "imagegrid.h"

@@ -1,10 +1,15 @@
 #include "glgraphicsscene.h"
 #include <QPainter>
 #include <QCoreApplication>
-#include <QOpenGLContext>
 #include <QPaintEngine>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
+
+//#include <QOpenGLContext>
+//#include <QOpenGLShaderProgram>
+//#include <QOpenGLTexture>
+
+#include <QGLContext>
+#include <QGLShaderProgram>
+
 #include <QMatrix4x4>
 #include <QQueue>
 #include <QStack>
@@ -17,9 +22,8 @@
 #include "gridlayer.h"
 #include "imagetile.h"
 #include "graphics_util.h"
-#include "openglfunctionsdebug.h"
 
-class GLGraphicsScenePrivate : protected OpenGLFunctionsDebug {
+class GLGraphicsScenePrivate {
 public:
     GLGraphicsScenePrivate(GLGraphicsScene *scene);
 
@@ -71,11 +75,9 @@ public:
     void panDown();
     void panLeft();
     void panRight();
-    void rotateLeft() {
-        m_settings.rotation -= m_pi / 180.0;
-        //    qDebug() << "Rot Left" << m_settings.rotation ;
-    }
+
     void rotateRight();
+    void rotateLeft();
     void invert();
     void _resetKeys();
     void reset();
@@ -92,11 +94,12 @@ private:
     GLGraphicsScene *m_Owner;
 
     /// Shader Programs
-    QOpenGLShaderProgram *m_sceneProgram;
-    QOpenGLShaderProgram *m_stencilProgram;
-    QOpenGLShaderProgram *m_hudProgram;
-    QOpenGLShaderProgram *m_hudTextProgram;
-    QOpenGLShaderProgram *m_measurementsProgram;
+    QGLShaderProgram *m_sceneProgram;
+    QGLShaderProgram *m_stencilProgram;
+    QGLShaderProgram *m_hudProgram;
+    QGLShaderProgram *m_hudTextProgram;
+    QGLShaderProgram *m_measurementsProgram;
+
 
     /// SCENE
     GLint m_sceneVertexPositionAttribute;
@@ -206,12 +209,12 @@ private:
     GLfloat *rdColors = NULL;
     const GLfloat m_rulerZ = -20.0;
 
-    QOpenGLContext *m_context;
+    QGLContext *m_context;
 };
 
 GLGraphicsScenePrivate::GLGraphicsScenePrivate(GLGraphicsScene *owner):
     m_Owner(owner),
-    m_context(new QOpenGLContext(owner)),
+    m_context( NULL ),
     m_sceneRotation(QQuaternion(0,0,0,0)),
     m_frame(0),
     m_sceneProgram(0),
@@ -240,11 +243,11 @@ GLGraphicsScenePrivate::GLGraphicsScenePrivate(GLGraphicsScene *owner):
     m_centerY( 0.0f ),
     m_initialized( false )
 {
-    QSurfaceFormat format;
+    QGLFormat format;
     format.setSamples( 16 );
     format.setStencilBufferSize( 1 );
 
-    m_context->setFormat( format );
+    m_context = new QGLContext( format );
 
     m_context->create();
 
@@ -262,8 +265,7 @@ void GLGraphicsScenePrivate::GLStart() {
     initGridBuffersAndTextures();
 
 //    m_model1 = new Model( ":/objects/toyplane", 0.001 );
-//    m_model1 = new Model( "/Users/Jon/Downloads/vrml/4021722_prt.obj", 0.001 );
-
+//    m_model1 = new Model( "/Users/Jon/Downloads/vrml/4021722_prt.obj", 0.001 );e
 
     glClearColor( 0.0, 0.0, 0.0, 1.0 );
     m_initialized = true;
@@ -271,18 +273,27 @@ void GLGraphicsScenePrivate::GLStart() {
 
 void GLGraphicsScenePrivate::initShadersScene(){
 
-    m_sceneProgram = new QOpenGLShaderProgram( m_context );
+    m_sceneProgram = new QGLShaderProgram( m_context );
 
     bool ok = true;
-    ok = m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceG );
-    if(!ok){
-        qDebug() << __FUNCTION__ << m_sceneProgram->log();
+    QGLShader *vshader = new QGLShader(QGLShader::Vertex, m_context);
+    ok = vshader->compileSourceCode(vertexShaderSourceG);
+    if(ok){
+        m_sceneProgram->addShader(vshader);
+    }else{
+        qDebug() << __FUNCTION__ << vshader->log();
     }
 
-    ok = m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceG );
-    Q_ASSERT(ok);
+    QGLShader *fshader = new QGLShader(QGLShader::Fragment, m_context);
+    ok = fshader->compileSourceCode(fragmentShaderSourceG);
+    if(ok){
+        m_sceneProgram->addShader(fshader);
+    }else{
+        qDebug() << __FUNCTION__ << fshader->log();
+    }
 
     m_sceneProgram->link();
+    m_sceneProgram->bind();
 
     m_sceneVertexPositionAttribute         = m_sceneProgram->attributeLocation( "aVertexPosition" );
     m_sceneTextureCoordAttribute           = m_sceneProgram->attributeLocation( "aTextureCoord" );
@@ -297,9 +308,10 @@ void GLGraphicsScenePrivate::initShadersScene(){
 
 void GLGraphicsScenePrivate::initShadersHudText(){
 
-    m_hudTextProgram = new QOpenGLShaderProgram( m_context );
-    m_hudTextProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceT );
-    m_hudTextProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceT );
+    m_hudTextProgram = new QGLShaderProgram( m_context );
+
+    m_hudTextProgram->addShaderFromSourceCode( QGLShader::Vertex,    vertexShaderSourceT );
+    m_hudTextProgram->addShaderFromSourceCode( QGLShader::Fragment,  fragmentShaderSourceT );
     m_hudTextProgram->link();
 
     m_hudTextVertexPositionAttribute       = m_hudTextProgram->attributeLocation( "aVertexPosition" );
@@ -312,9 +324,10 @@ void GLGraphicsScenePrivate::initShadersHudText(){
 
 void GLGraphicsScenePrivate::initShadersHud(){
 
-    m_hudProgram = new QOpenGLShaderProgram( m_context );
-    m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceH );
-    m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceH );
+    m_hudProgram = new QGLShaderProgram( m_context );
+
+    m_hudProgram->addShaderFromSourceCode( QGLShader::Vertex,    vertexShaderSourceH );
+    m_hudProgram->addShaderFromSourceCode( QGLShader::Fragment,  fragmentShaderSourceH );
     m_hudProgram->link();
 
     m_hudVertexPositionAttribute           = m_hudProgram->attributeLocation( "aVertexPosition" );
@@ -325,9 +338,11 @@ void GLGraphicsScenePrivate::initShadersHud(){
 }
 
 void GLGraphicsScenePrivate::initShaderMeasurements(){
-    m_measurementsProgram = new QOpenGLShaderProgram( m_context );
-    m_measurementsProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceM );
-    m_measurementsProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceM );
+
+    m_measurementsProgram = new QGLShaderProgram( m_context );
+
+    m_measurementsProgram->addShaderFromSourceCode( QGLShader::Vertex,    vertexShaderSourceM );
+    m_measurementsProgram->addShaderFromSourceCode( QGLShader::Fragment,  fragmentShaderSourceM );
     m_measurementsProgram->link();
 
     m_measurementVertexPositionAttribute   = m_measurementsProgram->attributeLocation( "aVertexPosition" );
@@ -339,8 +354,10 @@ void GLGraphicsScenePrivate::initShaderMeasurements(){
 
 
 void GLGraphicsScenePrivate::initShadersStencil(){
-    m_stencilProgram = new QOpenGLShaderProgram( m_context );
-    m_stencilProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceS );
+
+    m_stencilProgram = new QGLShaderProgram( m_context );
+
+    m_stencilProgram->addShaderFromSourceCode( QGLShader::Vertex,    vertexShaderSourceS );
     m_stencilProgram->link();
 
     m_stencilVertexPositionAttribute      = m_stencilProgram->attributeLocation( "aVertexPosition" );
@@ -1039,12 +1056,12 @@ void GLGraphicsScenePrivate::drawGrid( GridLayer *layer ){
 
             glActiveTexture( GL_TEXTURE0 );
 
-//            GLuint tileTexture;
-//            tileTexture = grid->m_tileTextureGrid[ indy ];
-//            glBindTexture( GL_TEXTURE_2D, indy );
+            GLuint tileTexture;
+            tileTexture = grid->m_tileTextureGrid[ indy ];
+            glBindTexture( GL_TEXTURE_2D, indy );
 
             /// Using QOpenGLTexture
-            grid->m_tileTextureGridQt.at( indy )->bind();
+//            grid->m_tileTextureGridQt.at( indy )->bind();
 
             glUniform1i( m_sceneSamplerUniform, 0 );
 
@@ -1072,15 +1089,15 @@ void GLGraphicsScene::handleLoadedGridTexture(int index, int row, int col ){
     ImageGrid *imageGrid = grid->m_imagegrid;
     ImageTile *tile = imageGrid->tile( row,col );
 
-//    handleLoadedTesxture( grid, tile->image(), grid->m_tileTextureGrid [ tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() );
+    d->handleLoadedTexture( grid, tile->image(), grid->m_tileTextureGrid [ tileIndex( row, col, imageGrid->cols() ) ], imageGrid->dimension() );
 
     /// Using QOpenGLTexture
-    QOpenGLTexture *tex = new QOpenGLTexture( tile->image().convertToFormat( QImage::Format_RGBA8888 ).mirrored( false, true ) );
-    tex->setMinificationFilter( QOpenGLTexture::Nearest );
-    tex->setMagnificationFilter( QOpenGLTexture::Nearest );
-    tex->setWrapMode( QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge );
-    tex->setWrapMode( QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge );
-    grid->m_tileTextureGridQt.insert( tileIndex( row, col, imageGrid->cols() ), tex );
+//    QOpenGLTexture *tex = new QOpenGLTexture( tile->image().convertToFormat( QImage::Format_RGBA8888 ).mirrored( false, true ) );
+//    tex->setMinificationFilter( QOpenGLTexture::Nearest );
+//    tex->setMagnificationFilter( QOpenGLTexture::Nearest );
+//    tex->setWrapMode( QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge );
+//    tex->setWrapMode( QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge );
+//    grid->m_tileTextureGridQt.insert( tileIndex( row, col, imageGrid->cols() ), tex );
 
     Q_ASSERT( grid->m_imagegrid->dimension() > 0 &&
               tile->image().width() == tile->image().height() &&
@@ -1153,9 +1170,10 @@ void GLGraphicsScenePrivate::drawOverlayText( int x, int y, float w, float h ){
 
 void GLGraphicsScenePrivate::_render( qint64 frame )
 {
-
     if(m_GridImages.count() == 0)
         return;
+
+    m_context->makeCurrent();
 
     const qreal retinaScale = 1.0;
     int x = 0;
@@ -1483,6 +1501,11 @@ void GLGraphicsScenePrivate::rotateRight() {
     //    qDebug() << "Rot Right" << m_settings.rotation ;
 }
 
+void GLGraphicsScenePrivate::rotateLeft() {
+    m_settings.rotation -= m_pi / 180.0;
+    //    qDebug() << "Rot Left" << m_settings.rotation ;
+}
+
 void GLGraphicsScenePrivate::invert() {
     m_settings.invert = !m_settings.invert;
     //    qDebug() << "Invert" << m_settings.invert ;
@@ -1610,26 +1633,6 @@ void GLGraphicsScenePrivate::flipV() {
     //    qDebug() << "FlipV" << m_settings.flipV;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 GLGraphicsScene::GLGraphicsScene():
     d(new GLGraphicsScenePrivate(this)),
     m_initialized(false)
@@ -1668,42 +1671,34 @@ bool GLGraphicsScene::event(QEvent *event)
     }
 }
 
-void GLGraphicsScene::exposeEvent(QExposeEvent *event)
-{
-    Q_UNUSED(event);
-
-//    if (isExposed())
-        renderNow();
-}
-
 void GLGraphicsScene::renderNow()
 {
-//    if (!isExposed())
+//    if (!isActive())
 //        return;
 
-    bool needsInitialize = false;
+//    bool needsInitialize = false;
 
-    if (!m_context) {
-        m_context = new QOpenGLContext(this);
+//    if (!m_context) {
+//        m_context = new QGLContext(this);
 //        m_context->setFormat(requestedFormat());
-        m_context->create();
+//        m_context->create();
 
-        needsInitialize = true;
-    }
+//        needsInitialize = true;
+//    }
 
 //    m_context->makeCurrent(this);
 
-    if (needsInitialize) {
-//        initializeOpenGLFunctions();
-        initialize();
-    }
+//    if (needsInitialize) {
+////        initializeOpenGLFunctions();
+//        initialize();
+//    }
 
-//    render();
+////    render();
 
-//    m_context->swapBuffers(this);
+////    m_context->swapBuffers(this);
 
-    if (m_animating)
-        renderLater();
+//    if (m_animating)
+//        renderLater();
 }
 
 void GLGraphicsScene::setAnimating(bool animating)
@@ -1721,6 +1716,7 @@ void GLGraphicsScene::setImageGrid(ImageGrid *grid)
 
 void GLGraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
 {
+    initialize();
     if(!m_initialized)
         return;
 

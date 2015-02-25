@@ -61,17 +61,24 @@ void listener::readyRead(){
         QList<QByteArray> list2 = list1.first().split(',');
 
 
-        qreal timestamp, ax, ay, az, gx, gy, gz;
+        qreal timestamp, ax, ay, az, gx, gy, gz, rx, ry, rz;
 
-        timestamp = list2.at(0).toFloat();
-        ax        = list2.at(1).toFloat();
-        ay        = list2.at(2).toFloat();
-        az        = list2.at(3).toFloat();
-        gx        = list2.at(4).toFloat();
-        gy        = list2.at(5).toFloat();
-        gz        = list2.at(6).toFloat();
+        timestamp = ax = ay = az = gx = gy = gz = rx = ry = rz = 0;
 
-        emit sensorData( timestamp, ax, ay, az, gx, gy, gz );
+        if(list2.count() == 10){
+            timestamp = list2.at(0).toFloat();
+            ax        = list2.at(1).toFloat();
+            ay        = list2.at(2).toFloat();
+            az        = list2.at(3).toFloat();
+            gx        = list2.at(4).toFloat();
+            gy        = list2.at(5).toFloat();
+            gz        = list2.at(6).toFloat();
+            rx        = list2.at(7).toFloat();
+            ry        = list2.at(8).toFloat();
+            rz        = list2.at(9).toFloat();
+        }
+
+        emit sensorData( timestamp, ax, ay, az, gx, gy, gz, rx, ry, rz );
 //        qDebug() << __FUNCTION__ << timestamp;
     }
 

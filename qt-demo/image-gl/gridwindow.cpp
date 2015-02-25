@@ -229,6 +229,7 @@ void GridWindow::GLStart() {
 void GridWindow::initShadersScene(){
 
     m_sceneProgram = new QOpenGLShaderProgram( this );
+
     m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceG );
     m_sceneProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceG );
     m_sceneProgram->link();
@@ -247,6 +248,7 @@ void GridWindow::initShadersScene(){
 void GridWindow::initShadersHudText(){
 
     m_hudTextProgram = new QOpenGLShaderProgram(this);
+
     m_hudTextProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceT );
     m_hudTextProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceT );
     m_hudTextProgram->link();
@@ -262,6 +264,7 @@ void GridWindow::initShadersHudText(){
 void GridWindow::initShadersHud(){
 
     m_hudProgram = new QOpenGLShaderProgram(this);
+
     m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceH );
     m_hudProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceH );
     m_hudProgram->link();
@@ -274,7 +277,9 @@ void GridWindow::initShadersHud(){
 }
 
 void GridWindow::initShaderMeasurements(){
+
     m_measurementsProgram = new QOpenGLShaderProgram( this );
+
     m_measurementsProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceM );
     m_measurementsProgram->addShaderFromSourceCode( QOpenGLShader::Fragment,  fragmentShaderSourceM );
     m_measurementsProgram->link();
@@ -288,7 +293,9 @@ void GridWindow::initShaderMeasurements(){
 
 
 void GridWindow::initShadersStencil(){
+
     m_stencilProgram = new QOpenGLShaderProgram(this);
+
     m_stencilProgram->addShaderFromSourceCode( QOpenGLShader::Vertex,    vertexShaderSourceS );
     m_stencilProgram->link();
 
@@ -1753,13 +1760,13 @@ qreal GridWindow::fps(){
     return m_fps;
 }
 
-void GridWindow::onSensorData( qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz )
+void GridWindow::onSensorData( qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz, qreal rx, qreal ry, qreal rz )
 {
 //    qDebug() << __FUNCTION__ << timestamp << ax << ay << az << gx << gy << gz;
-    qDebug() << __FUNCTION__ << timestamp << gz;
-    m_settings.rotation      = gz;
 //    m_settings.zoom = gy;
 //    m_settings.contrast   = gz;
+    qDebug() << __FUNCTION__ << rx;
+    m_settings.rotation = d2r(rx);
 }
 
 // Uses first grid image to fit

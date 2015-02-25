@@ -62,7 +62,7 @@ signals:
     void prevImage();
 
 public slots:
-    void onSensorData(qreal,qreal,qreal,qreal,qreal,qreal,qreal);
+    void onSensorData(qreal, qreal, qreal, qreal, qreal, qreal, qreal, qreal rx, qreal ry, qreal rz);
     void fitToView();
     void setVFlip90( bool );
     void setSceneRotation( QQuaternion );
