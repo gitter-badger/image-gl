@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QGyroscope>
 #include <QAccelerometer>
+#include <QRotationSensor>
 #include <QNetworkAccessManager>
 #include <QDateTime>
 
@@ -34,6 +35,7 @@ private:
     QTimer timer;
     QGyroscope gyro;
     QAccelerometer accel;
+    QRotationSensor rot;
     QNetworkAccessManager mgr;
 
     bool m_running;

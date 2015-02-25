@@ -8,6 +8,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     m_running(false),
@@ -20,8 +21,8 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     timer.setInterval( 20 );
 
-    ok = connect(&gyro,  SIGNAL(readingChanged()), SLOT(gyroChanged()));  Q_ASSERT(ok);
-    ok = connect(&accel, SIGNAL(readingChanged()), SLOT(accelChanged())); Q_ASSERT(ok);
+//    ok = connect(&gyro,  SIGNAL(readingChanged()), SLOT(gyroChanged()));  Q_ASSERT(ok);
+//    ok = connect(&accel, SIGNAL(readingChanged()), SLOT(accelChanged())); Q_ASSERT(ok);
 }
 
 MainWindow::~MainWindow()
@@ -35,6 +36,7 @@ void MainWindow::timeout(){
 
     QAccelerometerReading *acr = accel.reading();
     QGyroscopeReading     *gyr = gyro.reading();
+    QRotationReading      *rsr = rot.reading();
 
     QString accelstring;
     if(acr){
@@ -42,6 +44,8 @@ void MainWindow::timeout(){
                 .arg(acr->x())
                 .arg(acr->y())
                 .arg(acr->z());
+    }else{
+        accelstring = QString("0,0,0");
     }
 
     QString gyrostring;
@@ -50,10 +54,25 @@ void MainWindow::timeout(){
                 .arg(gyr->x())
                 .arg(gyr->y())
                 .arg(gyr->z());
+    }else{
+        gyrostring = QString("0,0,0");
     }
 
+    QString rotstring;
+    if(rsr){
+        rotstring = QString("%1,%2,%3")
+                .arg(rsr->x())
+                .arg(rsr->y())
+                .arg(rsr->z());
+    }else{
+        rotstring = QString("0,0,0");
+    }
 
-    QString text = QString("%1,%2,%3").arg(msecs).arg(accelstring).arg(gyrostring);
+    QString text = QString("%1,%2,%3,%4")
+            .arg(msecs)
+            .arg(accelstring)
+            .arg(gyrostring)
+            .arg(rotstring);
 
     qDebug() << text;
     ui->plainTextEdit->appendPlainText(text);
@@ -80,12 +99,14 @@ void MainWindow::on_pushButton_clicked()
         start = QDateTime::currentDateTime();
         gyro.start();
         accel.start();
+        rot.start();
         timer.start();
         ui->pushButton->setText("Stop");
         m_running = true;
     }else{
         timer.stop();
         gyro.stop();
+        rot.stop();
         accel.stop();
         ui->pushButton->setText("Start");
         m_running = false;
