@@ -3,7 +3,7 @@
 
 #include <QBluetoothDeviceDiscoveryAgent>
 #include <QBluetoothDeviceInfo>
-#include <QLowEnergyController>
+//#include <QLowEnergyController>
 #include <QWidget>
 
 namespace Ui {
@@ -32,7 +32,7 @@ private:
 
     bool m_isBluetoothOn;
     QBluetoothDeviceDiscoveryAgent *  m_discoveryAgent;
-    QLowEnergyController *m_lowEnergyController;
+//    QLowEnergyController *m_lowEnergyController;
     QList<BtDevice *> m_discoveredDevices;
 
 

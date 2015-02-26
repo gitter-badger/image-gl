@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QBluetoothAddress>
 #include <QBluetoothDeviceInfo>
-#include <QLowEnergyController>
+//#include <QLowEnergyController>
 
 class QLowEnergyController;
 class BtDevice : public QObject
@@ -60,9 +60,9 @@ signals:
 
 private slots:
     void deviceConnected();
-    void errorReceived(QLowEnergyController::Error);
+//    void errorReceived(QLowEnergyController::Error);
     void deviceDisconnected();
-    void addLowEnergyService(QBluetoothUuid);
+//    void addLowEnergyService(QBluetoothUuid);
     void serviceScanDone();
 
 private:

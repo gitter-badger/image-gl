@@ -7,7 +7,7 @@ BluetoothWidget::BluetoothWidget(QWidget *parent) :
     QWidget(parent),
     m_isBluetoothOn( false ),
     m_discoveryAgent( NULL ),
-    m_lowEnergyController( NULL ),
+//    m_lowEnergyController( NULL ),
     ui(new Ui::BluetoothWidget)
 {
     ui->setupUi(this);
@@ -46,10 +46,10 @@ void BluetoothWidget::initBluetooth()
 }
 
 void BluetoothWidget::onAddDevice(const QBluetoothDeviceInfo& info){
-    if (info.coreConfigurations() & QBluetoothDeviceInfo::LowEnergyCoreConfiguration) {
-        BtDevice *d = new BtDevice(info);
-        m_discoveredDevices.append(d);
-    }
+//    if (info.coreConfigurations() & QBluetoothDeviceInfo::LowEnergyCoreConfiguration) {
+//        BtDevice *d = new BtDevice(info);
+//        m_discoveredDevices.append(d);
+//    }
 }
 
 void BluetoothWidget::onDeviceScanError(QBluetoothDeviceDiscoveryAgent::Error error){
