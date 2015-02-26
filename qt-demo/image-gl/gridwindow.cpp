@@ -1760,13 +1760,48 @@ qreal GridWindow::fps(){
     return m_fps;
 }
 
-void GridWindow::onSensorData( qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz, qreal rx, qreal ry, qreal rz )
+void GridWindow::onSensorData( qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz, qreal rx, qreal ry, qreal rz,bool b1,bool b2 )
 {
 //    qDebug() << __FUNCTION__ << timestamp << ax << ay << az << gx << gy << gz;
 //    m_settings.zoom = gy;
 //    m_settings.contrast   = gz;
-    qDebug() << __FUNCTION__ << rx;
-    m_settings.rotation = d2r(rx);
+    qDebug() << __FUNCTION__ << ax << ay << az << gx << gy << gz << rx << ry << rz;
+    if(az > 0){
+        for (int i = 0; i < az; i++)
+                zoomIn();
+    }else{
+        for (int i = 0; i < abs(az); i++)
+        zoomOut();
+    }
+    qreal zr =  d2r(gz);
+    m_settings.rotation += zr;
+
+    if( d2r(gx)  > 0.8 || d2r(gx)  < -0.8)
+        this->flipH();
+
+    if( d2r(gy) > 0.9 || d2r(gy) < -0.8)
+        this->flipV();
+
+//    if(az + ay + az + gx + gy + gz == 0){
+//        reset();
+
+//        m_rotz = 0.0;
+//        m_zoom = m_initZ;
+
+//        fitToView();
+//    }
+
+    if(b1){
+        reset();
+        m_rotz = 0.0;
+        m_zoom = m_initZ;
+        fitToView();
+    }
+    if(b2){
+        this->invert();
+    }
+
+    qDebug() << __FUNCTION__ << b1 << b2;
 }
 
 // Uses first grid image to fit

@@ -255,7 +255,42 @@ GLGraphicsScenePrivate::GLGraphicsScenePrivate(GLGraphicsScene *owner):
     m_pMatrix  = QMatrix4x4();
 }
 
+
+void GLGraphicsScenePrivate::delRdColors(){
+    free( rdColors );
+}
+
+void GLGraphicsScenePrivate::initRdColors(){
+
+    int nVertices = 48;
+    rdColors = ( GLfloat * ) malloc ( sizeof ( GLfloat ) * nVertices * 4 );
+
+    int j = 0;
+
+    srand(QDateTime::currentMSecsSinceEpoch());
+    for(float i = 0; i < nVertices  / 4; i++){
+
+        float red =  1.0 / (rand() % 20);
+        float green =  1.0 / (rand() % 20);
+        float blue =  1.0 / (rand() % 20);
+
+        for( int k = 0; k < 4; k++ ){
+            rdColors[ j++ ] = red + 0.1;
+            rdColors[ j++ ] = green + 0.1;
+            rdColors[ j++ ] = blue;
+            rdColors[ j++ ] = 0.7;
+        }
+    }
+}
+
 void GLGraphicsScenePrivate::GLStart() {
+    if(m_initialized){
+        return;
+    }
+
+    initRdColors();
+
+    m_context->makeCurrent();
 
     initShadersScene();
     initShadersHud();
@@ -273,27 +308,24 @@ void GLGraphicsScenePrivate::GLStart() {
 
 void GLGraphicsScenePrivate::initShadersScene(){
 
+//    m_sceneProgram = new QGLShaderProgram( m_context );
+
+//    bool ok = true;
+//    QGLShader *vshader = new QGLShader(QGLShader::Vertex, m_context);
+//    ok = vshader->compileSourceCode(vertexShaderSourceG);
+//    m_sceneProgram->addShader(vshader);
+
+//    QGLShader *fshader = new QGLShader(QGLShader::Fragment, m_context);
+//    ok = fshader->compileSourceCode(fragmentShaderSourceG);
+//    m_sceneProgram->addShader(fshader);
+
+
     m_sceneProgram = new QGLShaderProgram( m_context );
 
-    bool ok = true;
-    QGLShader *vshader = new QGLShader(QGLShader::Vertex, m_context);
-    ok = vshader->compileSourceCode(vertexShaderSourceG);
-    if(ok){
-        m_sceneProgram->addShader(vshader);
-    }else{
-        qDebug() << __FUNCTION__ << vshader->log();
-    }
-
-    QGLShader *fshader = new QGLShader(QGLShader::Fragment, m_context);
-    ok = fshader->compileSourceCode(fragmentShaderSourceG);
-    if(ok){
-        m_sceneProgram->addShader(fshader);
-    }else{
-        qDebug() << __FUNCTION__ << fshader->log();
-    }
+    m_sceneProgram->addShaderFromSourceCode( QGLShader::Vertex,    vertexShaderSourceG );
+    m_sceneProgram->addShaderFromSourceCode( QGLShader::Fragment,  fragmentShaderSourceG );
 
     m_sceneProgram->link();
-    m_sceneProgram->bind();
 
     m_sceneVertexPositionAttribute         = m_sceneProgram->attributeLocation( "aVertexPosition" );
     m_sceneTextureCoordAttribute           = m_sceneProgram->attributeLocation( "aTextureCoord" );
@@ -382,9 +414,9 @@ void GLGraphicsScenePrivate::setHudMatrixUniforms(){
 }
 
 void GLGraphicsScenePrivate::setHudTextUniforms(){
-    m_hudTextProgram->setUniformValue( m_hudTextPMatrixUniform,  m_pMatrix);
-    m_hudTextProgram->setUniformValue( m_hudTextMVMatrixUniform, m_mvMatrix);
-    m_hudTextProgram->setUniformValue( m_hudTextColorUniform,    m_hudTextColor);
+    m_hudTextProgram->setUniformValue( m_hudTextPMatrixUniform,  m_pMatrix );
+    m_hudTextProgram->setUniformValue( m_hudTextMVMatrixUniform, m_mvMatrix );
+    m_hudTextProgram->setUniformValue( m_hudTextColorUniform,    m_hudTextColor );
 }
 
 void GLGraphicsScenePrivate::setMeasurementUniforms(){
@@ -948,7 +980,7 @@ void GLGraphicsScenePrivate::drawOverlay1( int x, int y, float w, float h ){
     }
 
     //////// Zoom cube
-    if( false ) { //  m_zoom != m_settings.zoom ){
+    if( true ) { //  m_zoom != m_settings.zoom ){
 
         m_mvStack.push(m_mvMatrix);
 
@@ -1717,6 +1749,7 @@ void GLGraphicsScene::setImageGrid(ImageGrid *grid)
 void GLGraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
 {
     initialize();
+
     if(!m_initialized)
         return;
 

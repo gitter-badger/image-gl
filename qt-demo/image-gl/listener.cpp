@@ -51,8 +51,10 @@ void listener::readyRead(){
         bytes.append( socket->readAll() );
     }
     QList<QByteArray> lines = bytes.split('\n');
+
     if(lines.count() > 0){
         QByteArray firstline = lines.first();
+
 
 //        GET /5500,0.0378723,0.0818329,9.5204,-0.194087,-0.0498331,-0.00262279
         QList<QByteArray> parts =  firstline.split('/');
@@ -65,7 +67,7 @@ void listener::readyRead(){
 
         timestamp = ax = ay = az = gx = gy = gz = rx = ry = rz = 0;
 
-        if(list2.count() == 10){
+        if(list2.count() >= 7){
             timestamp = list2.at(0).toFloat();
             ax        = list2.at(1).toFloat();
             ay        = list2.at(2).toFloat();
@@ -73,12 +75,24 @@ void listener::readyRead(){
             gx        = list2.at(4).toFloat();
             gy        = list2.at(5).toFloat();
             gz        = list2.at(6).toFloat();
-            rx        = list2.at(7).toFloat();
-            ry        = list2.at(8).toFloat();
-            rz        = list2.at(9).toFloat();
         }
 
-        emit sensorData( timestamp, ax, ay, az, gx, gy, gz, rx, ry, rz );
+        bool b1 = false;
+        bool b2 = false;
+
+        if(list2.count() >= 9){
+            b1 = list2.at(7).toUInt() != 0;
+            b2 = list2.at(8).toUInt() != 0;
+        }
+
+//        if(list2.count() >= 12){
+//            rx        = list2.at(9).toFloat();
+//            ry        = list2.at(10).toFloat();
+//            rz        = list2.at(11).toFloat();
+//        }
+
+
+        emit sensorData( timestamp, ax, ay, az, gx, gy, gz, rx, ry, rz, b1, b2 );
 //        qDebug() << __FUNCTION__ << timestamp;
     }
 

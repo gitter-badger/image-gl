@@ -44,8 +44,7 @@ public:
     void saveSettings();
 
 signals:
-    void sensorData(qreal, qreal, qreal, qreal, qreal, qreal, qreal);
-
+    void sensorData(qreal, qreal, qreal, qreal, qreal, qreal, qreal, qreal, qreal, qreal, bool, bool);
 
 private slots:
     void on_pushButtonSplit_clicked();
@@ -66,7 +65,7 @@ private slots:
 
     void updateTitle();
 
-    void onSensorData(qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz, qreal rx, qreal ry, qreal rz);
+    void onSensorData(qreal timestamp, qreal ax, qreal ay, qreal az, qreal gx, qreal gy, qreal gz, qreal rx, qreal ry, qreal rz, bool b1, bool b2);
 
 private:
     void updateLog(QStringList log);
