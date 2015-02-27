@@ -455,7 +455,6 @@ void MainWindow::on_pushButtonGraphicsView_clicked()
         return;
     }
 
-
     scene->setImageGrid( m_grid );
 
     view->setScene( scene );

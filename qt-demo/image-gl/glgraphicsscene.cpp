@@ -308,18 +308,6 @@ void GLGraphicsScenePrivate::GLStart() {
 
 void GLGraphicsScenePrivate::initShadersScene(){
 
-//    m_sceneProgram = new QGLShaderProgram( m_context );
-
-//    bool ok = true;
-//    QGLShader *vshader = new QGLShader(QGLShader::Vertex, m_context);
-//    ok = vshader->compileSourceCode(vertexShaderSourceG);
-//    m_sceneProgram->addShader(vshader);
-
-//    QGLShader *fshader = new QGLShader(QGLShader::Fragment, m_context);
-//    ok = fshader->compileSourceCode(fragmentShaderSourceG);
-//    m_sceneProgram->addShader(fshader);
-
-
     m_sceneProgram = new QGLShaderProgram( m_context );
 
     m_sceneProgram->addShaderFromSourceCode( QGLShader::Vertex,    vertexShaderSourceG );
@@ -1045,10 +1033,10 @@ void GLGraphicsScenePrivate::drawGrid( GridLayer *layer ){
 
             GLfloat *tile = grid->m_tiles[ indy ];
 
-            int j = 0;
-            for(int i = 0; i < 8; i++){
-//                qDebug() << __FUNCTION__ << QPointF(tile[j++], tile[j++]);
-            }
+//            int j = 0;
+//            for(int i = 0; i < 8; i++){
+////                qDebug() << __FUNCTION__ << QPointF(tile[j++], tile[j++]);
+//            }
 
             //////// Don't draw the grid tile that is excluded from the stencil
             QPolygonF poly;
@@ -1604,6 +1592,11 @@ void GLGraphicsScenePrivate::addImage( ImageGrid *imageGrid, QQuaternion q )
         m_centerX = -( ( gridImage->m_imagegrid->m_stretchwidth  - gridImage->m_imagegrid->image().width() )  / gridImage->m_imagegrid->dimension() ) / 2.0;
         m_centerY = +( ( gridImage->m_imagegrid->m_stretchheight - gridImage->m_imagegrid->image().height() ) / gridImage->m_imagegrid->dimension() ) / 2.0 ;
 //        qDebug() << __FUNCTION__ << m_centerX << m_centerY;
+
+        QRect sceneRect;
+        sceneRect.setWidth(gridImage->m_imagegrid->m_stretchwidth);
+        sceneRect.setHeight(gridImage->m_imagegrid->m_stretchheight);
+        m_Owner->setSceneRect(sceneRect);
     }
 
     m_GridImages.append( gridImage );
@@ -1744,6 +1737,8 @@ void GLGraphicsScene::setAnimating(bool animating)
 void GLGraphicsScene::setImageGrid(ImageGrid *grid)
 {
     d->addImage( grid, QQuaternion() );
+
+    d->reset();
 }
 
 void GLGraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
