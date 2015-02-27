@@ -17,15 +17,11 @@ public:
     GLGraphicsScene();
     ~GLGraphicsScene();
 
-
     virtual void initialize();
 
-    void setAnimating(bool animating);
     void setImageGrid(ImageGrid *grid);
 
 public slots:
-    void renderLater();
-    void renderNow();
 
     void handleLoadedGridTexture(int index, int row, int col);
 

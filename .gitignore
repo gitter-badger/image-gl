@@ -5,3 +5,4 @@ build-acg-Android_for_armeabi_v7a_GCC_4_9_Qt_5_4_0-Debug
 build-acg-Desktop_Qt_5_4_0_clang_64bit-Debug
 build-image-gl-Desktop_Qt_5_4_0_clang_64bit-Debug
 acg/acg.pro.user
+build-image-gl-Desktop_Qt_5_3_clang_64bit-Debug

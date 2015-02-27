@@ -1696,44 +1696,6 @@ bool GLGraphicsScene::event(QEvent *event)
     }
 }
 
-void GLGraphicsScene::renderNow()
-{
-//    if (!isActive())
-//        return;
-
-//    bool needsInitialize = false;
-
-//    if (!m_context) {
-//        m_context = new QGLContext(this);
-//        m_context->setFormat(requestedFormat());
-//        m_context->create();
-
-//        needsInitialize = true;
-//    }
-
-//    m_context->makeCurrent(this);
-
-//    if (needsInitialize) {
-////        initializeOpenGLFunctions();
-//        initialize();
-//    }
-
-////    render();
-
-////    m_context->swapBuffers(this);
-
-//    if (m_animating)
-//        renderLater();
-}
-
-void GLGraphicsScene::setAnimating(bool animating)
-{
-    m_animating = animating;
-
-    if (animating)
-        renderLater();
-}
-
 void GLGraphicsScene::setImageGrid(ImageGrid *grid)
 {
     d->addImage( grid, QQuaternion() );
