@@ -22,10 +22,13 @@
 #include "gridlayer.h"
 #include "imagetile.h"
 #include "graphics_util.h"
+#include "glgraphicsimageitem.h"
 
 class GLGraphicsScenePrivate {
 public:
     GLGraphicsScenePrivate(GLGraphicsScene *scene);
+
+    GLGraphicsImageItem *m_ImageItem;
 
     void updateInvert();
     void updateBCG();
@@ -54,7 +57,7 @@ public:
 
     GLuint loadShader(GLenum type, const char *source);
 
-    void _render(qint64 frame);
+    void _render(int x, int y, int w, int h);
     void drawScene(int x, int y, float w, float h);
     void drawMeasurements(int x, int y, int w, int h);
     void drawHud(int x, int y, float w, float h);
@@ -1188,7 +1191,7 @@ void GLGraphicsScenePrivate::drawOverlayText( int x, int y, float w, float h ){
 }
 #endif
 
-void GLGraphicsScenePrivate::_render( qint64 frame )
+void GLGraphicsScenePrivate::_render( int x, int y, int w, int h )
 {
     if(m_GridImages.count() == 0)
         return;
@@ -1196,10 +1199,8 @@ void GLGraphicsScenePrivate::_render( qint64 frame )
     m_context->makeCurrent();
 
     const qreal retinaScale = 1.0;
-    int x = 0;
-    int y = 0;
-    int w = m_Owner->width() * retinaScale;
-    int h = m_Owner->height() * retinaScale;
+    w *= retinaScale;
+    h *= retinaScale;
 
 #ifndef Q_OS_ANDROID
     if(m_wireframe){
@@ -1461,6 +1462,8 @@ void GLGraphicsScenePrivate::fitToView()
                 int ctrl = imgAspect >= wAspect ? cols : rows;
 
                 m_zoom = m_settings.zoom  = - 2 * (tan( m_fov / 2.0 ) * ( ctrl ));
+//                qDebug() << __FUNCTION__ << m_zoom;
+                m_zoom = -1;
             }
         }
     }
@@ -1585,18 +1588,15 @@ void GLGraphicsScenePrivate::addImage( ImageGrid *imageGrid, QQuaternion q )
     Q_ASSERT(test0.x() == -(cols / 2.0));
     Q_ASSERT(test0.y() ==  (rows / 2.0));
 
-//    gridImage->m_gridLayers.append( defaultLayer );
-
     if(m_GridImages.count() == 0){
         /// This is the first image, so center on its dimension
         m_centerX = -( ( gridImage->m_imagegrid->m_stretchwidth  - gridImage->m_imagegrid->image().width() )  / gridImage->m_imagegrid->dimension() ) / 2.0;
         m_centerY = +( ( gridImage->m_imagegrid->m_stretchheight - gridImage->m_imagegrid->image().height() ) / gridImage->m_imagegrid->dimension() ) / 2.0 ;
-//        qDebug() << __FUNCTION__ << m_centerX << m_centerY;
 
         QRect sceneRect;
-        sceneRect.setWidth(gridImage->m_imagegrid->m_stretchwidth);
-        sceneRect.setHeight(gridImage->m_imagegrid->m_stretchheight);
-        m_Owner->setSceneRect(sceneRect);
+        sceneRect.setWidth(gridImage->m_imagegrid->imageSize().width());
+        sceneRect.setHeight(gridImage->m_imagegrid->imageSize().height());
+//        m_Owner->setSceneRect(sceneRect);
     }
 
     m_GridImages.append( gridImage );
@@ -1608,6 +1608,13 @@ void GLGraphicsScenePrivate::addImage( ImageGrid *imageGrid, QQuaternion q )
     Q_ASSERT( gridImage->m_imagegrid );
     Q_ASSERT( m_Owner );
     ok = QObject::connect( gridImage->m_imagegrid, SIGNAL( tileImageLoaded( int, int, int ) ), m_Owner, SLOT( handleLoadedGridTexture( int, int, int ) ) ); Q_ASSERT( ok );
+
+    if( m_ImageItem != NULL ){
+        m_Owner->removeItem( m_ImageItem );
+        delete m_ImageItem;
+        m_ImageItem = NULL;
+    }
+    m_ImageItem = new GLGraphicsImageItem( imageGrid->image() );
 }
 
 void GLGraphicsScenePrivate::setVFlip90(bool b)
@@ -1649,13 +1656,11 @@ void GLGraphicsScenePrivate::resetOrientation(){
 // controls.js // Flip image over its X axis
 void GLGraphicsScenePrivate::flipH() {
     m_settings.flipH = !m_settings.flipH;
-    //    qDebug() << "FlipH" << m_settings.flipH;
 }
 
 // controls.js // Flip image over its Y axis
 void GLGraphicsScenePrivate::flipV() {
     m_settings.flipV = !m_settings.flipV;
-    //    qDebug() << "FlipV" << m_settings.flipV;
 }
 
 GLGraphicsScene::GLGraphicsScene():
@@ -1676,35 +1681,44 @@ void GLGraphicsScene::initialize()
     m_initialized = true;
 }
 
-void GLGraphicsScene::renderLater()
-{
-    if (!m_update_pending) {
-        m_update_pending = true;
-        QCoreApplication::postEvent(this, new QEvent(QEvent::UpdateRequest));
-    }
-}
 
 bool GLGraphicsScene::event(QEvent *event)
 {
+    bool ret = QGraphicsScene::event(event);
+
     switch (event->type()) {
     case QEvent::UpdateRequest:
         m_update_pending = false;
-        renderNow();
-        return true;
+        break;
     default:
-        return QGraphicsScene::event(event);
+        break;
     }
+
+    return ret;
 }
 
 void GLGraphicsScene::setImageGrid(ImageGrid *grid)
 {
     d->addImage( grid, QQuaternion() );
-
     d->reset();
+}
+
+QImage GLGraphicsScene::image()
+{
+    if(GridImage *gridImage = d->gridImages().first()){
+        return gridImage->m_imagegrid->image();
+    }
+    return QImage();
 }
 
 void GLGraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
 {
+
+}
+
+void GLGraphicsScene::render( QPainter *painter, const QRectF &target, const QRectF &source, Qt::AspectRatioMode aspectRatioMode ){
+
+
     initialize();
 
     if(!m_initialized)
@@ -1718,5 +1732,17 @@ void GLGraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear( GL_COLOR_BUFFER_BIT );
 
-    d->_render(0);
+    int x = source.x();
+    int y = source.y();
+    int w = source.width();
+    int h = source.height();
+
+    d->_render(w,y,w,h);
+}
+
+
+void GLGraphicsScene::setImage(QImage image){
+    if(d->m_ImageItem != NULL){
+        d->m_ImageItem->setImage(image);
+    }
 }

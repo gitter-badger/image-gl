@@ -34,7 +34,8 @@ SOURCES += main.cpp\
     gridlayer.cpp \
     viewer.cpp \
     model.cpp \
-    listener.cpp
+    listener.cpp \
+    glgraphicsimageitem.cpp
 
 HEADERS  += mainwindow.h \
     glgraphicsview.h \
@@ -53,7 +54,8 @@ HEADERS  += mainwindow.h \
     model.h \
     point3d.h \
     graphics_util.h \
-    listener.h
+    listener.h \
+    glgraphicsimageitem.h
 
 FORMS    += mainwindow.ui \
     viewer.ui

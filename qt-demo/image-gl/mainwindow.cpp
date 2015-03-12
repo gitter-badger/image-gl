@@ -17,6 +17,8 @@
 #include <QSettings>
 #include <QFileInfoList>
 
+#include "glgraphicsimageitem.h"
+
 GridWindow *MainWindow::m_gridWindow = NULL;
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -459,11 +461,19 @@ void MainWindow::on_pushButtonGraphicsView_clicked()
 
     view->setScene( scene );
 
+    QGraphicsView *qview = new QGraphicsView();
+    QGraphicsScene *qscene = new QGraphicsScene();
+
+    qscene->addItem(new GLGraphicsImageItem(m_grid->image()));
+    qview->setScene(qscene);
+
     QDialog dlg;
-    dlg.setLayout( new QVBoxLayout( &dlg ) );
+    dlg.setLayout( new QHBoxLayout( &dlg ) );
     dlg.layout()->addWidget( view );
-    dlg.resize( 800, 800 );
+//    dlg.layout()->addWidget( qview );
+    dlg.resize( 1000, 500 );
     dlg.exec();
+
 
     delete view;
     delete scene;

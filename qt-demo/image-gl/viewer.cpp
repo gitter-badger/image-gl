@@ -146,12 +146,12 @@ ViewerPrivate::ViewerPrivate(Viewer *viewer ):
     m_graphicsView = new GLGraphicsView(m_Owner);
 
     QVBoxLayout *v = m_ui->verticalLayout;
-    v->addWidget(m_gridWidget);
-    v->addWidget(m_graphicsView);
-    m_graphicsView->setMaximumHeight(300);
+    v->addWidget( m_gridWidget );
+    v->addWidget( m_graphicsView );
+    m_graphicsView->setMaximumHeight( 300 );
 
-    m_Owner->connect( m_gridWindow, SIGNAL(prevImage()), SLOT(prevImage()));
-    m_Owner->connect( m_gridWindow, SIGNAL(nextImage()), SLOT(nextImage()));
+    m_Owner->connect( m_gridWindow, SIGNAL( prevImage() ), SLOT( prevImage() ) );
+    m_Owner->connect( m_gridWindow, SIGNAL( nextImage() ), SLOT( nextImage() ) );
 }
 
 ViewerPrivate::~ViewerPrivate()
@@ -224,7 +224,7 @@ void ViewerPrivate::nextImage()
 
     ImageGrid *g = m_imageGridList.front();
     m_imageGridList.pop_front();
-    m_imageGridList.push_back(g);
+    m_imageGridList.push_back( g );
     setCurrentImage();
 }
 
@@ -235,7 +235,7 @@ void ViewerPrivate::prevImage()
 
     ImageGrid *g = m_imageGridList.back();
     m_imageGridList.pop_back();
-    m_imageGridList.push_front(g);
+    m_imageGridList.push_front( g );
     setCurrentImage();
 }
 
@@ -262,14 +262,14 @@ bool ViewerPrivate::setCurrentImage(){
 //    m_gridWindow->fitToView();
 
     // Remove existing scene;
-    GLGraphicsScene *scene = dynamic_cast<GLGraphicsScene *>(m_graphicsView->scene());
+    GLGraphicsScene *scene = dynamic_cast<GLGraphicsScene *>( m_graphicsView->scene() );
     if(scene){
-        m_graphicsView->setScene(NULL);
+        m_graphicsView->setScene( NULL);
         delete scene;
     }
     scene = new GLGraphicsScene();
-    scene->setImageGrid(grid);
-    m_graphicsView->setScene(scene);
+    scene->setImageGrid( grid );
+    m_graphicsView->setScene( scene );
 
 
     return true;

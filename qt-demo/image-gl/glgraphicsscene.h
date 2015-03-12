@@ -8,6 +8,7 @@
 
 class QExposeEvent;
 class ImageGrid;
+
 class GLGraphicsScenePrivate;
 class GLGraphicsScene : public QGraphicsScene
 {
@@ -19,7 +20,11 @@ public:
 
     virtual void initialize();
 
+    void render( QPainter *painter, const QRectF &target = QRectF(), const QRectF &source = QRectF(), Qt::AspectRatioMode aspectRatioMode = Qt::KeepAspectRatio );
     void setImageGrid(ImageGrid *grid);
+
+    QImage image();
+    void setImage(QImage image);
 
 public slots:
 
@@ -28,15 +33,10 @@ public slots:
 protected:
     virtual void drawBackground(QPainter *painter, const QRectF &rect);
     virtual bool event(QEvent *event) ;
-//    void exposeEvent(QExposeEvent *event) ;
 
 private:
     bool m_update_pending;
     bool m_animating;
-
-//    QOpenGLContext *m_context;
-//    QOpenGLPaintDevice *m_device;
-
     bool m_initialized;
 
     GLGraphicsScenePrivate *d;

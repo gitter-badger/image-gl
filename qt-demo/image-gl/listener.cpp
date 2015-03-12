@@ -40,7 +40,7 @@ void listener::socketError(QAbstractSocket::SocketError error)
 
 void listener::socketStateChanged(QAbstractSocket::SocketState state)
 {
-//    qDebug() << __FUNCTION__ << state;
+
 }
 
 void listener::readyRead(){
@@ -55,8 +55,6 @@ void listener::readyRead(){
     if(lines.count() > 0){
         QByteArray firstline = lines.first();
 
-
-//        GET /5500,0.0378723,0.0818329,9.5204,-0.194087,-0.0498331,-0.00262279
         QList<QByteArray> parts =  firstline.split('/');
         QByteArray data = (parts.at(1));
         QList<QByteArray> list1 =  data.split(' ');
@@ -85,15 +83,7 @@ void listener::readyRead(){
             b2 = list2.at(8).toUInt() != 0;
         }
 
-//        if(list2.count() >= 12){
-//            rx        = list2.at(9).toFloat();
-//            ry        = list2.at(10).toFloat();
-//            rz        = list2.at(11).toFloat();
-//        }
-
-
         emit sensorData( timestamp, ax, ay, az, gx, gy, gz, rx, ry, rz, b1, b2 );
-//        qDebug() << __FUNCTION__ << timestamp;
     }
 
     socket->disconnectFromHost();
